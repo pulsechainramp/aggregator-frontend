@@ -202,6 +202,32 @@ const Swap: React.FC = () => {
     }
   }, [allChains, dispatch, chain]);
 
+  // Default swap tokens on PulseChain: WETH -> PLS
+  useEffect(() => {
+    if (availableTokens && availableTokens.length > 0) {
+      // only set once
+      if (!fromToken) {
+        // Prefer symbol 'WETH', otherwise anything that begins with 'WETH' (e.g., 'WETH from Ethereum')
+        const weth =
+          availableTokens.find(t => t.symbol === "WETH") ||
+          availableTokens.find(t => /^WETH/i.test(t.symbol));
+        if (weth) {
+          dispatch(setFromToken({ ...weth }));
+        }
+      }
+
+      if (!toToken) {
+        // Prefer PLS; fall back to native ZeroAddress if needed
+        const pls =
+          availableTokens.find(t => t.symbol === "PLS") ||
+          availableTokens.find(t => t.address === ZeroAddress);
+        if (pls) {
+          dispatch(setToToken({ ...pls }));
+        }
+      }
+    }
+  }, [availableTokens, fromToken, toToken, dispatch]);
+
   // Get native balance when account changes
   useEffect(() => {
     if (account) {

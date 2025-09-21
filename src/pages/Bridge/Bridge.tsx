@@ -50,6 +50,21 @@ const Bridge: React.FC = () => {
     dispatch(fetchTokenPairs());
   }, [dispatch]);
 
+  // Default bridge token: ETH (=> WETH on PulseChain)
+  useEffect(() => {
+    if (!selectedToken && tokens && tokens.length > 0) {
+      // prefer ETH on Ethereum (chainId 1); fallback to WETH if needed
+      const preferred = ["ETH", "WETH"];
+      const def = preferred
+        .map(sym => tokens.find(t => t.chainId === fromChainId && t.symbol === sym))
+        .find(Boolean);
+
+      if (def) {
+        dispatch(setSelectedToken(def));
+      }
+    }
+  }, [tokens, fromChainId, selectedToken, dispatch]);
+
   const debouncedFetchEstimate = useCallback(
     (() => {
       let timeoutId: NodeJS.Timeout;
