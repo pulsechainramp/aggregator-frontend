@@ -310,6 +310,18 @@ const Header = () => {
                           </div>
                         </div>
                       )}
+                    
+                    {/* Refer & Earn link */}
+                    <Link
+                      to="/referrals"
+                      className="block px-3 py-2 rounded-md hover:bg-slate-700/60 text-emerald-300 font-medium"
+                      // onClick={() => setWalletDropdownOpen(false)}
+                    >
+                      Refer &amp; Earn
+                    </Link>
+
+                    {/* Divider */}
+                    <div className="my-2 h-px bg-slate-700/60" />
 
                     {/* Disconnect Button */}
                     <button

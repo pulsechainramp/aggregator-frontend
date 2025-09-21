@@ -17,6 +17,12 @@ import {
 import { getAvailableTokensFromChain } from "../../store/swapSlice";
 import { toast } from "react-toastify";
 import { TokenType } from "../../types/Swap";
+import { Link } from "react-router-dom";
+import ReferralFeePopup from "../Swap/ReferralFeePopup";
+import {
+  fetchReferralCode,
+  fetchReferralFeeBasisPoints,
+} from "../../store/referralSlice";
 
 const Referrals: React.FC = () => {
   const { account } = useWallet();
@@ -28,6 +34,14 @@ const Referrals: React.FC = () => {
   const [tokens, setTokens] = useState<TokenType[]>([]);
   const [tokensLoading, setTokensLoading] = useState(false);
   const claiming = useReferralClaiming();
+  const [isFeePopupOpen, setIsFeePopupOpen] = useState(false);
+
+  // Check if referral code is available
+  useEffect(() => {
+    if (account && !referralCode) {
+      dispatch(fetchReferralCode(account));
+    }
+  }, [account, referralCode, dispatch]);
 
   // Calculate total earnings from Redux state
   const totalEarnings = useMemo(() => {
@@ -192,6 +206,21 @@ const Referrals: React.FC = () => {
     );
   }
 
+  // referral link & copy
+  const referralLink = referralCode?.referralCode
+    ? `${window.location.origin}?code=${referralCode.referralCode}`
+    : "";
+
+  const copyReferralLink = async () => {
+    try {
+      if (!referralLink) return;
+      await navigator.clipboard.writeText(referralLink);
+      toast.success("Referral link copied to clipboard");
+    } catch (e) {
+      toast.error("Could not copy link");
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -209,6 +238,40 @@ const Referrals: React.FC = () => {
             Track your referral earnings and claim your rewards
           </p>
         </motion.div>
+
+        {/* Your referral link */}
+        <section className="mb-6 rounded-2xl border border-slate-700/60 bg-slate-800/60 p-4">
+          <h2 className="text-slate-200 font-semibold mb-2">Your referral link</h2>
+
+          {account ? (
+            <div className="flex gap-2">
+              <input
+                className="flex-1 rounded-md bg-slate-900/60 border border-slate-700/60 px-3 py-2 text-slate-200 text-sm"
+                readOnly
+                value={referralLink || "Generating..."}
+              />
+              <button
+                onClick={copyReferralLink}
+                disabled={!referralLink}
+                className="px-4 py-2 rounded-md bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-semibold disabled:opacity-50"
+              >
+                Copy
+              </button>
+            </div>
+          ) : (
+            <p className="text-slate-400 text-sm">Connect your wallet to get your referral link.</p>
+          )}
+
+          {/* NEW: open existing fee popup from here */}
+          <div className="mt-3">
+            <button
+              onClick={() => setIsFeePopupOpen(true)}
+              className="text-emerald-300 underline underline-offset-4 text-sm"
+            >
+              Update your referral fee
+            </button>
+          </div>
+        </section>
 
         {/* Referral Fees List */}
         <motion.div
@@ -360,6 +423,11 @@ const Referrals: React.FC = () => {
             </div>
           )}
         </motion.div>
+
+        <ReferralFeePopup
+          isOpen={isFeePopupOpen}
+          onClose={() => setIsFeePopupOpen(false)}
+        />
       </div>
     </div>
   );

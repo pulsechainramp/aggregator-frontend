@@ -25,7 +25,6 @@ import { TokenType } from "../../types/Swap";
 import TokenPopup from "./TokenPopup";
 import QuotePanel from "./QuotePanel";
 import SlippagePopup from "./SlippagePopup";
-import ReferralFeePopup from "./ReferralFeePopup";
 import { SwapHeader, SwapCard, ApprovalStatus, SwapButton } from "./components";
 import { ethers } from "ethers";
 import * as toastify from "react-toastify";
@@ -39,7 +38,6 @@ const Swap: React.FC = () => {
 
   const [isTokenPopupOpen, setIsTokenPopupOpen] = useState(false);
   const [isSlippagePopupOpen, setIsSlippagePopupOpen] = useState(false);
-  const [isReferralFeePopupOpen, setIsReferralFeePopupOpen] = useState(false);
   const [tokenGlobTag, setTokenGlobTag] = useState<TokenGlobTag>(
     TokenGlobTag.All
   );
@@ -406,7 +404,6 @@ const Swap: React.FC = () => {
           <SwapHeader
             slippage={slippage}
             onSlippageClick={() => setIsSlippagePopupOpen(true)}
-            onReferralFeeClick={() => setIsReferralFeePopupOpen(true)}
             onRefreshClick={refreshBalances}
             isRefreshing={isRefreshingBalances}
           />
@@ -478,11 +475,6 @@ const Swap: React.FC = () => {
       <SlippagePopup
         isOpen={isSlippagePopupOpen}
         onClose={() => setIsSlippagePopupOpen(false)}
-      />
-
-      <ReferralFeePopup
-        isOpen={isReferralFeePopupOpen}
-        onClose={() => setIsReferralFeePopupOpen(false)}
       />
     </motion.div>
   );
