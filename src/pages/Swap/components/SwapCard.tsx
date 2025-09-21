@@ -5,7 +5,7 @@ import AmountInput from "./AmountInput";
 import TokenSelector from "./TokenSelector";
 import TokenSwapButton from "./TokenSwapButton";
 
-import { addTokenToWallet } from "../../../utils/walletUtils";
+import { addTokenToWallet, waitForChain, EIP1193Provider } from "../../../utils/walletUtils";
 import useWallet from "../../../hooks/useWallet";
 import { toast } from "react-toastify";
 
@@ -147,7 +147,7 @@ const SwapCard: React.FC<SwapCardProps> = ({
               try {
                 if (!isOnPulseChain()) {
                   await switchToChain(369);
-                  await new Promise((resolve) => setTimeout(resolve, 1000));
+                  try { await waitForChain(wallet.provider as unknown as EIP1193Provider, 369); } catch {}
                 }
 
                 const success = await addTokenToWallet(
@@ -157,7 +157,7 @@ const SwapCard: React.FC<SwapCardProps> = ({
                     decimals: fromToken.decimals,
                     chainId: 369,
                   },
-                  wallet
+                  { provider: wallet.provider as unknown as EIP1193Provider }
                 );
 
                 if (success) {
@@ -218,7 +218,7 @@ const SwapCard: React.FC<SwapCardProps> = ({
               try {
                 if (!isOnPulseChain()) {
                   await switchToChain(369);
-                  await new Promise((resolve) => setTimeout(resolve, 1000));
+                  try { await waitForChain(wallet.provider as unknown as EIP1193Provider, 369); } catch {}
                 }
 
                 const success = await addTokenToWallet(
@@ -228,7 +228,7 @@ const SwapCard: React.FC<SwapCardProps> = ({
                     decimals: toToken.decimals,
                     chainId: 369,
                   },
-                  wallet
+                  { provider: wallet.provider as unknown as EIP1193Provider }
                 );
 
                 if (success) {

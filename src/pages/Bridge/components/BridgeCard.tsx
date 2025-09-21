@@ -4,7 +4,7 @@ import TokenSelector from "./TokenSelector";
 import AmountInput from "./AmountInput";
 import { BridgeToken, BridgeTransaction } from "../../../store/bridgeSlice";
 import useWallet from "../../../hooks/useWallet";
-import { addTokenToWallet } from "../../../utils/walletUtils";
+import { addTokenToWallet, waitForChain, EIP1193Provider } from "../../../utils/walletUtils";
 import { useBridgeTransactionPolling } from "../../../hooks/useBridgeTransactionPolling";
 import BridgeTransactionProgress from "./BridgeTransactionProgress";
 import { useAppDispatch } from "../../../store/hooks";
@@ -548,7 +548,11 @@ const BridgeCard: React.FC<BridgeCardProps> = ({
                 try {
                   if (!isOnCorrectNetwork()) {
                     await switchToChain(fromChainId);
-                    await new Promise((resolve) => setTimeout(resolve, 1000));
+                    try {
+                      await waitForChain(wallet!.provider as unknown as EIP1193Provider, fromChainId);
+                    } catch {
+                      // ignore
+                    }
                   }
 
                   const success = await addTokenToWallet(
@@ -559,7 +563,7 @@ const BridgeCard: React.FC<BridgeCardProps> = ({
                       chainId: fromChainId,
                       image: selectedTokenData.logoURI,
                     },
-                    wallet
+                    { provider: wallet.provider as any }
                   );
 
                   if (success) {
@@ -711,61 +715,28 @@ const BridgeCard: React.FC<BridgeCardProps> = ({
                         : amount || "0.00"}
                     </span>
 
-                    {correspondingToken && correspondingTokenData && (
-                      <button
-                        onClick={async () => {
-                          if (!wallet) return;
-
-                          try {
-                            // Check if user is on the destination network
-                            if (currentChainId !== toChainId) {
-                              await switchToChain(toChainId);
-                              await new Promise((resolve) =>
-                                setTimeout(resolve, 1000)
-                              );
-                            }
-
-                            const success = await addTokenToWallet(
-                              {
-                                address: correspondingTokenData.address,
-                                symbol: cleanTokenSymbol(correspondingToken),
-                                decimals: correspondingTokenData.decimals,
-                                chainId: toChainId,
-                                image: correspondingTokenData.logoURI,
-                              },
-                              wallet
-                            );
-
-                            if (success) {
-                              // Show success feedback
-                            }
-                          } catch (error) {
-                            console.error("Error adding token:", error);
-                          }
+                    {correspondingToken && correspondingTokenData && account && (
+                      <AddToWalletButton
+                        token={{
+                          address: correspondingTokenData.address,
+                          symbol: cleanTokenSymbol(correspondingToken),
+                          decimals: correspondingTokenData.decimals,
+                          chainId: toChainId,
+                          image: correspondingTokenData.logoURI,
                         }}
-                        className="p-1.5 hover:bg-[#3a3f5a]/50 rounded-lg transition-colors duration-200"
-                        title="Add to MetaMask"
-                      >
-                        <img
-                          src="/metamask.png"
-                          alt="MetaMask"
-                          className="w-4 h-4"
-                        />
-                      </button>
+                        variant="outline"
+                        size="sm"
+                      />
                     )}
                   </div>
                   <div className="text-gray-400 text-sm">
-                    Fee:{" "}
+                    Fee: {" "}
                     {estimate.fee
                       ? formatAmount(estimate.fee, selectedTokenData?.decimals)
                       : "0.00"}{" "}
                     ({estimate.feePercentage || 0}%)
                   </div>
-                  {!estimate.isSupported && (
-                    <div className="text-red-400 text-xs mt-1">
-                      Not supported
-                    </div>
-                  )}
+                  <div className="text-gray-400 text-sm">≈ $0.00</div>
                 </div>
               ) : estimateError ? (
                 <div className="text-red-400 text-sm">
@@ -778,7 +749,7 @@ const BridgeCard: React.FC<BridgeCardProps> = ({
                       {amount || "0.00"}
                     </span>
 
-                    {correspondingToken && correspondingTokenData && (
+                    {correspondingToken && correspondingTokenData && account && (
                       <>
                         <button
                           onClick={async () => {
@@ -788,9 +759,7 @@ const BridgeCard: React.FC<BridgeCardProps> = ({
                                   correspondingTokenData.address
                                 );
                                 toast && toast.success
-                                  ? toast.success(
-                                      "Token address copied to clipboard"
-                                    )
+                                  ? toast.success("Token address copied to clipboard")
                                   : null;
                               } catch (error) {
                                 console.error("Failed to copy address:", error);
@@ -814,46 +783,17 @@ const BridgeCard: React.FC<BridgeCardProps> = ({
                             />
                           </svg>
                         </button>
-                        <button
-                          onClick={async () => {
-                            if (!wallet) return;
-
-                            try {
-                              // Check if user is on the destination network
-                              if (currentChainId !== toChainId) {
-                                await switchToChain(toChainId);
-                                await new Promise((resolve) =>
-                                  setTimeout(resolve, 1000)
-                                );
-                              }
-
-                              const success = await addTokenToWallet(
-                                {
-                                  address: correspondingTokenData.address,
-                                  symbol: cleanTokenSymbol(correspondingToken),
-                                  decimals: correspondingTokenData.decimals,
-                                  chainId: toChainId,
-                                  image: correspondingTokenData.logoURI,
-                                },
-                                wallet
-                              );
-
-                              if (success) {
-                                // Show success feedback
-                              }
-                            } catch (error) {
-                              console.error("Error adding token:", error);
-                            }
+                        <AddToWalletButton
+                          token={{
+                            address: correspondingTokenData.address,
+                            symbol: cleanTokenSymbol(correspondingToken),
+                            decimals: correspondingTokenData.decimals,
+                            chainId: toChainId,
+                            image: correspondingTokenData.logoURI,
                           }}
-                          className="p-1.5 hover:bg-[#3a3f5a]/50 rounded-lg transition-colors duration-200"
-                          title="Add to MetaMask"
-                        >
-                          <img
-                            src="/metamask.png"
-                            alt="MetaMask"
-                            className="w-4 h-4"
-                          />
-                        </button>
+                          variant="outline"
+                          size="sm"
+                        />
                       </>
                     )}
                   </div>

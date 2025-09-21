@@ -1,13 +1,18 @@
 import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { addTokenToWallet, TokenInfo } from "../utils/walletUtils";
+import { addTokenToWallet, waitForChain, TokenInfo, EIP1193Provider } from "../utils/walletUtils";
 import useWallet from "../hooks/useWallet";
+import TokenAddFallbackModal from "./TokenAddFallbackModal";
+import ProviderIcon from "./ProviderIcon";
+import { PulseChainConfig, EthereumConfig } from "../config/chainConfig";
 
 interface AddToWalletButtonProps {
   token: TokenInfo;
   className?: string;
   variant?: "primary" | "secondary" | "outline";
   size?: "sm" | "md" | "lg";
+  /** When true, hides the button if the user already has a non-zero balance of this token on the token's chain */
+  hideIfHasToken?: boolean;
 }
 
 const AddToWalletButton: React.FC<AddToWalletButtonProps> = ({
@@ -15,13 +20,113 @@ const AddToWalletButton: React.FC<AddToWalletButtonProps> = ({
   className = "",
   variant = "primary",
   size = "md",
+  hideIfHasToken = true,
 }) => {
-  const { wallet, switchToChain } = useWallet();
+  const { wallet, switchToChain, account } = useWallet();
   const [isAdding, setIsAdding] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   const [showError, setShowError] = useState(false);
   const [currentChainId, setCurrentChainId] = useState<number | null>(null);
   const [isSwitchingNetwork, setIsSwitchingNetwork] = useState(false);
+  const [showFallback, setShowFallback] = useState(false);
+  const [checkingHasToken, setCheckingHasToken] = useState(false);
+  const [hasToken, setHasToken] = useState<boolean | null>(null);
+
+  const getAccountAddress = () => {
+    const a: any = account as any;
+    if (!a) return undefined;
+    if (typeof a === "string") return a;
+    if (Array.isArray(a)) {
+      const first = a[0];
+      return typeof first === "string" ? first : first?.address;
+    }
+    return a?.address;
+  };
+
+  const getRpcUrlForChain = (id: number): string | undefined => {
+    if (id === PulseChainConfig.chainId) return PulseChainConfig.providerList?.[0];
+    if (id === EthereumConfig.chainId) return EthereumConfig.providerList?.[0];
+    return undefined;
+  };
+
+  const encodeBalanceOfCallData = (user: string): string => {
+    const fnSelector = "0x70a08231"; // balanceOf(address)
+    const addr = user.toLowerCase().replace(/^0x/, "");
+    return fnSelector + addr.padStart(64, "0");
+  };
+
+  const parseHexBigInt = (hex?: string): bigint => {
+    if (!hex || typeof hex !== "string") return BigInt(0);
+    let h = hex.trim();
+    if (h === "0x" || h === "0X" || h === "") return BigInt(0);
+    try {
+      return BigInt(h);
+    } catch {
+      try {
+        if (!h.startsWith("0x") && !h.startsWith("0X")) h = "0x" + h;
+        if (h.toLowerCase() === "0x") h = "0x0";
+        return BigInt(h);
+      } catch {
+        return BigInt(0);
+      }
+    }
+  };
+
+  async function erc20BalanceViaProvider(provider: EIP1193Provider, tokenAddress: string, user: string): Promise<bigint> {
+    const data = encodeBalanceOfCallData(user);
+    const res: string = await provider.request({
+      method: "eth_call",
+      params: [{ to: tokenAddress, data }, "latest"],
+    });
+    return parseHexBigInt(res);
+  }
+
+  async function erc20BalanceViaRpc(rpcUrl: string, tokenAddress: string, user: string): Promise<bigint> {
+    const body = {
+      jsonrpc: "2.0",
+      id: 1,
+      method: "eth_call",
+      params: [
+        { to: tokenAddress, data: encodeBalanceOfCallData(user) },
+        "latest",
+      ],
+    };
+    const resp = await fetch(rpcUrl, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(body),
+    });
+    const json = await resp.json();
+    if (json?.error) throw new Error(json.error?.message || "RPC error");
+    return parseHexBigInt(json?.result ?? "0x0");
+  }
+
+  const isZeroAddress = (addr?: string) => !!addr && /^0x0{40}$/i.test(addr);
+
+  async function nativeBalanceViaProvider(provider: EIP1193Provider, user: string): Promise<bigint> {
+    const res: string = await provider.request({
+      method: "eth_getBalance",
+      params: [user, "latest"],
+    });
+    return parseHexBigInt(res);
+  }
+
+  async function nativeBalanceViaRpc(rpcUrl: string, user: string): Promise<bigint> {
+    const body = {
+      jsonrpc: "2.0",
+      id: 1,
+      method: "eth_getBalance",
+      params: [user, "latest"],
+    };
+    const resp = await fetch(rpcUrl, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(body),
+    });
+    const json = await resp.json();
+    if (json?.error) throw new Error(json.error?.message || "RPC error");
+    return parseHexBigInt(json?.result ?? "0x0");
+  }
 
   // Get current network from wallet
   useEffect(() => {
@@ -53,6 +158,50 @@ const AddToWalletButton: React.FC<AddToWalletButtonProps> = ({
       };
     }
   }, [wallet]);
+
+  // Heuristic: determine if user "has" the token by checking ERC-20 balance > 0 on the token's chain
+  useEffect(() => {
+    let cancelled = false;
+    const run = async () => {
+      if (!hideIfHasToken) return;
+      const user = getAccountAddress();
+      // If no user or no token info, we can't check; show button by leaving hasToken=null
+      if (!user || !token?.address || !token?.chainId) {
+        setHasToken(null);
+        return;
+      }
+      setCheckingHasToken(true);
+      try {
+        let bal: bigint = BigInt(0);
+        const zero = isZeroAddress(token.address);
+        if (currentChainId === token.chainId && wallet?.provider) {
+          bal = zero
+            ? await nativeBalanceViaProvider(wallet.provider as unknown as EIP1193Provider, user)
+            : await erc20BalanceViaProvider(wallet.provider as unknown as EIP1193Provider, token.address, user);
+        } else {
+          const rpc = getRpcUrlForChain(token.chainId);
+          if (!rpc) {
+            // Unknown chain in config; skip checking
+            setHasToken(null);
+            return;
+          }
+          bal = zero
+            ? await nativeBalanceViaRpc(rpc, user)
+            : await erc20BalanceViaRpc(rpc, token.address, user);
+        }
+        if (!cancelled) setHasToken(bal > BigInt(0));
+      } catch (e) {
+        console.warn("Token balance check failed:", e);
+        if (!cancelled) setHasToken(null); // unknown; don't block showing the button
+      } finally {
+        if (!cancelled) setCheckingHasToken(false);
+      }
+    };
+    run();
+    return () => {
+      cancelled = true;
+    };
+  }, [hideIfHasToken, account, token?.address, token?.chainId, wallet, currentChainId]);
 
   // Check if user is on the correct network for the token
   const isOnCorrectNetwork = () => {
@@ -93,15 +242,17 @@ const AddToWalletButton: React.FC<AddToWalletButtonProps> = ({
 
         // Switch to the correct network first
         await switchToChain(token.chainId);
-
-        // Wait a moment for the network switch to complete
-        await new Promise((resolve) => setTimeout(resolve, 1000));
+        try {
+          await waitForChain(wallet.provider as unknown as EIP1193Provider, token.chainId);
+        } catch {
+          // proceed; some mobile contexts don't emit chainChanged reliably
+        }
 
         setIsSwitchingNetwork(false);
       }
 
       // Now add the token to the wallet
-      const success = await addTokenToWallet(token, wallet);
+  const success = await addTokenToWallet(token, { provider: wallet.provider as unknown as EIP1193Provider });
 
       if (success) {
         setShowSuccess(true);
@@ -109,11 +260,13 @@ const AddToWalletButton: React.FC<AddToWalletButtonProps> = ({
       } else {
         setShowError(true);
         setTimeout(() => setShowError(false), 3000);
+        setShowFallback(true);
       }
     } catch (error) {
       console.error("Error adding token:", error);
       setShowError(true);
       setTimeout(() => setShowError(false), 3000);
+      setShowFallback(true);
     } finally {
       setIsAdding(false);
       setIsSwitchingNetwork(false);
@@ -148,6 +301,8 @@ const AddToWalletButton: React.FC<AddToWalletButtonProps> = ({
 
   return (
     <div className="relative">
+      {/* Hide entirely when not connected or when user already has a non-zero balance of this token (heuristic) */}
+      {(!getAccountAddress() || (hideIfHasToken && hasToken === true)) ? null : (
       <motion.button
         whileHover={{ scale: 1.02 }}
         whileTap={{ scale: 0.98 }}
@@ -169,26 +324,19 @@ const AddToWalletButton: React.FC<AddToWalletButtonProps> = ({
           </div>
         ) : !isOnCorrectNetwork() ? (
           <div className="flex items-center space-x-2">
-            <img 
-              src="/metamask.png" 
-              alt="MetaMask" 
-              className="w-4 h-4"
-              />
-            <span>
-              Switch to {getRequiredNetworkName()} & Add {token.symbol}
-            </span>
+            <ProviderIcon provider={(wallet as any)?.provider?.provider ?? (wallet as any)?.provider ?? null} />
+            <span>Switch to {getRequiredNetworkName()} & Add {token.symbol}</span>
           </div>
         ) : (
           <div className="flex items-center space-x-2">
-            <img 
-              src="/metamask.png" 
-              alt="MetaMask" 
-              className="w-4 h-4"
-              />
-            <span>Add {token.symbol} to Wallet</span>
+            <span className="relative inline-flex items-center justify-center">
+              <ProviderIcon provider={(wallet as any)?.provider?.provider ?? (wallet as any)?.provider ?? null} />
+            </span>
+            <span>Add {token.symbol} to wallet</span>
           </div>
         )}
       </motion.button>
+      )}
 
       {/* Success Message */}
       {showSuccess && (
@@ -215,6 +363,12 @@ const AddToWalletButton: React.FC<AddToWalletButtonProps> = ({
             : `Failed to add ${token.symbol}. Please try again.`}
         </motion.div>
       )}
+
+      <TokenAddFallbackModal
+        open={showFallback}
+        token={token}
+        onClose={() => setShowFallback(false)}
+      />
     </div>
   );
 };
