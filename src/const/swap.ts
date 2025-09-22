@@ -14,5 +14,5 @@ export const BridgeManagerAddress =
   "0x1715a3E4A142d8b698131108995174F37aEBA10D";
 export const BridgeManagerAddressForNative =
   "0x8AC4ae65b3656e26dC4e0e69108B392283350f55";
-export const BackendURL = "http://135.181.55.207:3000/";
-// export const BackendURL = "https://pt-quote-api.vercel.app/";
+// export const BackendURL = "http://135.181.55.207:3000/";
+export const BackendURL = "https://pt-quote-api.vercel.app/";
