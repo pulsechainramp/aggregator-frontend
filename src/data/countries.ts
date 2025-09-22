@@ -1,0 +1,28 @@
+export type CountryOption = { code: string; name: string; fiat?: string };
+
+export const COUNTRY_OPTIONS: CountryOption[] = [
+  { code: "US", name: "United States", fiat: "USD" },
+  { code: "CA", name: "Canada", fiat: "CAD" },
+  { code: "GB", name: "United Kingdom", fiat: "GBP" },
+  { code: "DE", name: "Germany", fiat: "EUR" },
+  { code: "FR", name: "France", fiat: "EUR" },
+  { code: "IT", name: "Italy", fiat: "EUR" },
+  { code: "ES", name: "Spain", fiat: "EUR" },
+  { code: "NL", name: "Netherlands", fiat: "EUR" },
+  { code: "IE", name: "Ireland", fiat: "EUR" },
+  { code: "PT", name: "Portugal", fiat: "EUR" },
+  { code: "PL", name: "Poland", fiat: "PLN" },
+  { code: "CH", name: "Switzerland", fiat: "CHF" },
+  { code: "SE", name: "Sweden", fiat: "SEK" },
+  { code: "NO", name: "Norway", fiat: "NOK" },
+  { code: "DK", name: "Denmark", fiat: "DKK" },
+  { code: "FI", name: "Finland", fiat: "EUR" },
+  { code: "AU", name: "Australia", fiat: "AUD" },
+  { code: "NZ", name: "New Zealand", fiat: "NZD" },
+  { code: "SG", name: "Singapore", fiat: "SGD" },
+  { code: "JP", name: "Japan", fiat: "JPY" },
+  { code: "KR", name: "South Korea", fiat: "KRW" },
+  { code: "HK", name: "Hong Kong", fiat: "HKD" },
+  { code: "BR", name: "Brazil", fiat: "BRL" },
+  { code: "MX", name: "Mexico", fiat: "MXN" },
+];
