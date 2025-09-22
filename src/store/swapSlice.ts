@@ -1,7 +1,7 @@
 import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
 import { QuoteType, TokenType } from "../types/Swap";
 import { ethers } from "ethers";
-import { isSelfReferral } from "../utils/referralUtils";
+import { isSelfReferral, getStoredReferralCode } from "../utils/referralUtils";
 import { ZeroAddress, SwapManagerAddress, BackendURL } from "../const/swap";
 import {
   approveToken,
@@ -191,7 +191,22 @@ export const executeSwapAction = createAsyncThunk(
   }) => {
     // Get referral address from Redux store
     const state = store.getState();
-    const referralAddress = state.referral.referralAddress?.address;
+    let referralAddress = state.referral.referralAddress?.address; // changed to let for fallback hydration
+    // Fallback: resolve from localStorage at swap time if Redux not hydrated yet
+    if (!referralAddress) {
+      const code = getStoredReferralCode();
+      if (code) {
+        try {
+          const resp = await fetch(`${BackendURL}referral/address?referralCode=${encodeURIComponent(code)}`);
+          if (resp.ok) {
+            const data = await resp.json();
+            referralAddress = (data?.address || data?.referralAddress || null) as string | null;
+          }
+        } catch {
+          // no-op: proceed without a referrer
+        }
+      }
+    }
     
     // Only use referral address if it's not a self-referral
     const referrerAddress = referralAddress && account && 

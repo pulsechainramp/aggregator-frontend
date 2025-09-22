@@ -25,7 +25,7 @@ export const REFERRAL_CODE_KEY = 'pulsechain_referral_code';
 export const extractAndSaveReferralCode = (): string | null => {
   try {
     const urlParams = new URLSearchParams(window.location.search);
-    const referralCode = urlParams.get('code');
+    const referralCode = urlParams.get('ref') || urlParams.get('code');
     
     if (referralCode) {
       // Check if this is a different referral code than what's already stored
@@ -39,6 +39,7 @@ export const extractAndSaveReferralCode = (): string | null => {
       
       // Remove the code parameter from URL without page reload
       urlParams.delete('code');
+      urlParams.delete('ref');
       const newUrl = window.location.pathname + (urlParams.toString() ? `?${urlParams.toString()}` : '');
       window.history.replaceState({}, '', newUrl);
       
@@ -96,7 +97,7 @@ export const removeStoredReferralCode = (): void => {
  */
 export const hasReferralCodeInUrl = (): boolean => {
   const urlParams = new URLSearchParams(window.location.search);
-  return urlParams.has('code');
+  return urlParams.has('ref') || urlParams.has('code');
 };
 
 /**
