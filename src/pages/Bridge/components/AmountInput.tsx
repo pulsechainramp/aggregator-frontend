@@ -1,5 +1,8 @@
 import React, { useState } from "react";
 import { motion } from "framer-motion";
+import ProviderIcon from "../../../components/ProviderIcon";
+import useWallet from "../../../hooks/useWallet";
+import AddToWalletButton from "../../../components/AddToWalletButton";
 
 interface AmountInputProps {
   value: string;
@@ -29,6 +32,9 @@ const AmountInput: React.FC<AmountInputProps> = ({
   selectedTokenData,
 }) => {
   const [showTooltip, setShowTooltip] = useState(false);
+  const { wallet, account, currentChainId } = useWallet();
+  const injected = (wallet as any)?.provider?.provider ?? (wallet as any)?.provider ?? null;
+  const isConnected = !!account;
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const inputValue = e.target.value;
@@ -86,13 +92,15 @@ const AmountInput: React.FC<AmountInputProps> = ({
 
           {showButtons && tokenAddress && (
             <>
-              <button
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
                 onClick={onCopyAddress}
-                className="p-1 hover:bg-[#3a3f5a]/50 rounded-lg transition-colors duration-200 flex-shrink-0 w-8 h-8 flex items-center justify-center"
+                className="px-3 py-3 text-xs bg-gradient-to-r from-[#3a3f5a] to-[#2b2e4a] text-gray-300 rounded-lg hover:from-[#4a4f6a] hover:to-[#3a3f5a] hover:text-white transition-all duration-200 font-medium border border-[#4a4f6a] hover:border-[#5a5f7a] flex-shrink-0"
                 title="Copy token address"
               >
                 <svg
-                  className="w-4 h-4 text-gray-300"
+                  className="w-4 h-4"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -104,14 +112,21 @@ const AmountInput: React.FC<AmountInputProps> = ({
                     d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"
                   />
                 </svg>
-              </button>
-              <button
-                onClick={onAddToWallet}
-                className="p-1 hover:bg-[#3a3f5a]/50 rounded-lg transition-colors duration-200 flex-shrink-0 w-8 h-8 flex items-center justify-center"
-                title="Add to MetaMask"
-              >
-                <img src="/metamask.png" alt="MetaMask" className="w-4 h-4" />
-              </button>
+              </motion.button>
+
+              {fromChainId !== 1 && isConnected && (
+                <AddToWalletButton
+                  token={{
+                    address: selectedTokenData?.address ?? tokenAddress,
+                    symbol: selectedToken,
+                    decimals: selectedTokenData?.decimals ?? 18,
+                    chainId: fromChainId ?? 369,
+                  }}
+                  variant="outline"
+                  size="sm"
+                  className="flex-shrink-0"
+                />
+              )}
             </>
           )}
         </div>

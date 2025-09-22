@@ -4,7 +4,7 @@ import { BridgeTransaction } from "../../../store/bridgeSlice";
 import { useAppSelector } from "../../../store/hooks";
 import { useAppDispatch } from "../../../store/hooks";
 import { fetchTransactionStatus } from "../../../store/activitySlice";
-import { addTokenToWallet } from "../../../utils/walletUtils";
+import { addTokenToWallet, waitForChain, EIP1193Provider } from "../../../utils/walletUtils";
 import { TokenInfo } from "../../../utils/walletUtils";
 import useWallet from "../../../hooks/useWallet";
 
@@ -188,10 +188,10 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
         const networkName = token.chainId === 1 ? "Ethereum" : "PulseChain";
         
         await switchToChain(token.chainId);
-        await new Promise((resolve) => setTimeout(resolve, 1000));
+        try { await waitForChain(wallet.provider as unknown as EIP1193Provider, token.chainId); } catch {}
       }
 
-      const success = await addTokenToWallet(token, wallet);
+      const success = await addTokenToWallet(token, { provider: wallet.provider as unknown as EIP1193Provider });
       
       if (success) {
         // Token added successfully
@@ -421,11 +421,11 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
                             className="text-blue-400 hover:text-blue-300 transition-colors duration-200"
                             title="Click to add token to wallet"
                           >
-                            <img 
-                              src="/metamask.png" 
-                              alt="MetaMask" 
-                              className="w-4 h-4"
-                            />
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" className="w-4 h-4">
+                              <path d="M6 8V6a4 4 0 1 1 8 0v2" strokeWidth="2" />
+                              <rect x="4" y="8" width="16" height="12" rx="2" strokeWidth="2" />
+                              <path d="M12 11v6M9 14h6" strokeWidth="2" />
+                            </svg>
                           </button>
                         )}
                       </div>
@@ -443,11 +443,11 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
                           className="text-blue-400 hover:text-blue-300 transition-colors duration-200"
                           title="Click to add token to wallet"
                         >
-                          <img 
-                            src="/metamask.png" 
-                            alt="MetaMask" 
-                            className="w-4 h-4"
-                          />
+                          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" className="w-4 h-4">
+                            <path d="M6 8V6a4 4 0 1 1 8 0v2" strokeWidth="2" />
+                            <rect x="4" y="8" width="16" height="12" rx="2" strokeWidth="2" />
+                            <path d="M12 11v6M9 14h6" strokeWidth="2" />
+                          </svg>
                         </button>
                       )}
                     </div>
@@ -487,11 +487,11 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
                             className="text-blue-400 hover:text-blue-300 transition-colors duration-200"
                             title="Click to add token to wallet"
                           >
-                            <img 
-                              src="/metamask.png" 
-                              alt="MetaMask" 
-                              className="w-4 h-4"
-                            />
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" className="w-4 h-4">
+                              <path d="M6 8V6a4 4 0 1 1 8 0v2" strokeWidth="2" />
+                              <rect x="4" y="8" width="16" height="12" rx="2" strokeWidth="2" />
+                              <path d="M12 11v6M9 14h6" strokeWidth="2" />
+                            </svg>
                           </button>
                         )}
                       </div>
@@ -509,11 +509,11 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
                           className="text-blue-400 hover:text-blue-300 transition-colors duration-200"
                           title="Click to add token to wallet"
                         >
-                          <img 
-                            src="/metamask.png" 
-                            alt="MetaMask" 
-                            className="w-4 h-4"
-                          />
+                          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" className="w-4 h-4">
+                            <path d="M6 8V6a4 4 0 1 1 8 0v2" strokeWidth="2" />
+                            <rect x="4" y="8" width="16" height="12" rx="2" strokeWidth="2" />
+                            <path d="M12 11v6M9 14h6" strokeWidth="2" />
+                          </svg>
                         </button>
                       )}
                     </div>
