@@ -17,6 +17,9 @@ import { initializeBridgeManager } from "../../contracts/BridgeContract";
 import BridgeHeader from "./components/BridgeHeader";
 import BridgeCard from "./components/BridgeCard";
 import useWallet from "../../hooks/useWallet";
+import useEthBalance from "../../hooks/useEthBalance";
+import { OnRampBanner, OnRampModal } from "../../components/onramp";
+import { useState } from "react";
 
 const Bridge: React.FC = () => {
   const dispatch = useAppDispatch();
@@ -181,6 +184,9 @@ const Bridge: React.FC = () => {
 
   const correspondingToken = getCorrespondingToken(selectedToken?.symbol || "", toChainId);
 
+  const { ethFloat, isOnEthereum } = useEthBalance();
+  const [onrampOpen, setOnrampOpen] = useState(false);
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -202,7 +208,16 @@ const Bridge: React.FC = () => {
             className="bg-gradient-to-br from-[#2b2e4a] to-[#1e2030] rounded-3xl p-6 sm:p-8 lg:p-10 shadow-2xl border border-[#3a3f5a]/50 backdrop-blur-sm"
           >
             <BridgeHeader />
-            
+
+            {/* On-Ramp suggestion (only when on Ethereum with low ETH) */}
+            {isOnEthereum && (
+              <OnRampBanner
+                currentEth={ethFloat}
+                thresholdEth={0.02}
+                onClickBuy={() => setOnrampOpen(true)}
+              />
+            )}
+
             <div className="mt-6 sm:mt-8">
               <BridgeCard
                 fromNetwork={getNetworkName(fromChainId)}
@@ -235,6 +250,12 @@ const Bridge: React.FC = () => {
                 bridgeTransactionError={bridgeTransactionError}
               />
             </div>
+
+            <OnRampModal
+              open={onrampOpen}
+              onClose={() => setOnrampOpen(false)}
+              address={account}
+            />
           </motion.div>
         </motion.div>
       </div>
