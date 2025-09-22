@@ -7,6 +7,7 @@ import Header from "./pages/Header";
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import NetworkWarning from "./components/NetworkWarning";
+import AppFooter from "./components/AppFooter";
 
 function App() {
   return (
@@ -33,6 +34,8 @@ function App() {
             pauseOnHover
             theme="dark"
           />
+          {/* Footer at the bottom */}
+          <AppFooter />
         </div>
       </Router>
     </Provider>
