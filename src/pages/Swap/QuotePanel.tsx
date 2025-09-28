@@ -13,7 +13,7 @@ const QuotePanel = () => {
   const [showRoute, setShowRoute] = useState(false);
   const apiVersion = "2.3";
 
-  const [open, setOpen] = useState(true);
+  const [open, setOpen] = useState(false);
 
   // derive “source” and hop count
   const sourceLabel = !quote ? null : (quote as any).source === "piteas" ? "Piteas" : "PulseX";
@@ -117,20 +117,10 @@ const QuotePanel = () => {
         <span className="text-white/50">(${fmtUsd(Number(impliedUsdPerFrom))})</span>
         </div>
         <div className="flex items-center gap-2 text-sm text-white/60 select-none">
-          {sourceLabel && (
-            <span className="px-2 py-0.5 rounded bg-slate-700/60 text-[11px]">
-              Source: {sourceLabel}
-            </span>
-          )}
-          {hopCount > 0 && (
-            <span className="px-2 py-0.5 rounded bg-slate-700/60 text-[11px]">
-              {hopCount}-hop
-            </span>
-          )}
-          <span className="flex items-center gap-1">
-            Details {open ? <ChevronUpIcon className="w-4 h-4 ml-1" /> : <ChevronDownIcon className="w-4 h-4 ml-1" />}
-          </span>
-        </div>
+        <span className="flex items-center gap-1">
+          Details {open ? <ChevronUpIcon className="w-4 h-4 ml-1" /> : <ChevronDownIcon className="w-4 h-4 ml-1" />}
+        </span>
+      </div>
       </div>
       {/* Details */}
       {open && (
@@ -161,6 +151,17 @@ const QuotePanel = () => {
               {formatToken(toTokenAmount, toToken?.decimals)} {toToken?.symbol}
             </span>
           </div>
+          
+          {(sourceLabel || hopCount > 0) && (
+            <div className="flex justify-between">
+              <span className="text-white/50">Route</span>
+              <span className="text-white/80">
+                {sourceLabel ? sourceLabel : "—"}
+                {hopCount > 0 ? ` • ${hopCount}-hop` : ""}
+              </span>
+            </div>
+          )}
+
           <div className="flex justify-between items-center pt-2 border-t border-white/10 mt-2">
             <span className="text-xs text-white/40">
             </span>
