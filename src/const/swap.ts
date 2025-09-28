@@ -26,3 +26,5 @@ export const ClientPiteasMaxPerMinute = 9;              // <= 9 per minute
 export const WPLS = "0xA1077a294dDE1B09bB078844df40758a5D0f9a27";
 export const USDC = "0x15D38573d2feeb82e7ad5187aB8c1D52810B1f07"; // 6 decimals
 export const DAI  = "0xefD766cCb38EaF1dfd701853BFCe31359239F305"; // 18 decimals
+export const WETH = "0x02DcdD04e3F455D838cd1249292C58f3B79e3C3C"; // bridged WETH on PulseChain
+export const USDT = "0x0Cb6F5a34ad42ec934882A05265A7d5F59b51A2f";
