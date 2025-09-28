@@ -1,4 +1,9 @@
 import { PiteasBaseURL } from "../const/swap";
+import {
+  buildAllowlistFromEnvAndQuery,
+  findUnsupportedDexes,
+  ENFORCE_ALLOWED_DEXES
+} from "../utils/dexPolicy";
 
 let currentController: AbortController | null = null;
 
@@ -29,6 +34,20 @@ export async function fetchPiteasQuote(args: PiteasQuoteArgs) {
     throw err;
   }
   const raw = await res.json();
+
+  // Deny-by-default for unknown DEX names; allow only configured slugs.
+  const allow = buildAllowlistFromEnvAndQuery();
+  const violations = findUnsupportedDexes(raw?.route, allow);
+  if (violations.length) {
+    const err: any = new Error("UNSUPPORTED_DEX_IN_ROUTE");
+    err.status = 409;
+    err.details = { unsupportedDexes: violations };
+    if (ENFORCE_ALLOWED_DEXES) throw err;
+
+    // Soft mode: log and continue with the raw quote (UI may still pick server fallback)
+    console.warn("[Piteas] unsupported DEX(es) detected (soft mode):", violations);
+  }
+
   return normalizePiteasQuoteToApp(raw);
 }
 
