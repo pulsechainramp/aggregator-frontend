@@ -22,30 +22,33 @@ const QuotePanel = () => {
     quote?.route?.[0]?.subroutes?.[0]?.paths?.[0]?.tokens?.length ?? 0;
   const hopCount = hopTokens > 1 ? hopTokens - 1 : 0;
 
+  // Safely parse the input amount (strip thousands separators)
+  const fromAmountNum =
+    Number(String(fromAmount ?? "0").replace(/,/g, ""));
+
   const toTokenAmount =
     quote?.outputAmount && toToken?.decimals
-      ? Number(ethers.formatUnits(quote?.outputAmount, toToken?.decimals))
+      ? Number(ethers.formatUnits(quote.outputAmount, toToken.decimals))
       : 0;
-
+  
   const minOutput = toTokenAmount * (1 - slippage / 100);
 
   const fromPx = Number(fromToken?.price ?? 0);
   const toPx   = Number(toToken?.price ?? 0);
 
-  // Price implied by the current live quote (preferred for display)
-  const impliedUsdPerTo =
-  fromPx > 0 && toTokenAmount > 0 && Number(fromAmount) > 0
-    ? (Number(fromAmount) * fromPx) / toTokenAmount
-    : 0;
+  // USD per FROM token: prefer oracle; fallback to quote-implied
+  const impliedUsdPerFrom =
+    toPx > 0 && fromAmountNum > 0 && toTokenAmount > 0
+      ? (toTokenAmount * toPx) / fromAmountNum
+      : 0;
 
-  const oracleUsdPerTo = toPx > 0 ? toPx : 0;
+  const oracleUsdPerFrom = fromPx > 0 ? fromPx : 0;
+  const usdPerFromForDisplay =
+    oracleUsdPerFrom > 0 ? oracleUsdPerFrom : impliedUsdPerFrom;
 
-  // Prefer oracle (from getTokenPrice) for display; fall back to implied if oracle not ready
-  const usdPerToForDisplay = oracleUsdPerTo > 0 ? oracleUsdPerTo : impliedUsdPerTo;
-
-  // Keep “price impact” using oracle-to-oracle baseline so it doesn’t collapse to 0
+  // Keep “price impact” baseline; use the safe-parsed amount
   const denom =
-    (Number(fromAmount || 0) * fromPx) / (toPx > 0 ? toPx : 1);
+    (fromAmountNum * fromPx) / (toPx > 0 ? toPx : 1);
 
   const impact =
     fromPx > 0 && toPx > 0 && toTokenAmount > 0 && denom > 0
@@ -111,7 +114,7 @@ const QuotePanel = () => {
           {formatRatio(Number(fromAmount) || 1, toTokenAmount)}{" "}
           {fromToken?.symbol}
         </span>
-        <span className="text-white/50">(${fmtUsd(Number(usdPerToForDisplay))})</span>
+        <span className="text-white/50">(${fmtUsd(Number(impliedUsdPerFrom))})</span>
         </div>
         <div className="flex items-center gap-2 text-sm text-white/60 select-none">
           {sourceLabel && (

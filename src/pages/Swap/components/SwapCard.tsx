@@ -104,6 +104,33 @@ const SwapCard: React.FC<SwapCardProps> = ({
       : formatBalance(toTokenBalance);
   };
 
+  // ---------- NEW: derive robust USD overrides ----------
+  const fromPx = Number(fromToken?.price ?? 0);
+  const toPx = Number(toToken?.price ?? 0);
+  const fromAmtNum = Number((fromAmount || "0").toString().replace(/,/g, ""));
+  const toAmtNum = Number(outputAmount || 0);
+
+  // FROM field USD: prefer fromToken.price * fromAmount; fallback to toToken.price * outputAmount
+  const fromUsdOverride =
+    fromAmtNum > 0
+      ? (fromPx > 0
+          ? fromPx * fromAmtNum
+          : toPx > 0 && toAmtNum > 0
+            ? toPx * toAmtNum
+            : 0)
+      : 0;
+
+  // TO field USD: prefer toToken.price * toAmount; fallback to fromToken.price * fromAmount
+  const toUsdOverride =
+    toAmtNum > 0
+      ? (toPx > 0
+          ? toPx * toAmtNum
+          : fromPx > 0 && fromAmtNum > 0
+            ? fromPx * fromAmtNum
+            : 0)
+      : 0;
+  // ------------------------------------------------------
+
   return (
     <motion.div className="bg-[#1e2030] rounded-xl p-3 sm:p-4 flex-grow relative gap-2 flex flex-col border border-[#3a3f5a] shadow-lg">
       {/* From Token Section */}
@@ -135,6 +162,7 @@ const SwapCard: React.FC<SwapCardProps> = ({
                 : fromTokenBalance
             }
             balanceLoading={false}
+            fiatUsdOverride={fromUsdOverride}
             onCopyAddress={() => {
               if (fromToken?.address) {
                 navigator.clipboard.writeText(fromToken.address);
@@ -206,6 +234,7 @@ const SwapCard: React.FC<SwapCardProps> = ({
                 : toTokenBalance
             }
             balanceLoading={false}
+            fiatUsdOverride={toUsdOverride}
             onCopyAddress={() => {
               if (toToken?.address) {
                 navigator.clipboard.writeText(toToken.address);

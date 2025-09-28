@@ -16,6 +16,7 @@ interface AmountInputProps {
   balanceLoading?: boolean;
   onCopyAddress?: () => void;
   onAddToWallet?: () => void;
+  fiatUsdOverride?: number;
 }
 
 const AmountInput: React.FC<AmountInputProps> = ({
@@ -29,9 +30,10 @@ const AmountInput: React.FC<AmountInputProps> = ({
   balanceLoading = false,
   onCopyAddress,
   onAddToWallet,
+  fiatUsdOverride,
 }) => {
   // Use the injected EIP-1193 provider from web3-onboard (unwrap if wrapped)
-  const { wallet, account, currentChainId } = useWallet();
+  const { wallet, account } = useWallet();
   const injected =
     (wallet as any)?.provider?.provider ??
     (wallet as any)?.provider ??
@@ -80,14 +82,31 @@ const AmountInput: React.FC<AmountInputProps> = ({
     return formatAmount(amount);
   };
 
+  const formatUsd = (v: number) => {
+    const n = Number(v || 0);
+    const abs = Math.abs(n);
+    const opts =
+      abs >= 1
+        ? { minimumFractionDigits: 2, maximumFractionDigits: 2 }
+        : abs >= 0.01
+        ? { minimumFractionDigits: 4, maximumFractionDigits: 6 }
+        : { minimumFractionDigits: 8, maximumFractionDigits: 10 };
+    return n.toLocaleString(undefined, opts as Intl.NumberFormatOptions);
+  };
+
   const getPriceDisplay = () => {
-    if (!token?.price) return "0.00$";
-    
-    const priceValue = isOutput 
-      ? Number(token.price) * Number(outputAmount)
-      : Number(token.price) * Number(amount);
-    
-    return `$${priceValue.toFixed(2)}`;
+    // Prefer override when provided (already in USD)
+    if (typeof fiatUsdOverride === "number") {
+      return `$${formatUsd(fiatUsdOverride)}`;
+    }
+
+    // Fallback to token.price * amount
+    const amt = isOutput ? Number(outputAmount || 0) : Number((amount || "0").toString().replace(/,/g, ""));
+    const px = Number(token?.price ?? 0);
+    const usd = px > 0 && amt > 0 ? px * amt : 0;
+
+    return usd > 0 ? `$${formatUsd(usd)}`
+                   : "$0.00";
   };
 
   // Only show Add-to-wallet for non-Ethereum networks (prefer PulseChain)

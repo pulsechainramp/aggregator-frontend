@@ -2,7 +2,7 @@ import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
 import { QuoteType, TokenType } from "../types/Swap";
 import { ethers } from "ethers";
 import { isSelfReferral, getStoredReferralCode } from "../utils/referralUtils";
-import { ZeroAddress, SwapManagerAddress, BackendURL, USDC, DAI, WPLS } from "../const/swap";
+import { ZeroAddress, SwapManagerAddress, BackendURL, USDC, DAI, WPLS, WETH, USDT } from "../const/swap";
 import {
   approveToken,
   executeSwap,
@@ -330,7 +330,6 @@ export const getTokenPrice = createAsyncThunk(
     address,
     blockchainNetwork,
     decimals,
-    type,
   }: {
     address: string;
     blockchainNetwork: string;
@@ -341,10 +340,21 @@ export const getTokenPrice = createAsyncThunk(
     const resolvedAddress = address === ZeroAddress ? WPLS : address;
     const lower = resolvedAddress.toLowerCase();
 
-    // Shortcut for stables
-    if (lower === USDC.toLowerCase() || lower === DAI.toLowerCase()) return 1;
+    // Shortcut for bridged stables: assume $1
+    if (
+      lower === USDC.toLowerCase() ||
+      lower === USDT.toLowerCase() ||
+      lower === DAI.toLowerCase()
+    ) {
+      return 1;
+    }
+
+    // Helper: basic sanity on a price in USD
+    const isSuspicious = (v: number) =>
+      !Number.isFinite(v) || v <= 0 || v > 1e9;
 
     // ---- Prefer backend high-precision price on PulseChain ----
+    let backendPx = 0;
     if (isPulse) {
       try {
         // Use a larger scale for PLS to avoid quantization (keep scale=1 for expensive tokens like WETH)
@@ -361,43 +371,91 @@ export const getTokenPrice = createAsyncThunk(
         const res = await fetch(url);
         if (res.ok) {
           const data = await res.json();
-          // Prefer the precise string, fallback to numeric
           const preciseStr: string | undefined = data?.usd_price_str;
           if (preciseStr && preciseStr.trim().length > 0) {
             const n = Number(preciseStr);
-            if (Number.isFinite(n) && n > 0) return n;
+            if (!isSuspicious(n)) backendPx = n;
           }
-          const n = Number(data?.usd_price ?? 0);
-          if (Number.isFinite(n) && n > 0) return n;
-        }
-      } catch {
-        // fall through
-      }
-
-      // Fallback: single token->USDC quote for "1 token"
-      try {
-        const d = Number.isFinite(decimals) ? decimals : 18;
-        const oneTokenBase = ethers.parseUnits("1", d).toString();
-
-        const res = await fetch(
-          `${BackendURL}quote/pulsex?` +
-            `tokenInAddress=${resolvedAddress}` +
-            `&tokenOutAddress=${USDC}` +
-            `&amount=${oneTokenBase}` +
-            `&allowedSlippage=0.5`
-        );
-        if (res.ok) {
-          const q = await res.json();
-          const out = BigInt(q?.outputAmount ?? "0"); // USDC base units (6)
-          const usd = Number(out) / 1e6;
-          if (Number.isFinite(usd) && usd > 0) return usd;
+          if (!backendPx) {
+            const n = Number(data?.usd_price ?? 0);
+            if (!isSuspicious(n)) backendPx = n;
+          }
         }
       } catch {
         // ignore
       }
     }
 
-    // Cross-chain final fallback: Rubic
+    // ---- Multi-stable fallback (and cross-check) on PulseChain ----
+    // We quote "1 token" -> {USDC, USDT, DAI} and assume bridged stables ≈ $1.
+    // Then: if backendPx is missing or deviates wildly from the median, use the median.
+    if (isPulse) {
+      try {
+        const d = Number.isFinite(decimals) ? decimals : 18;
+        const oneTokenBase = ethers.parseUnits("1", d).toString();
+
+        const stableInfos = [
+          { addr: USDC, dec: 6 },
+          { addr: USDT, dec: 6 },
+          { addr: DAI,  dec: 18 },
+        ];
+
+        const reqs = stableInfos.map((s) =>
+          fetch(
+            `${BackendURL}quote/pulsex?` +
+              `tokenInAddress=${resolvedAddress}` +
+              `&tokenOutAddress=${s.addr}` +
+              `&amount=${oneTokenBase}` +
+              `&allowedSlippage=0.5`
+          )
+            .then(async (r) => (r.ok ? r.json() : null))
+            .then((q) => {
+              if (!q) return NaN;
+              // Support either shape from the API
+              const raw =
+                q?.outputAmount ??
+                q?.destAmount ??
+                q?.destAmount?.toString?.() ??
+                "0";
+              const out = BigInt(raw || "0");
+              const usd = Number(out) / 10 ** s.dec;
+              return Number.isFinite(usd) && usd > 0 ? usd : NaN;
+            })
+            .catch(() => NaN)
+        );
+
+        const vals = await Promise.all(reqs);
+        const good = vals.filter((x) => Number.isFinite(x) && x > 0) as number[];
+
+        if (good.length) {
+          // median helper
+          const med = (() => {
+            const arr = [...good].sort((a, b) => a - b);
+            const mid = Math.floor(arr.length / 2);
+            return arr.length % 2 ? arr[mid] : (arr[mid - 1] + arr[mid]) / 2;
+          })();
+
+          // If backend is missing or way off vs. median (e.g., routed through a mis‑pegged copy stable), trust median
+          const tooFar =
+            backendPx === 0 ||
+            backendPx / med > 3 || // >3x higher than median
+            med / backendPx > 3;   // >3x lower than median
+
+          if (tooFar && !isSuspicious(med)) {
+            return med;
+          }
+        }
+      } catch {
+        // ignore
+      }
+    }
+
+    // If backend price looked fine, use it
+    if (backendPx && !isSuspicious(backendPx)) {
+      return backendPx;
+    }
+
+    // ---- Cross-chain final fallback: Rubic (last resort) ----
     try {
       const res = await fetch(
         `https://api.rubic.exchange/api/v2/tokens/price/${blockchainNetwork}/${resolvedAddress}`
@@ -405,7 +463,7 @@ export const getTokenPrice = createAsyncThunk(
       if (res.ok) {
         const data = await res.json();
         const n = Number(data?.usd_price ?? 0);
-        if (Number.isFinite(n) && n > 0) return n;
+        if (!isSuspicious(n)) return n;
       }
     } catch {
       // ignore
@@ -567,11 +625,11 @@ export const swapSlice = createSlice({
       state.availableTokens = action.payload;
     },
     setFromToken: (state, action) => {
-      state.fromToken = action.payload;
+      state.fromToken = normalizePulseToken(action.payload);
       resetSwapState();
     },
     setToToken: (state, action) => {
-      state.toToken = action.payload;
+      state.toToken = normalizePulseToken(action.payload);
       resetSwapState();
     },
     setFromAmount: (state, action) => {
@@ -805,3 +863,30 @@ export const {
 } = swapSlice.actions;
 
 export default swapSlice.reducer;
+
+// ---- Canonical address/decimals fixes for PulseChain ----
+function normalizePulseToken(t: TokenType | null): TokenType | null {
+  if (!t) return t;
+  const net = (t.blockchainNetwork || t.network || '').toLowerCase();
+  if (net !== 'pulsechain') return t;
+
+  try {
+    const sym = (t.symbol || '').toUpperCase();
+    const canon: Record<string, { address: string; decimals: number }> = {
+      WPLS: { address: WPLS, decimals: 18 },
+      USDC: { address: USDC, decimals: 6 },
+      DAI:  { address: DAI,  decimals: 18 },
+      WETH: { address: WETH, decimals: 18 },
+      USDT: { address: USDT, decimals: 6 },
+    };
+    if (canon[sym]) {
+      const target = canon[sym];
+      const lowerA = (t.address || '').toLowerCase();
+      const lowerB = (target.address || '').toLowerCase();
+      if (lowerA !== lowerB || t.decimals !== target.decimals) {
+        return { ...t, address: target.address, decimals: target.decimals } as TokenType;
+      }
+    }
+  } catch {}
+  return t;
+}
