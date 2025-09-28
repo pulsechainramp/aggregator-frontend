@@ -141,45 +141,25 @@ const BridgeCard: React.FC<BridgeCardProps> = ({
 
   // Helper function to format amount from wei to human readable
   const formatAmount = (weiAmount: number, decimals: number = 18) => {
+    if (!isFinite(weiAmount)) return "0";
     const num = weiAmount / Math.pow(10, decimals);
-    // Convert to string with fixed precision first
-    const formatted = num.toFixed(6);
 
-    // Remove trailing zeros
-    let result = formatted;
-    while (result.includes(".") && result.endsWith("0")) {
-      result = result.slice(0, -1);
-    }
-    // Remove trailing decimal point if it exists
-    if (result.endsWith(".")) {
-      result = result.slice(0, -1);
-    }
-
-    return result;
+    return num.toLocaleString(undefined, {
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 6,
+    });
   };
 
   // Helper function to format balance string (already in human readable format)
   const formatBalance = (balance: string) => {
-    if (!balance || balance === "0.00" || balance === "0") return "0";
+    const num = Number(balance);
+    if (!isFinite(num) || num === 0) return "0";
 
-    // Convert to number and format
-    const num = parseFloat(balance);
-    if (isNaN(num)) return "0";
-
-    // Convert to string with fixed precision first
-    const formatted = num.toFixed(6);
-
-    // Remove trailing zeros
-    let result = formatted;
-    while (result.includes(".") && result.endsWith("0")) {
-      result = result.slice(0, -1);
-    }
-    // Remove trailing decimal point if it exists
-    if (result.endsWith(".")) {
-      result = result.slice(0, -1);
-    }
-
-    return result;
+    // Use locale-aware grouping and up to 6 decimals; trailing zeros are trimmed.
+    return num.toLocaleString(undefined, {
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 6,
+    });
   };
 
   // Get current progress step for bridge transaction

@@ -85,9 +85,12 @@ const SwapCard: React.FC<SwapCardProps> = ({
 
   const formatBalance = (balance: string) => {
     const num = parseFloat(balance);
-    if (num === 0) return "0";
-    if (num < 0.0001) return "< 0.0001";
-    return num.toFixed(4);
+    if (!isFinite(num) || num === 0) return "0";
+    if (num > 0 && num < 0.0001) return "< 0.0001";
+    return num.toLocaleString(undefined, {
+      minimumFractionDigits: 4,
+      maximumFractionDigits: 4,
+    });
   };
 
   const getFromTokenBalance = () => {
