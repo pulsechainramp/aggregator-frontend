@@ -14,6 +14,14 @@ const QuotePanel = () => {
   const apiVersion = "2.3";
 
   const [open, setOpen] = useState(true);
+
+  // derive “source” and hop count
+  const sourceLabel = !quote ? null : (quote as any).source === "piteas" ? "Piteas" : "PulseX";
+
+  const hopTokens =
+    quote?.route?.[0]?.subroutes?.[0]?.paths?.[0]?.tokens?.length ?? 0;
+  const hopCount = hopTokens > 1 ? hopTokens - 1 : 0;
+
   const toTokenAmount =
     quote?.outputAmount && toToken?.decimals
       ? Number(ethers.formatUnits(quote?.outputAmount, toToken?.decimals))
@@ -21,13 +29,74 @@ const QuotePanel = () => {
 
   const minOutput = toTokenAmount * (1 - slippage / 100);
 
+  const fromPx = Number(fromToken?.price ?? 0);
+  const toPx   = Number(toToken?.price ?? 0);
+
+  // Price implied by the current live quote (preferred for display)
+  const impliedUsdPerTo =
+  fromPx > 0 && toTokenAmount > 0 && Number(fromAmount) > 0
+    ? (Number(fromAmount) * fromPx) / toTokenAmount
+    : 0;
+
+  const oracleUsdPerTo = toPx > 0 ? toPx : 0;
+
+  // Prefer oracle (from getTokenPrice) for display; fall back to implied if oracle not ready
+  const usdPerToForDisplay = oracleUsdPerTo > 0 ? oracleUsdPerTo : impliedUsdPerTo;
+
+  // Keep “price impact” using oracle-to-oracle baseline so it doesn’t collapse to 0
+  const denom =
+    (Number(fromAmount || 0) * fromPx) / (toPx > 0 ? toPx : 1);
+
   const impact =
-    fromToken && toToken
-      ? ((toTokenAmount -
-          (Number(fromAmount) * fromToken?.usdPrice) / toToken?.usdPrice) /
-          ((Number(fromAmount) * fromToken?.usdPrice) / toToken?.usdPrice)) *
-        100
+    fromPx > 0 && toPx > 0 && toTokenAmount > 0 && denom > 0
+      ? ((toTokenAmount - denom) / denom) * 100
       : 0;
+
+
+  const fmtUsd = (v?: number) => {
+    const n = Number(v ?? 0);
+    const abs = Math.abs(n);
+
+    // Big values: keep it tidy; Medium: a touch more; Tiny: show real detail
+    const opts =
+      abs >= 1
+        ? { minimumFractionDigits: 2, maximumFractionDigits: 2 }
+        : abs >= 0.01
+          ? { minimumFractionDigits: 4, maximumFractionDigits: 6 }
+          : { minimumFractionDigits: 8, maximumFractionDigits: 10 };
+
+    return n.toLocaleString(undefined, opts);
+  };
+
+  const feeUsd = (quote?.gasUSDEstimated ?? (quote as any)?.gasUseEstimateUSD ?? 0);
+
+  // Adaptive formatting for tiny ratios (e.g., PLS priced in WETH/USDC)
+  const formatRatio = (fromAmt: number, toAmt: number) => {
+    if (!toAmt || !fromAmt) return "—";
+    const r = fromAmt / toAmt;
+    const abs = Math.abs(r);
+    const decimals =
+      abs >= 1     ? 6 :
+      abs >= 0.01  ? 8 :
+      12; // very tiny values → show more precision
+    return r.toLocaleString(undefined, {
+      minimumFractionDigits: decimals,
+      maximumFractionDigits: decimals,
+    });
+  };
+
+  const formatToken = (val: number, tokenDecimals?: number) => {
+    const n = Number(val || 0);
+    const abs = Math.abs(n);
+    const decimals =
+      abs >= 1     ? 6 :
+      abs >= 0.01  ? 8 :
+      Math.min(12, tokenDecimals ?? 18);
+    return n.toLocaleString(undefined, {
+      minimumFractionDigits: decimals,
+      maximumFractionDigits: decimals,
+    });
+  };
 
   return (
     <div className="bg-[#1e2030] rounded-xl p-4 shadow-lg text-white w-full mt-2">
@@ -37,23 +106,27 @@ const QuotePanel = () => {
         onClick={() => setOpen((v) => !v)}
       >
         <div className="flex items-center gap-2 text-base font-semibold">
-          <span className="text-white/90">
-            1 {toToken?.symbol} ={" "}
-            {Number(((Number(fromAmount) || 1) / toTokenAmount).toFixed(10))}{" "}
-            {fromToken?.symbol}
-          </span>
-          <span className="text-white/50">
-            ($
-            {Number(toToken?.usdPrice).toFixed(5).toLocaleString()})
-          </span>
+        <span className="text-white/90">
+          1 {toToken?.symbol} ={" "}
+          {formatRatio(Number(fromAmount) || 1, toTokenAmount)}{" "}
+          {fromToken?.symbol}
+        </span>
+        <span className="text-white/50">(${fmtUsd(Number(usdPerToForDisplay))})</span>
         </div>
-        <div className="flex items-center gap-1 text-sm text-white/60 select-none">
-          Details
-          {open ? (
-            <ChevronUpIcon className="w-4 h-4 ml-1" />
-          ) : (
-            <ChevronDownIcon className="w-4 h-4 ml-1" />
+        <div className="flex items-center gap-2 text-sm text-white/60 select-none">
+          {sourceLabel && (
+            <span className="px-2 py-0.5 rounded bg-slate-700/60 text-[11px]">
+              Source: {sourceLabel}
+            </span>
           )}
+          {hopCount > 0 && (
+            <span className="px-2 py-0.5 rounded bg-slate-700/60 text-[11px]">
+              {hopCount}-hop
+            </span>
+          )}
+          <span className="flex items-center gap-1">
+            Details {open ? <ChevronUpIcon className="w-4 h-4 ml-1" /> : <ChevronDownIcon className="w-4 h-4 ml-1" />}
+          </span>
         </div>
       </div>
       {/* Details */}
@@ -62,7 +135,7 @@ const QuotePanel = () => {
           <div className="flex justify-between">
             <span className="text-white/50">Network fee</span>
             <span className="text-white/80">
-              {quote?.gasUSDEstimated?.toFixed(3)}$
+              {feeUsd.toFixed ? feeUsd.toFixed(3) : Number(feeUsd).toFixed(3)}$
             </span>
           </div>
           <div className="flex justify-between">
@@ -76,13 +149,13 @@ const QuotePanel = () => {
           <div className="flex justify-between">
             <span className="text-white/50">Minimum output</span>
             <span className="text-white/80 font-mono">
-              {Number(minOutput.toFixed(10))} {toToken?.symbol}
+              {formatToken(minOutput, toToken?.decimals)} {toToken?.symbol}
             </span>
           </div>
           <div className="flex justify-between">
             <span className="text-white/50">Expected output</span>
             <span className="text-white/80 font-mono">
-              {Number(toTokenAmount.toFixed(10))} {toToken?.symbol}
+              {formatToken(toTokenAmount, toToken?.decimals)} {toToken?.symbol}
             </span>
           </div>
           <div className="flex justify-between items-center pt-2 border-t border-white/10 mt-2">

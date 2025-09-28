@@ -2,16 +2,26 @@ import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
 import { QuoteType, TokenType } from "../types/Swap";
 import { ethers } from "ethers";
 import { isSelfReferral, getStoredReferralCode } from "../utils/referralUtils";
-import { ZeroAddress, SwapManagerAddress, BackendURL } from "../const/swap";
+import { ZeroAddress, SwapManagerAddress, BackendURL, USDC, DAI, WPLS } from "../const/swap";
 import {
   approveToken,
   executeSwap,
-  getTokenAllowance,
   needsApproval,
   createSwapManager,
 } from "../contracts/SwapManager";
-import { config } from "process";
 import { store } from "./store";
+import { PiteasRateLimiter } from "../utils/rateLimiter";
+import { SingleFlight } from "../utils/singleflight";
+import { fetchPiteasQuote } from "../services/piteasClient";
+import {
+  PreferClientPiteasFirst,
+  ClientQuoteTTLms,
+  ClientPiteasMaxPerMinute,
+} from "../const/swap";
+
+const limiter = PiteasRateLimiter.get(ClientPiteasMaxPerMinute);
+const single = new SingleFlight<any>();
+const clientCache = new Map<string, { ts: number; data: any }>();
 
 interface SwapState {
   allChains: TokenType[];
@@ -129,7 +139,7 @@ export const checkTokenAllowance = createAsyncThunk(
       return { hasAllowance: true, allowance: "0" };
     }
 
-    const isApproved = await needsApproval(
+    const needs = await needsApproval(
       tokenAddress,
       userAddress,
       SwapManagerAddress,
@@ -138,7 +148,7 @@ export const checkTokenAllowance = createAsyncThunk(
     );
 
     return {
-      hasAllowance: isApproved,
+      hasAllowance: !needs, // true means user ALREADY has allowance
     };
   }
 );
@@ -200,7 +210,9 @@ export const executeSwapAction = createAsyncThunk(
           const resp = await fetch(`${BackendURL}referral/address?referralCode=${encodeURIComponent(code)}`);
           if (resp.ok) {
             const data = await resp.json();
-            referralAddress = (data?.address || data?.referralAddress || null) as string | null;
+            const resolved: string | undefined =
+              data?.address ?? data?.referralAddress ?? undefined;
+            if (resolved) referralAddress = resolved;
           }
         } catch {
           // no-op: proceed without a referrer
@@ -317,43 +329,230 @@ export const getTokenPrice = createAsyncThunk(
   async ({
     address,
     blockchainNetwork,
+    decimals,
     type,
   }: {
     address: string;
     blockchainNetwork: string;
+    decimals: number;
     type: "from" | "to";
   }) => {
-    const response = await fetch(
-      `https://api.rubic.exchange/api/v2/tokens/price/${blockchainNetwork}/${address}`
-    );
-    const data = await response.json();
-    return data?.usd_price || 0;
+    const isPulse = (blockchainNetwork || "").toLowerCase() === "pulsechain";
+    const resolvedAddress = address === ZeroAddress ? WPLS : address;
+    const lower = resolvedAddress.toLowerCase();
+
+    // Shortcut for stables
+    if (lower === USDC.toLowerCase() || lower === DAI.toLowerCase()) return 1;
+
+    // ---- Prefer backend high-precision price on PulseChain ----
+    if (isPulse) {
+      try {
+        // Use a larger scale for PLS to avoid quantization (keep scale=1 for expensive tokens like WETH)
+        const scale =
+          lower === WPLS.toLowerCase()
+            ? 10000
+            : 1;
+
+        const url =
+          `${BackendURL}price/pulsex?` +
+          `tokenAddress=${resolvedAddress}` +
+          `&precision=18&scale=${scale}`;
+
+        const res = await fetch(url);
+        if (res.ok) {
+          const data = await res.json();
+          // Prefer the precise string, fallback to numeric
+          const preciseStr: string | undefined = data?.usd_price_str;
+          if (preciseStr && preciseStr.trim().length > 0) {
+            const n = Number(preciseStr);
+            if (Number.isFinite(n) && n > 0) return n;
+          }
+          const n = Number(data?.usd_price ?? 0);
+          if (Number.isFinite(n) && n > 0) return n;
+        }
+      } catch {
+        // fall through
+      }
+
+      // Fallback: single token->USDC quote for "1 token"
+      try {
+        const d = Number.isFinite(decimals) ? decimals : 18;
+        const oneTokenBase = ethers.parseUnits("1", d).toString();
+
+        const res = await fetch(
+          `${BackendURL}quote/pulsex?` +
+            `tokenInAddress=${resolvedAddress}` +
+            `&tokenOutAddress=${USDC}` +
+            `&amount=${oneTokenBase}` +
+            `&allowedSlippage=0.5`
+        );
+        if (res.ok) {
+          const q = await res.json();
+          const out = BigInt(q?.outputAmount ?? "0"); // USDC base units (6)
+          const usd = Number(out) / 1e6;
+          if (Number.isFinite(usd) && usd > 0) return usd;
+        }
+      } catch {
+        // ignore
+      }
+    }
+
+    // Cross-chain final fallback: Rubic
+    try {
+      const res = await fetch(
+        `https://api.rubic.exchange/api/v2/tokens/price/${blockchainNetwork}/${resolvedAddress}`
+      );
+      if (res.ok) {
+        const data = await res.json();
+        const n = Number(data?.usd_price ?? 0);
+        if (Number.isFinite(n) && n > 0) return n;
+      }
+    } catch {
+      // ignore
+    }
+
+    return 0;
   }
 );
 
+
+
+/**
+ * Hybrid quote:
+ * - PulseX (server) and Piteas (client) in parallel.
+ * - Show the first success immediately (optimistic UI).
+ * - When both settle, pick the best (highest outputAmount).
+ * - Cache for 15s.
+ */
 export const getQuote = createAsyncThunk(
   "swap/getQuote",
-  async ({
-    tokenInAddress,
-    tokenOutAddress,
-    amount,
-    allowedSlippage,
-    fromDecimal,
-  }: {
-    tokenInAddress: string;
-    tokenOutAddress: string;
-    amount: number;
-    allowedSlippage: number;
-    fromDecimal: number;
-  }) => {
-    const response = await fetch(
-      `${BackendURL}quote?tokenInAddress=${tokenInAddress}&tokenOutAddress=${tokenOutAddress}&amount=${ethers.parseUnits(
-        amount.toString(),
-        fromDecimal
-      )}&allowedSlippage=${allowedSlippage}&fromDecimal=${fromDecimal}`
-    );
-    const data = await response.json();
-    return data;
+  async (
+    {
+      tokenInAddress,
+      tokenOutAddress,
+      amount,
+      allowedSlippage,
+      fromDecimal,
+      account,
+    }: {
+      tokenInAddress: string;
+      tokenOutAddress: string;
+      amount: number;
+      allowedSlippage: number;
+      fromDecimal: number;
+      account?: string;
+    },
+    thunkAPI
+  ) => {
+    const { rejectWithValue, dispatch } = thunkAPI as any;
+
+    // Convert to base units & cache key
+    const amountBase = ethers
+      .parseUnits(amount.toString(), fromDecimal)
+      .toString();
+    const key = `${tokenInAddress}|${tokenOutAddress}|${amountBase}|${allowedSlippage}`;
+
+    // Serve fresh cache (15s)
+    const cached = clientCache.get(key);
+    if (cached && Date.now() - cached.ts < ClientQuoteTTLms) {
+      return cached.data;
+    }
+
+    return single.do(key, async () => {
+      // --- Build PulseX (server) promise ---
+      const serverUrl = `${BackendURL}quote/pulsex?tokenInAddress=${tokenInAddress}&tokenOutAddress=${tokenOutAddress}&amount=${amountBase}&allowedSlippage=${allowedSlippage}`;
+      const serverPromise = fetch(serverUrl)
+        .then(async (r) => {
+          if (!r.ok) throw new Error(await r.text().catch(() => "server error"));
+          const data = await r.json();
+          (data as any).source = (data as any).source || "pulsex";
+          return data;
+        });
+
+      // --- Build Piteas (client) promise (skip if over local rate limit) ---
+      let piteasPromise: Promise<any> | null = null;
+      if (PreferClientPiteasFirst) {
+        const acq = limiter.acquire();
+        if (acq.ok) {
+          piteasPromise = fetchPiteasQuote({
+            tokenInAddress,
+            tokenOutAddress,
+            amountBaseUnits: amountBase,
+            allowedSlippage,
+            account,
+          }).then((data) => {
+              (data as any).source = (data as any).source || "piteas";
+              return data;
+            });
+        } else {
+          // Notify UI to pause quotes so users don't trigger an hour-long Piteas ban.
+          return rejectWithValue({ code: "CLIENT_RATE_LIMIT", retryInMs: acq.waitMs });
+        }
+      }
+
+      const candidates: Promise<any>[] = [serverPromise];
+      if (piteasPromise) candidates.push(piteasPromise);
+
+      // If for some reason we have no candidates, bail
+      if (candidates.length === 0) {
+        return rejectWithValue({ code: "NO_QUOTE_BACKENDS" });
+      }
+
+      // --- Show the first winner as soon as one resolves ---
+      try {
+        const firstWinner = await Promise.any(candidates);
+        if (firstWinner) {
+          // Only paint if user hasn't changed tokens/amount
+          const s = (thunkAPI.getState() as any).swap as SwapState;
+          const sameFrom =
+            (s.fromToken?.address?.toLowerCase() ?? "") === (tokenInAddress?.toLowerCase() ?? "") ||
+            (s.fromToken?.address === ZeroAddress && tokenInAddress === "PLS");
+          const sameTo =
+            (s.toToken?.address?.toLowerCase() ?? "") === (tokenOutAddress?.toLowerCase() ?? "") ||
+            (s.toToken?.address === ZeroAddress && tokenOutAddress === "PLS");
+          const sameAmt = Number(s.fromAmount) === amount;
+          const sameSlip = s.slippage === allowedSlippage;
+          if (sameFrom && sameTo && sameAmt && sameSlip) {
+            dispatch(swapSlice.actions.setQuote(firstWinner));
+          }
+        }
+      } catch {
+        // If *all* failed quickly, we'll handle below after allSettled
+      }
+
+      // --- When both settle, choose best ---
+      const settled = await Promise.allSettled(candidates);
+      const successes = settled
+        .filter((s): s is PromiseFulfilledResult<any> => s.status === "fulfilled")
+        .map((s) => s.value);
+
+      if (successes.length === 0) {
+        // Nothing worked
+        const firstErr =
+          (settled.find((s) => s.status === "rejected") as PromiseRejectedResult)
+            ?.reason || "Failed to fetch quotes";
+        return rejectWithValue({ code: "NO_QUOTE", message: String(firstErr) });
+      }
+
+      // Pick highest outputAmount
+      const pickBest = (arr: any[]) => {
+        let best = arr[0];
+        for (let i = 1; i < arr.length; i++) {
+          try {
+            const a = BigInt(best?.outputAmount ?? "0");
+            const b = BigInt(arr[i]?.outputAmount ?? "0");
+            if (b > a) best = arr[i];
+          } catch {
+            // if parse fails, keep current best
+          }
+        }
+        return best;
+      };
+
+      const best = pickBest(successes);
+      clientCache.set(key, { ts: Date.now(), data: best });
+      return best;
+    });
   }
 );
 
@@ -380,7 +579,39 @@ export const swapSlice = createSlice({
       resetSwapState();
     },
     setQuote: (state, action) => {
-      state.quote = action.payload;
+      const incoming = action.payload as QuoteType | null;
+
+      // Allow clearing
+      if (incoming == null) {
+        state.quote = null;
+        return;
+      }
+
+      // If no current quote, set immediately
+      if (!state.quote) {
+        state.quote = incoming;
+        return;
+      }
+
+      // Compare outputs; only accept if strictly better by a small threshold
+      try {
+        const curOut = BigInt(state.quote.outputAmount ?? "0");
+        const incOut = BigInt(incoming.outputAmount ?? "0");
+
+        // 5 bps = 0.05% improvement required to avoid tiny oscillations
+        const MIN_IMPROVEMENT_BPS = 5;           // number
+        const SCALE = BigInt(10000);             // BigInt(10000) instead of 10000n
+
+        const improved =
+          incOut * SCALE > curOut * (SCALE + BigInt(MIN_IMPROVEMENT_BPS));
+
+        if (improved) {
+          state.quote = incoming;
+        }
+        // if not improved, keep the current quote
+      } catch {
+        // If parsing fails, be conservative: keep current quote
+      }
     },
     setSlippage: (state, action) => {
       state.slippage = action.payload;
@@ -404,6 +635,7 @@ export const swapSlice = createSlice({
       state.isSwapping = false;
       state.isApproving = false;
       state.transactionHash = null;
+      state.quote = null;
     },
   },
   extraReducers: (builder) => {
@@ -436,7 +668,8 @@ export const swapSlice = createSlice({
     builder
       .addCase(getQuote.pending, (state) => {})
       .addCase(getQuote.fulfilled, (state, action) => {
-        if (!action.payload.error) {
+        if (!action.payload || action.payload.error) return;
+
           const isFromTokenValid =
             state.fromToken?.address.toLowerCase() ===
               action.meta.arg.tokenInAddress.toLowerCase() ||
@@ -454,9 +687,17 @@ export const swapSlice = createSlice({
             state.slippage === action.meta.arg.allowedSlippage &&
             Number(state.fromAmount) === action.meta.arg.amount;
 
-          if (isFromTokenValid && isToTokenValid && otherValidation) {
+        if (!(isFromTokenValid && isToTokenValid && otherValidation)) return;
+
+        // Only replace if strictly better (higher outputAmount)
+        try {
+          const incoming = BigInt(action.payload?.outputAmount ?? "0");
+          const current  = BigInt(state.quote?.outputAmount ?? "0");
+          if (!state.quote || incoming > current) {
             state.quote = action.payload;
           }
+        } catch {
+          // if parsing fails, be conservative: keep the current quote
         }
       })
       .addCase(getQuote.rejected, (state, action) => {

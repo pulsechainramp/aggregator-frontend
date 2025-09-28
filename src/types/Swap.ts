@@ -16,11 +16,12 @@ export interface TokenType {
 
 export interface QuoteType {
   calldata: string;
-  tokenInAdress: string;
+  tokenInAddress: string;
   tokenOutAddress: string;
-  outputAmount: number;
+  outputAmount: string;
   gasUSDEstimated: number;
   route: RouteType[];
+  source?: 'pulsex' | 'piteas';
 }
 
 export interface RouteType {

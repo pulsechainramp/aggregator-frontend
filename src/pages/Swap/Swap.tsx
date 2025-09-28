@@ -279,6 +279,7 @@ const Swap: React.FC = () => {
         getTokenPrice({
           address: fromToken.address,
           blockchainNetwork: fromToken.blockchainNetwork,
+          decimals: fromToken.decimals,
           type: "from",
         })
       );
@@ -292,6 +293,7 @@ const Swap: React.FC = () => {
         getTokenPrice({
           address: toToken.address,
           blockchainNetwork: toToken.blockchainNetwork,
+          decimals: toToken.decimals,
           type: "to",
         })
       );
@@ -301,6 +303,9 @@ const Swap: React.FC = () => {
 
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
+
+  const [ratePauseMs, setRatePauseMs] = useState(0);
+  const pauseTimerRef = useRef<number | null>(null);
 
   useEffect(() => {
     if (
@@ -322,8 +327,9 @@ const Swap: React.FC = () => {
         intervalRef.current = null;
       }
 
-      timeoutRef.current = setTimeout(() => {
-        dispatch(
+      timeoutRef.current = setTimeout(async () => {
+        // Try once
+        const action = await dispatch(
           getQuote({
             tokenInAddress:
               fromToken.address.toLowerCase() === ZeroAddress
@@ -339,6 +345,62 @@ const Swap: React.FC = () => {
           })
         );
 
+        // If the thunk rejected with a client-side rate limit, pause the UI and skip polling
+        if (getQuote.rejected.match(action) && (action.payload as any)?.code === "CLIENT_RATE_LIMIT") {
+          const wait = (action.payload as any)?.retryInMs ?? 60000;
+          setRatePauseMs(wait);
+
+          // stop any existing poller
+          if (intervalRef.current) {
+            clearInterval(intervalRef.current);
+            intervalRef.current = null;
+          }
+
+          // start a countdown; when it ends, fire a refresh and resume the 10s poller
+          if (pauseTimerRef.current) window.clearInterval(pauseTimerRef.current);
+          pauseTimerRef.current = window.setInterval(async () => {
+            setRatePauseMs((prev) => {
+              const next = Math.max(prev - 1000, 0);
+              if (next === 0) {
+                if (pauseTimerRef.current) {
+                  window.clearInterval(pauseTimerRef.current);
+                  pauseTimerRef.current = null;
+                }
+                // try again immediately
+                dispatch(
+                  getQuote({
+                    tokenInAddress:
+                      fromToken.address.toLowerCase() === ZeroAddress ? "PLS" : fromToken.address,
+                    tokenOutAddress:
+                      toToken.address.toLowerCase() === ZeroAddress ? "PLS" : toToken.address,
+                    amount: Number(fromAmount),
+                    allowedSlippage: slippage,
+                    fromDecimal: fromToken.decimals,
+                  })
+                );
+                // resume polling every 10s
+                intervalRef.current = setInterval(() => {
+                  dispatch(
+                    getQuote({
+                      tokenInAddress:
+                        fromToken.address.toLowerCase() === ZeroAddress ? "PLS" : fromToken.address,
+                      tokenOutAddress:
+                        toToken.address.toLowerCase() === ZeroAddress ? "PLS" : toToken.address,
+                      amount: Number(fromAmount),
+                      allowedSlippage: slippage,
+                      fromDecimal: fromToken.decimals,
+                    })
+                  );
+                }, 10000);
+              }
+              return next;
+            });
+          }, 1000);
+
+          return; // don’t set up the normal poller while paused
+        }
+
+        // Otherwise (no rate limit), start normal 10s polling
         intervalRef.current = setInterval(() => {
           dispatch(
             getQuote({
@@ -356,7 +418,7 @@ const Swap: React.FC = () => {
             })
           );
         }, 10000);
-      }, 3000);
+      }, 600); // 600ms debounce
     } else {
       dispatch(setQuote(null));
     }
@@ -369,6 +431,10 @@ const Swap: React.FC = () => {
       if (intervalRef.current) {
         clearInterval(intervalRef.current);
         intervalRef.current = null;
+      }
+      if (pauseTimerRef.current) { 
+        window.clearInterval(pauseTimerRef.current); 
+        pauseTimerRef.current = null; 
       }
     };
   }, [

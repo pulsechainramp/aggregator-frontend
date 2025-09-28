@@ -1,5 +1,6 @@
 import { FaArrowRight } from "react-icons/fa";
 import { useAppSelector } from "../../store/hooks";
+import React from "react";
 
 const RouteDetailsPopup = () => {
   const { fromToken, toToken, quote, allChains } = useAppSelector(
@@ -31,19 +32,25 @@ const RouteDetailsPopup = () => {
               <div key={subIndex} className="flex flex-col sm:flex-row items-center gap-2 w-full">
                 <div className="flex flex-col items-center bg-[#23263b] rounded-xl px-3 sm:px-4 py-2 min-w-[160px] sm:min-w-[200px] w-full sm:w-auto">
                   {subroute.paths.map((path, pathIndex) => (
-                    <div
-                      key={pathIndex}
-                      className="flex items-center justify-between w-full py-1"
-                    >
-                      <span className="text-xs font-semibold truncate">
-                        {path.tokens[0].symbol}
-                        <span className="mx-1 text-gray-400">→</span>
-                        {path.tokens[1].symbol}
-                      </span>
-                      <span className="text-xs text-gray-400 mx-1 sm:mx-2 truncate hidden sm:block">{path.exchange}</span>
-                      <span className="text-xs font-bold text-right">{path.percent}%</span>
-                    </div>
-                  ))}
+                  <div key={pathIndex} className="flex items-center justify-between w-full py-1">
+                    {/* Show full token sequence (2, 3, or 4 tokens) */}
+                    <span className="text-xs font-semibold truncate flex items-center gap-1">
+                      {path.tokens?.map((t, i) => (
+                        <React.Fragment key={`${t.address}-${i}`}>
+                          <span className="truncate">{t.symbol || (t.address?.slice(0,6) + "…" + t.address?.slice(-4))}</span>
+                          {i < (path.tokens.length - 1) && <span className="text-gray-400">→</span>}
+                        </React.Fragment>
+                      ))}
+                    </span>
+
+                    {/* DEX label always visible as a pill */}
+                    <span className="text-[10px] px-2 py-0.5 rounded bg-slate-700/50 mx-2 truncate">
+                      {path.exchange}
+                    </span>
+
+                    <span className="text-xs font-bold text-right">{path.percent}%</span>
+                  </div>
+                ))}
                 </div>
                 {subIndex !== route.subroutes.length - 1 && (
                   <FaArrowRight className="text-gray-400 hidden sm:block" />
