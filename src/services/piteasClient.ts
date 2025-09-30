@@ -68,12 +68,16 @@ function combineRouteClient(route: any) {
     subroutes: (swap.subswaps ?? []).map((sub: any, subIdx: number) => ({
       percent: (sub.percent ?? 0) / 1000,
       paths: (sub.paths ?? []).map((p: any, pathIdx: number) => {
-        const tokens = route.paths?.[swapIdx]?.[subIdx]
-          ? [
-              route.paths[swapIdx][subIdx],
-              route.paths[swapIdx][subIdx + 1],
-            ]
-          : [];
+        const pathArr = route?.paths?.[swapIdx];
+        const tokens =
+          Array.isArray(pathArr) &&
+          subIdx >= 0 &&
+          subIdx + 1 < pathArr.length &&
+          pathArr[subIdx] &&
+          pathArr[subIdx + 1]
+            ? [pathArr[subIdx], pathArr[subIdx + 1]]
+            : [];
+
         const { address, percent, ...rest } = p;
         return {
           ...rest,

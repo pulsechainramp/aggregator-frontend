@@ -147,9 +147,10 @@ export const checkTokenAllowance = createAsyncThunk(
       decimals
     );
 
-    return {
-      hasAllowance: !needs, // true means user ALREADY has allowance
-    };
+  return {
+    // hasAllowance is simply the opposite of "needs approval"
+    hasAllowance: !approvalNeeded,
+  };
   }
 );
 

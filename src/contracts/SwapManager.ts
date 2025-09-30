@@ -179,7 +179,8 @@ export const needsApproval = async (
     // Convert amount to wei for comparison
     const amountInWei = ethers.parseUnits(amount, decimals).toString();
 
-    return BigInt(allowance) >= BigInt(amountInWei);
+    // ✅ Needs approval iff allowance is LESS than amount
+    return BigInt(allowance) < BigInt(amountInWei);
   } catch (error) {
     console.error("Failed to check approval status:", error);
     throw new Error("Failed to check approval status");
