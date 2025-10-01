@@ -139,7 +139,7 @@ export const checkTokenAllowance = createAsyncThunk(
       return { hasAllowance: true, allowance: "0" };
     }
 
-    const needs = await needsApproval(
+    const approvalNeeded = await needsApproval(
       tokenAddress,
       userAddress,
       SwapManagerAddress,
@@ -147,10 +147,10 @@ export const checkTokenAllowance = createAsyncThunk(
       decimals
     );
 
-  return {
-    // hasAllowance is simply the opposite of "needs approval"
-    hasAllowance: !approvalNeeded,
-  };
+    return {
+      // hasAllowance is simply the opposite of "needs approval"
+      hasAllowance: !approvalNeeded,
+    };
   }
 );
 
