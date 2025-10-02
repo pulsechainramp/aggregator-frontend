@@ -104,7 +104,7 @@ const TokenPopup = ({
 
               <div className="flex flex-col sm:flex-row gap-3 mt-3">
                 {/* Chains Panel */}
-                <div className="w-full sm:w-[200px]">
+                <div className="w-full sm:w-[200px] hidden">
                   <div className="relative mb-3">
                     <input
                       type="text"
