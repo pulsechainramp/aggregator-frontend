@@ -26,7 +26,7 @@ const SwapButton: React.FC<SwapButtonProps> = ({
   onSwap,
   hasSufficientBalance,
 }) => {
-  const { account, wallet, switchToChain } = useWallet();
+  const { account, wallet, switchToChain, connectWallet } = useWallet();
   const { isSwapping, isApproved, isApproving } = useAppSelector(
     (state) => state.swap
   );
@@ -50,15 +50,17 @@ const SwapButton: React.FC<SwapButtonProps> = ({
     getCurrentChainId();
 
     // Listen for chain changes
-    if (wallet?.provider) {
+    if (wallet?.provider && (wallet.provider as any).on) {
       const handleChainChanged = (chainId: string) => {
         setCurrentChainId(parseInt(chainId, 16));
       };
 
-      wallet.provider.on("chainChanged", handleChainChanged);
+      (wallet.provider as any).on("chainChanged", handleChainChanged);
 
       return () => {
-        wallet.provider.removeListener("chainChanged", handleChainChanged);
+        if ((wallet.provider as any).removeListener) {
+          (wallet.provider as any).removeListener("chainChanged", handleChainChanged);
+        }
       };
     }
   }, [wallet]);
@@ -67,6 +69,7 @@ const SwapButton: React.FC<SwapButtonProps> = ({
   const isOnPulseChain = () => {
     return currentChainId === 369;
   };
+
   const getButtonText = () => {
     if (isSwapping || isApproving) {
       return "Processing...";
@@ -110,6 +113,8 @@ const SwapButton: React.FC<SwapButtonProps> = ({
   };
 
   const isDisabled = () => {
+    if (!account) return false;
+
     // If user is on wrong network, only disable for basic requirements
     if (account && !isOnPulseChain()) {
       return false;
@@ -130,6 +135,8 @@ const SwapButton: React.FC<SwapButtonProps> = ({
     );
   };
 
+  const isConnect = getButtonText() === "Connect Wallet";
+
   return (
     <div>
       <motion.button
@@ -137,6 +144,15 @@ const SwapButton: React.FC<SwapButtonProps> = ({
         whileTap={{ scale: 0.99 }}
         disabled={isDisabled()}
         onClick={async () => {
+          if (isConnect) {
+            try {
+              await connectWallet();
+            } catch (e) {
+              console.error("Failed to connect wallet:", e);
+            }
+            return;
+          }
+
           if (account && !isOnPulseChain()) {
             // If user is on wrong network, switch to PulseChain
             try {
@@ -152,9 +168,10 @@ const SwapButton: React.FC<SwapButtonProps> = ({
         className={`w-full mt-6 py-4 rounded-xl font-semibold text-lg transition-all duration-300 ${
           isDisabled()
             ? "bg-gray-100/10 border-2 border-gray-400/30 text-gray-300 cursor-not-allowed hover:bg-gray-100/15"
-            : account && !isOnPulseChain()
-            ? "bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white shadow-lg shadow-blue-500/25 hover:shadow-blue-500/40"
-            : "bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white shadow-lg shadow-emerald-500/25 hover:shadow-emerald-500/40"
+            : isConnect || (account && !isOnPulseChain())
+            // 🟣 Match Bridge "Connect Wallet" look: purple/pink gradient
+            ? "bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-400 hover:to-purple-400 text-white shadow-lg shadow-blue-500/25 hover:shadow-blue-500/40"
+            : "bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-white shadow-lg shadow-emerald-500/25 hover:shadow-emerald-500/40"
         }`}
       >
         {getButtonText()}
