@@ -602,7 +602,7 @@ const BridgeCard: React.FC<BridgeCardProps> = ({
         whileTap={{ scale: 0.99 }}
         onClick={handleNetworkSwap}
         disabled={true}
-        className="cursor-not-allowed -full flex items-center justify-center py-4 bg-gradient-to-r from-[#3a3f5a] to-[#2b2e4a] hover:from-[#4a4f6a] hover:to-[#3a3f5a] rounded-xl border border-[#4a4f6a] hover:border-[#5a5f7a] transition-all duration-300 shadow-lg"
+        className="cursor-not-allowed -full flex items-center justify-center py-4 bg-gradient-to-r from-[#3a3f5a] to-[#2b2e4a] hover:from-[#4a4f6a] hover:to-[#3a3f5a] rounded-xl border border-[#4a4f6a] hover:border-[#5a5f7a] transition-all duration-300 shadow-lg hidden"
       >
         <div className="flex items-center gap-3">
           <svg
