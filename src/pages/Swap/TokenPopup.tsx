@@ -126,6 +126,18 @@ const TokenPopup = ({
                         d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
                       />
                     </svg>
+                    {searchChain && (
+                      <button
+                        type="button"
+                        aria-label="Clear chain search"
+                        onClick={() => setSearchChain("")}
+                        className="absolute right-2.5 top-1/2 -translate-y-1/2 p-1 rounded hover:bg-[#3a3f5a] focus:outline-none"
+                      >
+                        <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                      </button>
+                    )}
                   </div>
                   <div className="space-y-1 max-h-[200px] sm:max-h-[310px] overflow-y-auto custom-scrollbar pr-2">
                     <div className="flex items-center justify-center text-xs sm:text-sm text-gray-400">
@@ -184,6 +196,16 @@ const TokenPopup = ({
                         d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
                       />
                     </svg>
+                    <button
+                      type="button"
+                      aria-label="Clear token search"
+                      onClick={() => setSearchToken("")}
+                      className="absolute right-2.5 top-1/2 -translate-y-1/2 p-1 rounded hover:bg-[#3a3f5a] focus:outline-none"
+                    >
+                      <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
                   </div>
                   <div className="space-y-1.5 max-h-[200px] sm:max-h-[320px] overflow-y-auto custom-scrollbar">
                     {pulsechainTokens.length > 0
