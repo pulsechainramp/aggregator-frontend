@@ -165,7 +165,7 @@ const Header = () => {
                 <motion.button
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
-                  className={`relative px-6 py-2.5 rounded-xl transition-all duration-300 font-semibold text-sm ${
+                  className={`relative px-6 py-2.5 rounded-xl transition-all duration-300 font-semibold text-base ${
                     isActive("/bridge")
                       ? "bg-gradient-to-r from-emerald-500/20 to-teal-500/20 text-emerald-400 border border-emerald-500/30 shadow-lg shadow-emerald-500/10"
                       : "bg-slate-800/60 hover:bg-slate-700/80 text-slate-300 hover:text-white border border-slate-700/50 hover:border-slate-600/50 hover:shadow-lg"
@@ -189,7 +189,7 @@ const Header = () => {
                 <motion.button
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
-                  className={`relative px-6 py-2.5 rounded-xl transition-all duration-300 font-semibold text-sm ${
+                  className={`relative px-6 py-2.5 rounded-xl transition-all duration-300 font-semibold text-base ${
                     isActive("/swap")
                       ? "bg-gradient-to-r from-emerald-500/20 to-teal-500/20 text-emerald-400 border border-emerald-500/30 shadow-lg shadow-emerald-500/10"
                       : "bg-slate-800/60 hover:bg-slate-700/80 text-slate-300 hover:text-white border border-slate-700/50 hover:border-slate-600/50 hover:shadow-lg"
@@ -355,7 +355,7 @@ const Header = () => {
       >
         <div className="max-w-7xl mx-auto px-4">
           <div className="flex gap-2 py-2">
-            <Link to="/bridge" className={`flex-1 rounded-lg py-2 px-3 text-sm font-semibold transition-all text-center
+            <Link to="/bridge" className={`flex-1 rounded-lg py-2 px-3 text-base font-semibold transition-all text-center
               ${isActive("/bridge")
                 ? "bg-gradient-to-r from-emerald-500/20 to-teal-500/20 text-emerald-400 border border-emerald-500/30 shadow-md shadow-emerald-500/10"
                 : "bg-slate-800/60 text-slate-300 border border-slate-700/50 hover:bg-slate-700/80 hover:text-white"
@@ -366,7 +366,7 @@ const Header = () => {
               </span>
             </Link>
 
-            <Link to="/swap" className={`flex-1 rounded-lg py-2 px-3 text-sm font-semibold transition-all text-center
+            <Link to="/swap" className={`flex-1 rounded-lg py-2 px-3 text-base font-semibold transition-all text-center
               ${isActive("/swap")
                 ? "bg-gradient-to-r from-emerald-500/20 to-teal-500/20 text-emerald-400 border border-emerald-500/30 shadow-md shadow-emerald-500/10"
                 : "bg-slate-800/60 text-slate-300 border border-slate-700/50 hover:bg-slate-700/80 hover:text-white"
