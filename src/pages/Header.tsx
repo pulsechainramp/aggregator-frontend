@@ -140,27 +140,21 @@ const Header = () => {
         {/* Left Section - Logo and Navigation */}
         <div className="flex items-center space-x-4 sm:space-x-8">
           {/* Logo */}
-          <Link to="/" className="flex items-center space-x-3 group">
+          <Link to="/" className="flex items-center space-x-2 group">
             <motion.div
-              whileHover={{ scale: 1.05, rotate: 5 }}
+              whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
-              className="relative"
+              className="relative flex-shrink-0"
             >
-              <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-emerald-400 via-teal-400 to-cyan-500 rounded-2xl shadow-lg flex items-center justify-center group-hover:shadow-emerald-500/25 transition-all duration-300">
-                <span className="text-white font-bold text-lg sm:text-xl">
-                  P
-                </span>
-              </div>
-              <div className="absolute -top-1 -right-1 w-3 h-3 bg-emerald-400 rounded-full animate-pulse shadow-lg shadow-emerald-400/50"></div>
+              <img 
+                src="/logo.png" 
+                alt="PulseChainRamp Logo" 
+                className="h-16 sm:h-20 w-auto"
+              />
             </motion.div>
-            <div className="flex flex-col">
-              <span className="font-bold text-xl sm:text-2xl bg-gradient-to-r from-emerald-400 via-teal-400 to-cyan-500 bg-clip-text text-transparent">
-                PulseChain
-              </span>
-              <span className="text-xs text-slate-400 -mt-1 font-medium">
-                Aggregator
-              </span>
-            </div>
+            <span className="font-bold text-lg sm:text-3xl text-white whitespace-nowrap">
+              PulseChain<span className="text-purple-500">Ramp</span>
+            </span>
           </Link>
 
           {/* Navigation Buttons - Hidden on mobile */}
