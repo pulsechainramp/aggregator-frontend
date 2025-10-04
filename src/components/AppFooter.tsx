@@ -8,29 +8,29 @@ export default function AppFooter() {
   return (
     <>
       <footer className="mt-8 border-t border-slate-800/60">
-        <div className="mx-auto max-w-6xl px-4 py-4">
-          <nav className="w-full flex items-center justify-center gap-6">
+        <div className="mx-auto max-w-6xl px-4 py-6">
+          <nav className="w-full flex flex-wrap items-center justify-center gap-x-4 gap-y-3 sm:gap-x-6">
             <Link
               to="/referrals"
-              className="text-sm text-slate-400 hover:text-emerald-300 underline underline-offset-4"
+              className="text-sm text-slate-400 hover:text-emerald-300 underline underline-offset-4 whitespace-nowrap"
             >
-              Affiliate Program
+              Affiliate<span className="hidden sm:inline"> Program</span>
             </Link>
             <button
               onClick={() => setShowContactModal(true)}
-              className="text-sm text-slate-400 hover:text-emerald-300 underline underline-offset-4"
+              className="text-sm text-slate-400 hover:text-emerald-300 underline underline-offset-4 whitespace-nowrap"
             >
               Contact Us
             </button>
             <Link
               to="/terms"
-              className="text-sm text-slate-400 hover:text-emerald-300 underline underline-offset-4"
+              className="text-sm text-slate-400 hover:text-emerald-300 underline underline-offset-4 whitespace-nowrap"
             >
               Terms of Use
             </Link>
             <Link
               to="/privacy"
-              className="text-sm text-slate-400 hover:text-emerald-300 underline underline-offset-4"
+              className="text-sm text-slate-400 hover:text-emerald-300 underline underline-offset-4 whitespace-nowrap"
             >
               Privacy Policy
             </Link>
