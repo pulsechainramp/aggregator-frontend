@@ -161,6 +161,30 @@ const Header = () => {
 
             {/* Navigation Buttons - Hidden on mobile (desktop stays the same) */}
             <div className="hidden sm:flex items-center space-x-2">
+              <Link to="/onramp">
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  className={`relative px-6 py-2.5 rounded-xl transition-all duration-300 font-semibold text-base ${
+                    isActive("/onramp")
+                      ? "bg-gradient-to-r from-emerald-500/20 to-teal-500/20 text-emerald-400 border border-emerald-500/30 shadow-lg shadow-emerald-500/10"
+                      : "bg-slate-800/60 hover:bg-slate-700/80 text-slate-300 hover:text-white border border-slate-700/50 hover:border-slate-600/50 hover:shadow-lg"
+                  }`}
+                >
+                  <span className="flex items-center space-x-2">
+                    <span className="text-lg">💳</span>
+                    <span>Onramp</span>
+                  </span>
+                  {isActive("/onramp") && (
+                    <motion.div
+                      layoutId="activeTab"
+                      className="absolute inset-0 bg-gradient-to-r from-emerald-500/10 to-teal-500/10 rounded-xl"
+                      initial={false}
+                      transition={{ type: "spring", stiffness: 300, damping: 30 }}
+                    />
+                  )}
+                </motion.button>
+              </Link>
               <Link to="/bridge">
                 <motion.button
                   whileHover={{ scale: 1.02 }}
@@ -354,8 +378,20 @@ const Header = () => {
         aria-label="Primary"
       >
         <div className="max-w-7xl mx-auto px-4">
-          <div className="flex gap-2 py-2">
-            <Link to="/bridge" className={`flex-1 rounded-lg py-2 px-3 text-base font-semibold transition-all text-center
+          <div className="grid grid-cols-3 gap-2 py-2">
+            <Link to="/onramp" className={`rounded-lg py-2 px-3 text-base font-semibold transition-all text-center
+              ${
+                isActive("/onramp")
+                  ? "bg-gradient-to-r from-emerald-500/20 to-teal-500/20 text-emerald-400 border border-emerald-500/30 shadow-md shadow-emerald-500/10"
+                  : "bg-slate-800/60 text-slate-300 border border-slate-700/50 hover:bg-slate-700/80 hover:text-white"
+              }`}>
+              <span className="inline-flex items-center justify-center gap-2">
+                <span className="text-base">💳</span>
+                <span>Onramp</span>
+              </span>
+            </Link>
+
+            <Link to="/bridge" className={`rounded-lg py-2 px-3 text-base font-semibold transition-all text-center
               ${isActive("/bridge")
                 ? "bg-gradient-to-r from-emerald-500/20 to-teal-500/20 text-emerald-400 border border-emerald-500/30 shadow-md shadow-emerald-500/10"
                 : "bg-slate-800/60 text-slate-300 border border-slate-700/50 hover:bg-slate-700/80 hover:text-white"
@@ -366,7 +402,7 @@ const Header = () => {
               </span>
             </Link>
 
-            <Link to="/swap" className={`flex-1 rounded-lg py-2 px-3 text-base font-semibold transition-all text-center
+            <Link to="/swap" className={`rounded-lg py-2 px-3 text-base font-semibold transition-all text-center
               ${isActive("/swap")
                 ? "bg-gradient-to-r from-emerald-500/20 to-teal-500/20 text-emerald-400 border border-emerald-500/30 shadow-md shadow-emerald-500/10"
                 : "bg-slate-800/60 text-slate-300 border border-slate-700/50 hover:bg-slate-700/80 hover:text-white"

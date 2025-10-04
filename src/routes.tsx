@@ -7,6 +7,7 @@ import Activity from "./pages/Activity/Activity";
 import Referrals from "./pages/Referrals";
 import Terms from "./pages/Terms";
 import Privacy from "./pages/Privacy";
+import Onramp from "./pages/Onramp/Onramp";
 
 // track route changes under Router
 const RouteTracker = () => {
@@ -40,6 +41,7 @@ const AppRoutes = () => {
       <RouteTracker />
       <Routes>
         <Route path="/" element={<Landing />} />
+        <Route path="/onramp" element={<Onramp />} />
         <Route path="/swap" element={<Swap />} />
         <Route path="/bridge" element={<Bridge />} />
         <Route path="/activity" element={<Activity />} />
