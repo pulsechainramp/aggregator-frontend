@@ -280,7 +280,7 @@ const AddToWalletButton: React.FC<AddToWalletButtonProps> = ({
       case "secondary":
         return "bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white shadow-lg shadow-blue-500/25 hover:shadow-blue-500/40";
       case "outline":
-        return "bg-transparent border-2 border-emerald-500 text-emerald-400 hover:bg-emerald-500 hover:text-white";
+        return "bg-transparent border border-emerald-500/50 sm:border-2 text-emerald-400 hover:bg-emerald-500/10 sm:hover:bg-emerald-500 sm:hover:text-white";
       default:
         return "bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white shadow-lg shadow-emerald-500/25 hover:shadow-emerald-500/40";
     }
@@ -289,13 +289,13 @@ const AddToWalletButton: React.FC<AddToWalletButtonProps> = ({
   const getSizeClasses = () => {
     switch (size) {
       case "sm":
-        return "px-3 py-2 text-sm";
+        return "w-10 h-10 sm:w-auto sm:h-auto p-2 text-sm sm:px-3 sm:py-2";
       case "md":
-        return "px-4 py-2 text-base";
+        return "w-11 h-11 sm:w-auto sm:h-auto p-2 text-base sm:px-4 sm:py-2";
       case "lg":
-        return "px-6 py-3 text-lg";
+        return "w-12 h-12 sm:w-auto sm:h-auto p-2.5 text-lg sm:px-6 sm:py-3";
       default:
-        return "px-4 py-2 text-base";
+        return "w-11 h-11 sm:w-auto sm:h-auto p-2 text-base sm:px-4 sm:py-2";
     }
   };
 
@@ -311,28 +311,28 @@ const AddToWalletButton: React.FC<AddToWalletButtonProps> = ({
         className={`
           ${getVariantClasses()}
           ${getSizeClasses()}
-          rounded-lg font-medium transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed
+          rounded-lg font-medium transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center sm:justify-start
           ${className}
         `}
       >
         {isAdding || isSwitchingNetwork ? (
-          <div className="flex items-center space-x-2">
-            <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-            <span>
+          <div className="flex items-center justify-center space-x-0 sm:space-x-2">
+            <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+            <span className="hidden sm:inline">
               {isSwitchingNetwork ? "Switching Network..." : "Adding..."}
             </span>
           </div>
         ) : !isOnCorrectNetwork() ? (
-          <div className="flex items-center space-x-2">
-            <ProviderIcon provider={(wallet as any)?.provider?.provider ?? (wallet as any)?.provider ?? null} />
-            <span>Switch to {getRequiredNetworkName()} & Add {token.symbol}</span>
+          <div className="flex items-center justify-center sm:justify-start space-x-0 sm:space-x-2">
+            <ProviderIcon provider={(wallet as any)?.provider?.provider ?? (wallet as any)?.provider ?? null} size={20} />
+            <span className="hidden sm:inline">Switch to {getRequiredNetworkName()} & Add {token.symbol}</span>
           </div>
         ) : (
-          <div className="flex items-center space-x-2">
+          <div className="flex items-center justify-center sm:justify-start space-x-0 sm:space-x-2">
             <span className="relative inline-flex items-center justify-center">
-              <ProviderIcon provider={(wallet as any)?.provider?.provider ?? (wallet as any)?.provider ?? null} />
+              <ProviderIcon provider={(wallet as any)?.provider?.provider ?? (wallet as any)?.provider ?? null} size={20} />
             </span>
-            <span>Add {token.symbol} to wallet</span>
+            <span className="hidden sm:inline">Add {token.symbol} to wallet</span>
           </div>
         )}
       </motion.button>

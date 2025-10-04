@@ -750,51 +750,17 @@ const BridgeCard: React.FC<BridgeCardProps> = ({
                     </span>
 
                     {correspondingToken && correspondingTokenData && account && (
-                      <>
-                        <button
-                          onClick={async () => {
-                            if (correspondingTokenData?.address) {
-                              try {
-                                await navigator.clipboard.writeText(
-                                  correspondingTokenData.address
-                                );
-                                toast && toast.success
-                                  ? toast.success("Token address copied to clipboard")
-                                  : null;
-                              } catch (error) {
-                                console.error("Failed to copy address:", error);
-                              }
-                            }
-                          }}
-                          className="p-1.5 hover:bg-[#3a3f5a]/50 rounded-lg transition-colors duration-200"
-                          title="Copy token address"
-                        >
-                          <svg
-                            className="w-4 h-4 text-gray-300"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"
-                            />
-                          </svg>
-                        </button>
-                        <AddToWalletButton
-                          token={{
-                            address: correspondingTokenData.address,
-                            symbol: cleanTokenSymbol(correspondingToken),
-                            decimals: correspondingTokenData.decimals,
-                            chainId: toChainId,
-                            image: correspondingTokenData.logoURI,
-                          }}
-                          variant="outline"
-                          size="sm"
-                        />
-                      </>
+                      <AddToWalletButton
+                        token={{
+                          address: correspondingTokenData.address,
+                          symbol: cleanTokenSymbol(correspondingToken),
+                          decimals: correspondingTokenData.decimals,
+                          chainId: toChainId,
+                          image: correspondingTokenData.logoURI,
+                        }}
+                        variant="outline"
+                        size="sm"
+                      />
                     )}
                   </div>
                   <div className="text-gray-400 text-sm">≈ $0.00</div>
