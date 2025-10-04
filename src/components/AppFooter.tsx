@@ -22,6 +22,18 @@ export default function AppFooter() {
             >
               Contact Us
             </button>
+            <Link
+              to="/terms"
+              className="text-sm text-slate-400 hover:text-emerald-300 underline underline-offset-4"
+            >
+              Terms of Use
+            </Link>
+            <Link
+              to="/privacy"
+              className="text-sm text-slate-400 hover:text-emerald-300 underline underline-offset-4"
+            >
+              Privacy Policy
+            </Link>
           </nav>
         </div>
       </footer>
