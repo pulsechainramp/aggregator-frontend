@@ -716,17 +716,49 @@ const BridgeCard: React.FC<BridgeCardProps> = ({
                     </span>
 
                     {correspondingToken && correspondingTokenData && account && (
-                      <AddToWalletButton
-                        token={{
-                          address: correspondingTokenData.address,
-                          symbol: cleanTokenSymbol(correspondingToken),
-                          decimals: correspondingTokenData.decimals,
-                          chainId: toChainId,
-                          image: correspondingTokenData.logoURI,
-                        }}
-                        variant="outline"
-                        size="sm"
-                      />
+                      <>
+                        <motion.button
+                          whileHover={{ scale: 1.05 }}
+                          whileTap={{ scale: 0.95 }}
+                          onClick={async () => {
+                            try {
+                              await navigator.clipboard.writeText(
+                                correspondingTokenData.address || ""
+                              );
+                              toast.success("Token address copied to clipboard");
+                            } catch (error) {
+                              console.error("Failed to copy address:", error);
+                            }
+                          }}
+                          className="px-2 py-2 text-xs bg-gradient-to-r from-[#3a3f5a] to-[#2b2e4a] text-gray-300 rounded-lg hover:from-[#4a4f6a] hover:to-[#3a3f5a] hover:text-white transition-all duration-200 font-medium border border-[#4a4f6a] hover:border-[#5a5f7a] flex-shrink-0"
+                          title="Copy token address"
+                        >
+                          <svg
+                            className="w-4 h-4"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"
+                            />
+                          </svg>
+                        </motion.button>
+                        <AddToWalletButton
+                          token={{
+                            address: correspondingTokenData.address,
+                            symbol: cleanTokenSymbol(correspondingToken),
+                            decimals: correspondingTokenData.decimals,
+                            chainId: toChainId,
+                            image: correspondingTokenData.logoURI,
+                          }}
+                          variant="outline"
+                          size="sm"
+                        />
+                      </>
                     )}
                   </div>
                   <div className="text-gray-400 text-sm">
@@ -750,17 +782,49 @@ const BridgeCard: React.FC<BridgeCardProps> = ({
                     </span>
 
                     {correspondingToken && correspondingTokenData && account && (
-                      <AddToWalletButton
-                        token={{
-                          address: correspondingTokenData.address,
-                          symbol: cleanTokenSymbol(correspondingToken),
-                          decimals: correspondingTokenData.decimals,
-                          chainId: toChainId,
-                          image: correspondingTokenData.logoURI,
-                        }}
-                        variant="outline"
-                        size="sm"
-                      />
+                      <>
+                        <motion.button
+                          whileHover={{ scale: 1.05 }}
+                          whileTap={{ scale: 0.95 }}
+                          onClick={async () => {
+                            try {
+                              await navigator.clipboard.writeText(
+                                correspondingTokenData.address || ""
+                              );
+                              toast.success("Token address copied to clipboard");
+                            } catch (error) {
+                              console.error("Failed to copy address:", error);
+                            }
+                          }}
+                          className="px-2 py-2 text-xs bg-gradient-to-r from-[#3a3f5a] to-[#2b2e4a] text-gray-300 rounded-lg hover:from-[#4a4f6a] hover:to-[#3a3f5a] hover:text-white transition-all duration-200 font-medium border border-[#4a4f6a] hover:border-[#5a5f7a] flex-shrink-0"
+                          title="Copy token address"
+                        >
+                          <svg
+                            className="w-4 h-4"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"
+                            />
+                          </svg>
+                        </motion.button>
+                        <AddToWalletButton
+                          token={{
+                            address: correspondingTokenData.address,
+                            symbol: cleanTokenSymbol(correspondingToken),
+                            decimals: correspondingTokenData.decimals,
+                            chainId: toChainId,
+                            image: correspondingTokenData.logoURI,
+                          }}
+                          variant="outline"
+                          size="sm"
+                        />
+                      </>
                     )}
                   </div>
                   <div className="text-gray-400 text-sm">≈ $0.00</div>

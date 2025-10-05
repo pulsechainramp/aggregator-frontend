@@ -280,7 +280,7 @@ const AddToWalletButton: React.FC<AddToWalletButtonProps> = ({
       case "secondary":
         return "bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white shadow-lg shadow-blue-500/25 hover:shadow-blue-500/40";
       case "outline":
-        return "bg-transparent border border-emerald-500/50 sm:border-2 text-emerald-400 hover:bg-emerald-500/10 sm:hover:bg-emerald-500 sm:hover:text-white";
+        return "bg-gradient-to-r from-[#3a3f5a] to-[#2b2e4a] text-gray-300 hover:from-[#4a4f6a] hover:to-[#3a3f5a] hover:text-white border border-[#4a4f6a] hover:border-[#5a5f7a]";
       default:
         return "bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white shadow-lg shadow-emerald-500/25 hover:shadow-emerald-500/40";
     }
@@ -289,13 +289,13 @@ const AddToWalletButton: React.FC<AddToWalletButtonProps> = ({
   const getSizeClasses = () => {
     switch (size) {
       case "sm":
-        return "w-10 h-10 sm:w-auto sm:h-auto p-2 text-sm sm:px-3 sm:py-2";
+        return "w-auto h-auto p-2";
       case "md":
-        return "w-11 h-11 sm:w-auto sm:h-auto p-2 text-base sm:px-4 sm:py-2";
+        return "w-auto h-auto p-2.5";
       case "lg":
-        return "w-12 h-12 sm:w-auto sm:h-auto p-2.5 text-lg sm:px-6 sm:py-3";
+        return "w-auto h-auto p-3";
       default:
-        return "w-11 h-11 sm:w-auto sm:h-auto p-2 text-base sm:px-4 sm:py-2";
+        return "w-auto h-auto p-2";
     }
   };
 
@@ -304,36 +304,34 @@ const AddToWalletButton: React.FC<AddToWalletButtonProps> = ({
       {/* Hide entirely when not connected or when user already has a non-zero balance of this token (heuristic) */}
       {(!getAccountAddress() || (hideIfHasToken && hasToken === true)) ? null : (
       <motion.button
-        whileHover={{ scale: 1.02 }}
-        whileTap={{ scale: 0.98 }}
+        whileHover={{ scale: 1.05 }}
+        whileTap={{ scale: 0.95 }}
         onClick={handleAddToken}
         disabled={isAdding || isSwitchingNetwork}
+        title={
+          isAdding || isSwitchingNetwork
+            ? isSwitchingNetwork
+              ? `Switching to ${getRequiredNetworkName()}...`
+              : `Adding ${token.symbol}...`
+            : !isOnCorrectNetwork()
+            ? `Switch to ${getRequiredNetworkName()} & Add ${token.symbol}`
+            : `Add ${token.symbol} to wallet`
+        }
         className={`
           ${getVariantClasses()}
           ${getSizeClasses()}
-          rounded-lg font-medium transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center sm:justify-start
+          rounded-lg font-medium transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center
           ${className}
         `}
       >
         {isAdding || isSwitchingNetwork ? (
-          <div className="flex items-center justify-center space-x-0 sm:space-x-2">
-            <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-            <span className="hidden sm:inline">
-              {isSwitchingNetwork ? "Switching Network..." : "Adding..."}
-            </span>
-          </div>
-        ) : !isOnCorrectNetwork() ? (
-          <div className="flex items-center justify-center sm:justify-start space-x-0 sm:space-x-2">
-            <ProviderIcon provider={(wallet as any)?.provider?.provider ?? (wallet as any)?.provider ?? null} size={20} />
-            <span className="hidden sm:inline">Switch to {getRequiredNetworkName()} & Add {token.symbol}</span>
-          </div>
+          <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
         ) : (
-          <div className="flex items-center justify-center sm:justify-start space-x-0 sm:space-x-2">
-            <span className="relative inline-flex items-center justify-center">
-              <ProviderIcon provider={(wallet as any)?.provider?.provider ?? (wallet as any)?.provider ?? null} size={20} />
-            </span>
-            <span className="hidden sm:inline">Add {token.symbol} to wallet</span>
-          </div>
+          <ProviderIcon 
+            provider={(wallet as any)?.provider?.provider ?? (wallet as any)?.provider ?? null} 
+            size={size === "sm" ? 16 : size === "lg" ? 24 : 20}
+            showPlus={true}
+          />
         )}
       </motion.button>
       )}

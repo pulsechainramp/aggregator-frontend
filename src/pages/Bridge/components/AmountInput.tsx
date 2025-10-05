@@ -80,7 +80,7 @@ const AmountInput: React.FC<AmountInputProps> = ({
             }`}
           />
         </div>
-        <div className="flex items-center min-w-0 w-32 justify-end">
+        <div className="flex items-center gap-1">
           <motion.button
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
@@ -90,6 +90,32 @@ const AmountInput: React.FC<AmountInputProps> = ({
             MAX
           </motion.button>
 
+          {/* Copy Button */}
+          {showButtons && tokenAddress && onCopyAddress && (
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={onCopyAddress}
+              className="px-3 py-1.5 text-xs bg-gradient-to-r from-[#3a3f5a] to-[#2b2e4a] text-gray-300 rounded-lg hover:from-[#4a4f6a] hover:to-[#3a3f5a] hover:text-white transition-all duration-200 font-medium border border-[#4a4f6a] hover:border-[#5a5f7a] flex-shrink-0"
+              title="Copy token address"
+            >
+              <svg
+                className="w-4 h-4"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"
+                />
+              </svg>
+            </motion.button>
+          )}
+
+          {/* Add to Wallet Button */}
           {showButtons && tokenAddress && fromChainId !== 1 && isConnected && (
             <AddToWalletButton
               token={{
@@ -100,7 +126,7 @@ const AmountInput: React.FC<AmountInputProps> = ({
               }}
               variant="outline"
               size="sm"
-              className="flex-shrink-0 ml-2"
+              className="flex-shrink-0"
             />
           )}
         </div>
