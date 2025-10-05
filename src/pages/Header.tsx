@@ -159,8 +159,8 @@ const Header = () => {
               </span>
             </Link>
 
-            {/* Navigation Buttons - Hidden on mobile (desktop stays the same) */}
-            <div className="hidden sm:flex items-center space-x-2">
+            {/* Navigation Buttons - Hidden below 970px */}
+            <div className="hidden nav:flex items-center space-x-2">
               <Link to="/onramp">
                 <motion.button
                   whileHover={{ scale: 1.02 }}
@@ -372,9 +372,9 @@ const Header = () => {
         </div>
       </motion.div>
 
-      {/* Mobile secondary navbar (tabs under the header) */}
+      {/* Mobile secondary navbar (tabs under the header) - Shows below 970px */}
       <nav
-        className="sm:hidden sticky top-16 z-40 bg-gradient-to-r from-slate-900/95 via-slate-800/95 to-slate-900/95 backdrop-blur-md border-b border-slate-700/50"
+        className="nav:hidden sticky top-16 z-40 bg-gradient-to-r from-slate-900/95 via-slate-800/95 to-slate-900/95 backdrop-blur-md border-b border-slate-700/50"
         aria-label="Primary"
       >
         <div className="max-w-7xl mx-auto px-4">
