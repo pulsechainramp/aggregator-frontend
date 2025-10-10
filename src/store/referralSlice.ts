@@ -1,6 +1,13 @@
 import { createSlice, createAsyncThunk, PayloadAction } from "@reduxjs/toolkit";
 import { BackendURL } from "../const/swap";
-import { withdrawReferralEarnings, getFeeBasisPoints, updateFeeBasisPoints } from "../contracts/SwapManager";
+import {
+  withdrawReferralEarnings,
+  getFeeBasisPoints,
+  updateFeeBasisPoints,
+  getReferrerEarnings,
+  getTokenDecimals,
+} from "../contracts/SwapManager";
+import { ethers } from "ethers";
 
 interface ReferralCode {
   id: string;
@@ -91,8 +98,39 @@ export const fetchReferralFees = createAsyncThunk(
     if (!response.ok) {
       throw new Error("Failed to fetch referral fees");
     }
-    const data = await response.json();
-    return Array.isArray(data) ? data : [data];
+    const apiData = await response.json();
+    const fees = Array.isArray(apiData) ? apiData : [apiData];
+
+    if (fees.length === 0) {
+      return [];
+    }
+
+    const tokens = fees.map((fee: ReferralFee) => fee.token);
+
+    const earnings = await getReferrerEarnings(referrerAddress, tokens);
+    console.log("earnings", earnings);
+
+    const formattedFees = await Promise.all(
+      fees.map(async (fee: ReferralFee, index: number) => {
+        try {
+          const decimals = await getTokenDecimals(fee.token);
+
+          const earningInWei = earnings[index];
+
+          const formattedAmount = ethers.formatUnits(earningInWei, decimals);
+
+          return {
+            ...fee,
+            amount: formattedAmount,
+          };
+        } catch (error) {
+          console.error(`Failed to process token ${fee.token}:`, error);
+          return fee;
+        }
+      })
+    );
+
+    return formattedFees;
   }
 );
 
@@ -126,8 +164,17 @@ export const fetchReferrerFeeBasisPoints = createAsyncThunk(
 // Async thunk for updating referral fee basis points
 export const updateReferralFeeBasisPoints = createAsyncThunk(
   "referral/updateReferralFeeBasisPoints",
-  async ({ newFeeBasisPoints, account }: { newFeeBasisPoints: string; account: string }) => {
-    const transaction = await updateFeeBasisPoints({ newFeeBasisPoints, account });
+  async ({
+    newFeeBasisPoints,
+    account,
+  }: {
+    newFeeBasisPoints: string;
+    account: string;
+  }) => {
+    const transaction = await updateFeeBasisPoints({
+      newFeeBasisPoints,
+      account,
+    });
     return { transaction, newFeeBasisPoints };
   }
 );
@@ -217,7 +264,8 @@ const referralSlice = createSlice({
       })
       .addCase(fetchReferralFeeBasisPoints.rejected, (state, action) => {
         state.feeBasisPointsLoading = false;
-        state.error = action.error.message || "Failed to fetch referral fee basis points";
+        state.error =
+          action.error.message || "Failed to fetch referral fee basis points";
       })
       .addCase(updateReferralFeeBasisPoints.pending, (state) => {
         state.updatingFeeBasisPoints = true;
@@ -230,7 +278,8 @@ const referralSlice = createSlice({
       })
       .addCase(updateReferralFeeBasisPoints.rejected, (state, action) => {
         state.updatingFeeBasisPoints = false;
-        state.error = action.error.message || "Failed to update referral fee basis points";
+        state.error =
+          action.error.message || "Failed to update referral fee basis points";
       })
       .addCase(fetchReferrerFeeBasisPoints.pending, (state) => {
         state.feeBasisPointsLoading = true;
@@ -243,7 +292,8 @@ const referralSlice = createSlice({
       })
       .addCase(fetchReferrerFeeBasisPoints.rejected, (state, action) => {
         state.feeBasisPointsLoading = false;
-        state.error = action.error.message || "Failed to fetch referrer fee basis points";
+        state.error =
+          action.error.message || "Failed to fetch referrer fee basis points";
       });
   },
 });

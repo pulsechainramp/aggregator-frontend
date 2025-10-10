@@ -319,6 +319,57 @@ export const getFeeBasisPoints = async (
 };
 
 /**
+ * Get referrer earnings for multiple tokens
+ */
+export const getReferrerEarnings = async (
+  referrerAddress: string,
+  tokens: string[]
+): Promise<string[]> => {
+  try {
+    const web3 = getWeb3(); // Use public RPC for read operations
+    const swapManagerContract = new web3.eth.Contract(
+      SwapManagerABI as unknown as AbiItem[],
+      SwapManagerAddress
+    );
+
+    const earnings: string[] = await swapManagerContract.methods
+      .getReferrerEarnings(referrerAddress, tokens)
+      .call();
+
+    return earnings;
+  } catch (error) {
+    console.error("Failed to get referrer earnings:", error);
+    throw new Error("Failed to fetch referrer earnings");
+  }
+};
+
+/**
+ * Get token decimals
+ */
+export const getTokenDecimals = async (
+  tokenAddress: string
+): Promise<number> => {
+  try {
+    // Native token has 18 decimals
+    if (isNativeToken(tokenAddress)) {
+      return 18;
+    }
+
+    const web3 = getWeb3(); // Use public RPC for read operations
+    const tokenContract = new web3.eth.Contract(
+      ERC20ABI as unknown as AbiItem[],
+      tokenAddress
+    );
+
+    const decimals: string = await tokenContract.methods.decimals().call();
+    return Number(decimals);
+  } catch (error) {
+    console.error("Failed to get token decimals:", error);
+    throw new Error("Failed to fetch token decimals");
+  }
+};
+
+/**
  * Withdraw referral earnings for specified tokens
  */
 export const withdrawReferralEarnings = async (
@@ -436,6 +487,11 @@ export const createSwapManager = () => {
 
     updateFeeBasisPoints: (params: UpdateFeeBasisPointsParams) =>
       updateFeeBasisPoints(params),
+
+    getReferrerEarnings: (referrerAddress: string, tokens: string[]) =>
+      getReferrerEarnings(referrerAddress, tokens),
+
+    getTokenDecimals: (tokenAddress: string) => getTokenDecimals(tokenAddress),
 
     // Utility functions
     getTransactionReceipt: (txHash: string) => getTransactionReceipt(txHash),
