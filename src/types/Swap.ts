@@ -16,7 +16,7 @@ export interface TokenType {
 
 export interface QuoteType {
   calldata: string;
-  tokenInAdress: string;
+  tokenInAddress: string;
   tokenOutAddress: string;
   outputAmount: number;
   gasUSDEstimated: number;

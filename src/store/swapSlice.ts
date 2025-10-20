@@ -31,6 +31,18 @@ interface SwapState {
   isApproved: boolean;
   // Transaction tracking
   transactionHash: string | null;
+  // Quote loading states
+  isPulseXLoading: boolean;
+  isPiteamsLoading: boolean;
+  showBetterRouterMessage: boolean;
+  hasCalledPulseXOnce: boolean;
+  // Parameter tracking for PulseX calls
+  lastPulseXParams: {
+    tokenInAddress: string;
+    tokenOutAddress: string;
+    amount: number;
+    allowedSlippage: number;
+  } | null;
 }
 
 const initialState: SwapState = {
@@ -51,6 +63,13 @@ const initialState: SwapState = {
   isApproved: false,
   // Transaction tracking
   transactionHash: null,
+  // Quote loading states
+  isPulseXLoading: false,
+  isPiteamsLoading: false,
+  showBetterRouterMessage: false,
+  hasCalledPulseXOnce: false,
+  // Parameter tracking for PulseX calls
+  lastPulseXParams: null,
 };
 
 // Get token balance
@@ -200,7 +219,7 @@ export const executeSwapAction = createAsyncThunk(
           const resp = await fetch(`${BackendURL}referral/address?referralCode=${encodeURIComponent(code)}`);
           if (resp.ok) {
             const data = await resp.json();
-            referralAddress = (data?.address || data?.referralAddress || null) as string | null;
+            referralAddress = (data?.address || data?.referralAddress || undefined) as string | undefined;
           }
         } catch {
           // no-op: proceed without a referrer
@@ -331,8 +350,36 @@ export const getTokenPrice = createAsyncThunk(
   }
 );
 
-export const getQuote = createAsyncThunk(
-  "swap/getQuote",
+// Get PulseX quote (fast API)
+export const getPulseXQuote = createAsyncThunk(
+  "swap/getPulseXQuote",
+  async ({
+    tokenInAddress,
+    tokenOutAddress,
+    amount,
+    allowedSlippage,
+    fromDecimal,
+  }: {
+    tokenInAddress: string;
+    tokenOutAddress: string;
+    amount: number;
+    allowedSlippage: number;
+    fromDecimal: number;
+  }) => {
+    const response = await fetch(
+      `${BackendURL}quote/pulsex?tokenInAddress=${tokenInAddress}&tokenOutAddress=${tokenOutAddress}&amount=${ethers.parseUnits(
+        amount.toString(),
+        fromDecimal
+      )}&allowedSlippage=${allowedSlippage}&fromDecimal=${fromDecimal}`
+    );
+    const data = await response.json();
+    return data;
+  }
+);
+
+// Get piteams quote (slower but more accurate API)
+export const getPiteamsQuote = createAsyncThunk(
+  "swap/getPiteamsQuote",
   async ({
     tokenInAddress,
     tokenOutAddress,
@@ -354,6 +401,136 @@ export const getQuote = createAsyncThunk(
     );
     const data = await response.json();
     return data;
+  }
+);
+
+// Main quote function that handles dual API calls
+export const getQuote = createAsyncThunk(
+  "swap/getQuote",
+  async ({
+    tokenInAddress,
+    tokenOutAddress,
+    amount,
+    allowedSlippage,
+    fromDecimal,
+  }: {
+    tokenInAddress: string;
+    tokenOutAddress: string;
+    amount: number;
+    allowedSlippage: number;
+    fromDecimal: number;
+  }, { dispatch, getState }) => {
+    const state = getState() as { swap: SwapState };
+    const lastPulseXParams = state.swap.lastPulseXParams;
+    
+    // Check if this is a new quote request (different parameters)
+    const isNewQuoteRequest = !lastPulseXParams || 
+      lastPulseXParams.tokenInAddress.toLowerCase() !== tokenInAddress.toLowerCase() ||
+      lastPulseXParams.tokenOutAddress.toLowerCase() !== tokenOutAddress.toLowerCase() ||
+      lastPulseXParams.amount !== amount ||
+      lastPulseXParams.allowedSlippage !== allowedSlippage;
+
+    if (isNewQuoteRequest) {
+      // New parameters: Call PulseX first, then switch to Piteams
+      dispatch(setPulseXLoading(true));
+      dispatch(setPiteamsLoading(true));
+      dispatch(setShowBetterRouterMessage(true));
+
+      try {
+        // Start PulseX API call first (fast response)
+        const pulseXResult = await dispatch(getPulseXQuote({
+          tokenInAddress,
+          tokenOutAddress,
+          amount,
+          allowedSlippage,
+          fromDecimal,
+        })).unwrap();
+
+        // Store the parameters for this PulseX call
+        dispatch(setLastPulseXParams({
+          tokenInAddress,
+          tokenOutAddress,
+          amount,
+          allowedSlippage,
+        }));
+
+        // If PulseX succeeds, return it immediately and start piteams in background
+        if (!pulseXResult.error) {
+          // Start piteams API call in background
+          dispatch(getPiteamsQuote({
+            tokenInAddress,
+            tokenOutAddress,
+            amount,
+            allowedSlippage,
+            fromDecimal,
+          })).then((piteamsResult) => {
+            if (piteamsResult.type === 'swap/getPiteamsQuote/fulfilled' && !piteamsResult.payload.error) {
+              // Compare output amounts and update if piteams is better
+              const pulseXOutput = pulseXResult.outputAmount;
+              const piteamsOutput = piteamsResult.payload.outputAmount;
+              
+              if (piteamsOutput && pulseXOutput && BigInt(piteamsOutput) > BigInt(pulseXOutput)) {
+                // Update with better quote from piteams
+                dispatch(setQuote(piteamsResult.payload));
+              }
+              // Hide the better router message once piteams completes
+              dispatch(setShowBetterRouterMessage(false));
+            }
+          }).catch(() => {
+            // If piteams fails, hide the message
+            dispatch(setShowBetterRouterMessage(false));
+          });
+          
+          return pulseXResult;
+        }
+      } catch (error) {
+        console.error('PulseX quote failed:', error);
+      }
+
+      // If PulseX fails, wait for piteams
+      try {
+        const piteamsResult = await dispatch(getPiteamsQuote({
+          tokenInAddress,
+          tokenOutAddress,
+          amount,
+          allowedSlippage,
+          fromDecimal,
+        })).unwrap();
+
+        if (!piteamsResult.error) {
+          dispatch(setShowBetterRouterMessage(false));
+          return piteamsResult;
+        }
+      } catch (error) {
+        console.error('Piteams quote failed:', error);
+      }
+
+      // If both fail, return error
+      dispatch(setShowBetterRouterMessage(false));
+      throw new Error('Both quote APIs failed');
+    } else {
+      // Same parameters: Only call Piteams API
+      dispatch(setPiteamsLoading(true));
+
+      try {
+        const piteamsResult = await dispatch(getPiteamsQuote({
+          tokenInAddress,
+          tokenOutAddress,
+          amount,
+          allowedSlippage,
+          fromDecimal,
+        })).unwrap();
+
+        if (!piteamsResult.error) {
+          return piteamsResult;
+        }
+      } catch (error) {
+        console.error('Piteams quote failed:', error);
+      }
+
+      // If Piteams fails, return error
+      throw new Error('Piteams quote API failed');
+    }
   }
 );
 
@@ -384,6 +561,7 @@ export const swapSlice = createSlice({
     },
     setSlippage: (state, action) => {
       state.slippage = action.payload;
+      resetSwapState();
     },
     // Set balances
     setFromTokenBalance: (state, action) => {
@@ -404,6 +582,24 @@ export const swapSlice = createSlice({
       state.isSwapping = false;
       state.isApproving = false;
       state.transactionHash = null;
+      state.hasCalledPulseXOnce = false;
+      state.lastPulseXParams = null;
+    },
+    // Quote loading states
+    setPulseXLoading: (state, action) => {
+      state.isPulseXLoading = action.payload;
+    },
+    setPiteamsLoading: (state, action) => {
+      state.isPiteamsLoading = action.payload;
+    },
+    setShowBetterRouterMessage: (state, action) => {
+      state.showBetterRouterMessage = action.payload;
+    },
+    setHasCalledPulseXOnce: (state, action) => {
+      state.hasCalledPulseXOnce = action.payload;
+    },
+    setLastPulseXParams: (state, action) => {
+      state.lastPulseXParams = action.payload;
     },
   },
   extraReducers: (builder) => {
@@ -434,7 +630,37 @@ export const swapSlice = createSlice({
       });
 
     builder
-      .addCase(getQuote.pending, (state) => {})
+      .addCase(getPulseXQuote.pending, (state) => {
+        state.isPulseXLoading = true;
+      })
+      .addCase(getPulseXQuote.fulfilled, (state, action) => {
+        state.isPulseXLoading = false;
+        // Quote will be set by the main getQuote function
+      })
+      .addCase(getPulseXQuote.rejected, (state, action) => {
+        state.isPulseXLoading = false;
+        console.error("Failed to get PulseX quote:", action.error);
+      });
+
+    builder
+      .addCase(getPiteamsQuote.pending, (state) => {
+        state.isPiteamsLoading = true;
+      })
+      .addCase(getPiteamsQuote.fulfilled, (state, action) => {
+        state.isPiteamsLoading = false;
+        state.showBetterRouterMessage = false;
+        // Quote comparison and update is handled by the main getQuote function
+      })
+      .addCase(getPiteamsQuote.rejected, (state, action) => {
+        state.isPiteamsLoading = false;
+        state.showBetterRouterMessage = false;
+        console.error("Failed to get piteams quote:", action.error);
+      });
+
+    builder
+      .addCase(getQuote.pending, (state) => {
+        // Loading states are managed in the thunk itself
+      })
       .addCase(getQuote.fulfilled, (state, action) => {
         if (!action.payload.error) {
           const isFromTokenValid =
@@ -458,9 +684,16 @@ export const swapSlice = createSlice({
             state.quote = action.payload;
           }
         }
+        // Reset loading states
+        state.isPulseXLoading = false;
+        state.isPiteamsLoading = false;
       })
       .addCase(getQuote.rejected, (state, action) => {
         console.error("Failed to get quote:", action.error);
+        // Reset loading states on error
+        state.isPulseXLoading = false;
+        state.isPiteamsLoading = false;
+        state.showBetterRouterMessage = false;
       });
 
     builder
@@ -561,6 +794,11 @@ export const {
   setNativeBalance,
   setTransactionHash,
   resetSwapState,
+  setPulseXLoading,
+  setPiteamsLoading,
+  setShowBetterRouterMessage,
+  setHasCalledPulseXOnce,
+  setLastPulseXParams,
 } = swapSlice.actions;
 
 export default swapSlice.reducer;

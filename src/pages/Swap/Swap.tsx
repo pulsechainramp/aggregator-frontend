@@ -60,6 +60,9 @@ const Swap: React.FC = () => {
     fromTokenBalance,
     toTokenBalance,
     nativeBalance,
+    isPulseXLoading,
+    isPiteamsLoading,
+    showBetterRouterMessage,
   } = useAppSelector((state) => state.swap);
 
   const outputAmount =
@@ -459,6 +462,17 @@ const Swap: React.FC = () => {
           />
 
           {quote && fromToken && toToken && fromAmount && <QuotePanel />}
+          
+          {showBetterRouterMessage && (
+            <div className="mt-3 p-3 bg-blue-900/20 border border-blue-500/30 rounded-lg">
+              <div className="flex items-center justify-center">
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-400 mr-2"></div>
+                <span className="text-blue-300 text-sm">
+                  For a better router, please wait a moment...
+                </span>
+              </div>
+            </div>
+          )}
 
           <ApprovalStatus
             fromToken={fromToken}
