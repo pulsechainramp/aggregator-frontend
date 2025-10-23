@@ -20,7 +20,7 @@ const walletConnect = walletConnectModule({
   dappUrl: "http://localhost:5173",
 });
 
-const wallets = [injected, trust, coinbase, walletConnect];
+const wallets = [injected, coinbase, trust, walletConnect];
 
 const web3Onboard = init({
   chains: [
@@ -36,11 +36,23 @@ const web3Onboard = init({
     autoConnectLastWallet: true,
     autoConnectAllPreviousWallet: true,
   },
+  accountCenter: {
+    desktop: { enabled: false },
+    mobile: { enabled: false },
+  },
   theme: "dark",
   appMetadata: {
-    name: "Aggregator",
-    icon: "https://pulsechain.com/favicon.ico",
-    description: "Aggregator",
+    name: "PulseChainRamp",
+    icon: "https://pulsechain.com/favicon128.png",
+    description: "PulseChain - Swap & Bridge",
+    recommendedInjectedWallets: [
+      { name: "MetaMask", url: "https://metamask.io" },
+      { name: "Coinbase", url: "https://www.coinbase.com/wallet" },
+      { name: "Trust Wallet", url: "https://trustwallet.com" },
+      { name: "Rabby", url: "https://rabby.io/" },
+      { name: "OKX Wallet", url: "https://web3.okx.com/" },
+      { name: "Internet Money", url: "https://internetmoney.io/" }
+    ],
   },
 });
 

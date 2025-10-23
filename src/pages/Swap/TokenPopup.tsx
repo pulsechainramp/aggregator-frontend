@@ -1,5 +1,4 @@
 import { AnimatePresence, motion } from "framer-motion";
-import { TokenGlobTag } from "../../const/swap";
 import { TokenType } from "../../types/Swap";
 import { useAppDispatch, useAppSelector } from "../../store/hooks";
 import { setFromToken, setToToken } from "../../store/swapSlice";
@@ -7,8 +6,6 @@ import { setFromToken, setToToken } from "../../store/swapSlice";
 interface TokenPopupProps {
   isOpen: boolean;
   onClose: () => void;
-  tokenGlobTag: TokenGlobTag;
-  setTokenGlobTag: (tag: TokenGlobTag) => void;
   chain: TokenType | null;
   setChain: (chain: TokenType) => void;
   selectType: "from" | "to" | null;
@@ -22,8 +19,6 @@ interface TokenPopupProps {
 const TokenPopup = ({
   isOpen,
   onClose,
-  tokenGlobTag,
-  setTokenGlobTag,
   chain,
   setChain,
   selectType,
@@ -106,25 +101,10 @@ const TokenPopup = ({
             </div>
 
             <div className="p-3 sm:p-4 overflow-y-auto max-h-[calc(90vh-80px)]">
-              <div className="flex gap-1.5 overflow-x-auto pb-3 scrollbar-hide">
-                {Object.values(TokenGlobTag).map((tag, index) => (
-                  <button
-                    key={index}
-                    className={`px-3 sm:px-4 py-1.5 rounded-full whitespace-nowrap text-xs sm:text-sm transition-all duration-200 ease-in-out hover:scale-105 ${
-                      tokenGlobTag === tag
-                        ? "bg-green-500 text-black font-medium shadow-lg shadow-green-500/20"
-                        : "bg-[#2b2e4a] text-white hover:bg-[#3a3f63]"
-                    }`}
-                    onClick={() => setTokenGlobTag(tag)}
-                  >
-                    {tag}
-                  </button>
-                ))}
-              </div>
 
               <div className="flex flex-col sm:flex-row gap-3 mt-3">
                 {/* Chains Panel */}
-                <div className="w-full sm:w-[200px]">
+                <div className="w-full sm:w-[200px] hidden">
                   <div className="relative mb-3">
                     <input
                       type="text"
@@ -146,6 +126,18 @@ const TokenPopup = ({
                         d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
                       />
                     </svg>
+                    {searchChain && (
+                      <button
+                        type="button"
+                        aria-label="Clear chain search"
+                        onClick={() => setSearchChain("")}
+                        className="absolute right-2.5 top-1/2 -translate-y-1/2 p-1 rounded hover:bg-[#3a3f5a] focus:outline-none"
+                      >
+                        <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                      </button>
+                    )}
                   </div>
                   <div className="space-y-1 max-h-[200px] sm:max-h-[310px] overflow-y-auto custom-scrollbar pr-2">
                     <div className="flex items-center justify-center text-xs sm:text-sm text-gray-400">
@@ -204,6 +196,16 @@ const TokenPopup = ({
                         d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
                       />
                     </svg>
+                    <button
+                      type="button"
+                      aria-label="Clear token search"
+                      onClick={() => setSearchToken("")}
+                      className="absolute right-2.5 top-1/2 -translate-y-1/2 p-1 rounded hover:bg-[#3a3f5a] focus:outline-none"
+                    >
+                      <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
                   </div>
                   <div className="space-y-1.5 max-h-[200px] sm:max-h-[320px] overflow-y-auto custom-scrollbar">
                     {pulsechainTokens.length > 0

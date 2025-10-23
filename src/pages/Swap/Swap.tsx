@@ -1,6 +1,6 @@
 import { motion } from "framer-motion";
 import React, { useEffect, useState, useRef } from "react";
-import { TokenGlobTag, ZeroAddress } from "../../const/swap";
+import { ZeroAddress } from "../../const/swap";
 import { useAppDispatch, useAppSelector } from "../../store/hooks";
 import {
   getAllChains,
@@ -38,9 +38,6 @@ const Swap: React.FC = () => {
 
   const [isTokenPopupOpen, setIsTokenPopupOpen] = useState(false);
   const [isSlippagePopupOpen, setIsSlippagePopupOpen] = useState(false);
-  const [tokenGlobTag, setTokenGlobTag] = useState<TokenGlobTag>(
-    TokenGlobTag.All
-  );
   const [chain, setChain] = useState<TokenType | null>(null);
   const [selectType, setSelectType] = useState<"from" | "to" | null>(null);
   const [searchChain, setSearchChain] = useState<string>("");
@@ -496,8 +493,6 @@ const Swap: React.FC = () => {
       <TokenPopup
         isOpen={isTokenPopupOpen}
         onClose={() => setIsTokenPopupOpen(false)}
-        tokenGlobTag={tokenGlobTag}
-        setTokenGlobTag={setTokenGlobTag}
         chain={chain}
         setChain={setChain}
         selectType={selectType}

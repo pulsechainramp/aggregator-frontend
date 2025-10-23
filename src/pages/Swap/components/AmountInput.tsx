@@ -147,7 +147,7 @@ const AmountInput: React.FC<AmountInputProps> = ({
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
               onClick={onCopyAddress}
-              className="px-3 py-3 text-xs bg-gradient-to-r from-[#3a3f5a] to-[#2b2e4a] text-gray-300 rounded-lg hover:from-[#4a4f6a] hover:to-[#3a3f5a] hover:text-white transition-all duration-200 font-medium border border-[#4a4f6a] hover:border-[#5a5f7a] flex-shrink-0"
+              className="px-2 py-2 text-xs bg-gradient-to-r from-[#3a3f5a] to-[#2b2e4a] text-gray-300 rounded-lg hover:from-[#4a4f6a] hover:to-[#3a3f5a] hover:text-white transition-all duration-200 font-medium border border-[#4a4f6a] hover:border-[#5a5f7a] flex-shrink-0"
               title="Copy token address"
             >
               <svg
@@ -178,7 +178,6 @@ const AmountInput: React.FC<AmountInputProps> = ({
               }}
               variant="outline"
               size="sm"
-              className="flex-shrink-0"
             />
           ) : null}
         </div>
