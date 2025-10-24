@@ -15,8 +15,9 @@ const getFiatFor = (code: string) =>
     COUNTRY_OPTIONS.find(c => c.code === code)?.fiat ?? "USD";
 
 export default function OnRampModal({ open, onClose, address }: Props) {
-  const [country, setCountry] = useState<string>(COUNTRY_DEFAULT);
+  const [country, setCountry] = useState<string | null>(null);
   const [providers, setProviders] = useState<Provider[]>([]);
+  const [fallbackProviders, setFallbackProviders] = useState<Provider[]>([]);
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState<string | null>(null);
 
@@ -27,8 +28,9 @@ export default function OnRampModal({ open, onClose, address }: Props) {
         setLoading(true);
         setErr(null);
         const geo = await fetchGeo();
-        if (geo.country) setCountry(geo.country);
+        setCountry((geo?.country || "").toUpperCase() || "ZZ");
       } catch (e: any) {
+        setCountry("ZZ");
         setErr(e?.message ?? "geo error");
       } finally {
         setLoading(false);
@@ -47,6 +49,7 @@ export default function OnRampModal({ open, onClose, address }: Props) {
         fiat: getFiatFor(c || COUNTRY_DEFAULT),
       });
       setProviders(resp.providers || []);
+      setFallbackProviders(resp.fallback_provider_details || []);
     } catch (e: any) {
       setErr(e?.message ?? "provider error");
       setProviders([]);
@@ -56,9 +59,8 @@ export default function OnRampModal({ open, onClose, address }: Props) {
   }
 
   useEffect(() => {
-    if (!open) return;
+    if (!open || !country) return; 
     loadProviders(country);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, country, address]);
 
   const visible = open ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none";
@@ -114,7 +116,35 @@ export default function OnRampModal({ open, onClose, address }: Props) {
                 </div>
               </li>
             ))}
-            {!providers.length && (
+            {/* If no curated providers, render the server-supplied default options */}
+            {!providers.length && fallbackProviders.length > 0 && (
+              <>
+                {fallbackProviders.map((p) => (
+                  <li key={`fallback-${p.id}`} className="rounded-xl border border-white/10 bg-white/5 p-4">
+                    <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                      <div>
+                        <div className="text-white font-medium">{p.display_name}</div>
+                        <div className="text-xs text-white/60">
+                          {(p.supported_payment_methods || []).join(" · ") || p.type}
+                        </div>
+                      </div>
+                      <div className="flex gap-2">
+                        <a
+                          href={p.deeplink || p.coverage_url || (p.regulator_links?.[0] ?? "#")}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="rounded-lg bg-indigo-500 px-3 py-1.5 text-sm font-semibold text-white hover:bg-indigo-400"
+                        >
+                          Visit
+                        </a>
+                      </div>
+                    </div>
+                  </li>
+                ))}
+              </>
+            )}
+            {/* Show the “no providers” message only if absolutely nothing returned */}
+            {!providers.length && !fallbackProviders.length && (
               <li className="rounded-xl border border-white/10 bg-white/5 p-4 text-sm text-white/70">
                 No providers found for {country}. Try a different 2-letter code (e.g., US, GB, DE).
               </li>
