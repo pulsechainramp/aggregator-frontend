@@ -8,6 +8,8 @@ import {
   useReferralLoading,
   useReferralError,
   useReferralClaiming,
+  useReferralFeeBasisPoints,
+  useReferralFeeBasisPointsLoading,
 } from "../../store/hooks";
 import {
   fetchReferralFees,
@@ -23,6 +25,7 @@ import {
   fetchReferralCode,
   fetchReferralFeeBasisPoints,
 } from "../../store/referralSlice";
+import { formatFeeBasisPoints } from "../../utils/referralUtils";
 
 const Referrals: React.FC = () => {
   const { account } = useWallet();
@@ -35,6 +38,14 @@ const Referrals: React.FC = () => {
   const [tokensLoading, setTokensLoading] = useState(false);
   const claiming = useReferralClaiming();
   const [isFeePopupOpen, setIsFeePopupOpen] = useState(false);
+  const referralFeeBasisPoints = useReferralFeeBasisPoints();
+  const feeBasisPointsLoading = useReferralFeeBasisPointsLoading();
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      window.scrollTo(0, 0);
+    }
+  }, []);
 
   // Check if referral code is available
   useEffect(() => {
@@ -79,6 +90,7 @@ const Referrals: React.FC = () => {
   useEffect(() => {
     if (account) {
       dispatch(fetchReferralFees(account));
+      dispatch(fetchReferralFeeBasisPoints(account));
       fetchTokens();
     }
   }, [account, dispatch]);
@@ -223,7 +235,7 @@ const Referrals: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}
         <motion.div
           initial={{ y: -20, opacity: 0 }}
@@ -240,11 +252,20 @@ const Referrals: React.FC = () => {
         </motion.div>
 
         {/* Your referral link */}
-        <section className="mb-6 rounded-2xl border border-slate-700/60 bg-slate-800/60 p-4">
-          <h2 className="text-slate-200 font-semibold mb-2">Your referral link</h2>
+        <section className="mb-6 rounded-2xl border border-slate-700/60 bg-slate-800/60 p-4 md:p-6">
+          <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <h2 className="text-slate-200 font-semibold">Your referral link</h2>
+            <p className="text-sm text-slate-300">
+              {feeBasisPointsLoading
+                ? "Fetching your referral fee..."
+                : referralFeeBasisPoints
+                ? `Current referral fee: ${formatFeeBasisPoints(referralFeeBasisPoints)}`
+                : "Referral fee not set yet"}
+            </p>
+          </div>
 
           {account ? (
-            <div className="flex gap-2">
+            <div className="flex flex-col gap-2 sm:flex-row">
               <input
                 className="flex-1 rounded-md bg-slate-900/60 border border-slate-700/60 px-3 py-2 text-slate-200 text-sm"
                 readOnly
@@ -263,12 +284,13 @@ const Referrals: React.FC = () => {
           )}
 
           {/* NEW: open existing fee popup from here */}
-          <div className="mt-3">
+          <div className="mt-4">
             <button
+              type="button"
               onClick={() => setIsFeePopupOpen(true)}
-              className="text-emerald-300 underline underline-offset-4 text-sm"
+              className="inline-flex items-center justify-center rounded-md border border-emerald-400/30 bg-slate-900/60 px-4 py-2 text-sm font-semibold text-emerald-300 transition-colors hover:bg-slate-800 hover:text-emerald-200 focus:outline-none focus:ring-2 focus:ring-emerald-500/40"
             >
-              Update your referral fee
+              Manage referral fee
             </button>
           </div>
         </section>
