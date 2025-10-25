@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useLayoutEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import useWallet from "../../hooks/useWallet";
 import {
@@ -19,7 +19,7 @@ import {
 import { getAvailableTokensFromChain } from "../../store/swapSlice";
 import { toast } from "react-toastify";
 import { TokenType } from "../../types/Swap";
-import { Link } from "react-router-dom";
+import AddToWalletButton from "../../components/AddToWalletButton";
 import ReferralFeePopup from "../Swap/ReferralFeePopup";
 import {
   fetchReferralCode,
@@ -41,10 +41,25 @@ const Referrals: React.FC = () => {
   const referralFeeBasisPoints = useReferralFeeBasisPoints();
   const feeBasisPointsLoading = useReferralFeeBasisPointsLoading();
 
-  useEffect(() => {
-    if (typeof window !== "undefined") {
+  useLayoutEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const resetScroll = () => {
       window.scrollTo(0, 0);
-    }
+      if (typeof document !== "undefined") {
+        document.documentElement.scrollTop = 0;
+        document.body.scrollTop = 0;
+      }
+    };
+
+    resetScroll();
+    const raf = window.requestAnimationFrame(resetScroll);
+
+    return () => {
+      if (raf) {
+        window.cancelAnimationFrame(raf);
+      }
+    };
   }, []);
 
   // Check if referral code is available
@@ -363,83 +378,97 @@ const Referrals: React.FC = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredReferralFees.map((fee) => (
-                    <motion.tr
-                      key={fee.id}
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      className="border-b border-slate-700/30 hover:bg-slate-700/20 transition-colors"
-                    >
-                      <td className="py-4 px-4">
-                        <div className="flex items-center space-x-3">
-                          {(() => {
-                            const tokenMetadata = getTokenMetadata(fee.token);
-                            console.log(tokenMetadata);
-                            return (
-                              <>
-                                <div className="w-8 h-8 rounded-lg flex items-center justify-center overflow-hidden">
-                                  {tokenMetadata?.image ? (
-                                    <img
-                                      src={tokenMetadata.image}
-                                      alt={tokenMetadata.symbol}
-                                      className="w-full h-full object-cover"
-                                      onError={(e) => {
-                                        e.currentTarget.src =
-                                          "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzIiIGhlaWdodD0iMzIiIHZpZXdCb3g9IjAgMCAzMiAzMiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMTYiIGN5PSIxNiIgcj0iMTYiIGZpbGw9IiMxMEI5NjEiLz4KPHN2ZyB4PSI4IiB5PSI4IiB3aWR0aD0iMTYiIGhlaWdodD0iMTYiIHZpZXdCb3g9IjAgMCAxNiAxNiIgZmlsbD0ibm9uZSI+CjxwYXRoIGQ9Ik04IDhIMTZWMThIOFY4WiIgZmlsbD0id2hpdGUiLz4KPC9zdmc+Cjwvc3ZnPgo=";
-                                      }}
-                                    />
-                                  ) : (
-                                    <div className="w-full h-full bg-emerald-500/20 flex items-center justify-center">
-                                      <span className="text-sm">🪙</span>
-                                    </div>
-                                  )}
+                  {filteredReferralFees.map((fee) => {
+                    const tokenMetadata = getTokenMetadata(fee.token);
+                    const tokenChainId =
+                      tokenMetadata?.blockchainNetwork?.toLowerCase() === "ethereum"
+                        ? 1
+                        : 369;
+
+                    return (
+                      <motion.tr
+                        key={fee.id}
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="border-b border-slate-700/30 hover:bg-slate-700/20 transition-colors"
+                      >
+                        <td className="py-4 px-4">
+                          <div className="flex items-center space-x-3">
+                            <div className="w-8 h-8 rounded-lg flex items-center justify-center overflow-hidden">
+                              {tokenMetadata?.image ? (
+                                <img
+                                  src={tokenMetadata.image}
+                                  alt={tokenMetadata.symbol}
+                                  className="w-full h-full object-cover"
+                                  onError={(e) => {
+                                    e.currentTarget.src =
+                                      "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzIiIGhlaWdodD0iMzIiIHZpZXdCb3g9IjAgMCAzMiAzMiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMTYiIGN5PSIxNiIgcj0iMTYiIGZpbGw9IiMxMEI5NjEiLz4KPHN2ZyB4PSI4IiB5PSI4IiB3aWR0aD0iMTYiIGhlaWdodD0iMTYiIHZpZXdCb3g9IjAgMCAxNiAxNiIgZmlsbD0ibm9uZSI+CjxwYXRoIGQ9Ik04IDhIMTZWMThIOFY4WiIgZmlsbD0id2hpdGUiLz4KPC9zdmc+Cjwvc3ZnPgo=";
+                                  }}
+                                />
+                              ) : (
+                                <div className="w-full h-full bg-emerald-500/20 flex items-center justify-center">
+                                  <span className="text-sm">🪙</span>
                                 </div>
-                                <div>
-                                  {tokenMetadata ? (
-                                    <>
-                                      <p className="text-white font-medium">
-                                        {tokenMetadata.symbol}
-                                      </p>
-                                      <p className="text-slate-400 text-sm">
-                                        {tokenMetadata.name}
-                                      </p>
-                                    </>
-                                  ) : (
-                                    <>
-                                      <p className="text-white font-medium font-mono">
-                                        {fee.token.slice(0, 6)}...
-                                        {fee.token.slice(-4)}
-                                      </p>
-                                      <p className="text-slate-400 text-sm">
-                                        Token Address
-                                      </p>
-                                    </>
-                                  )}
-                                </div>
-                              </>
-                            );
-                          })()}
-                        </div>
-                      </td>
-                      <td className="py-4 px-4">
-                        <span className="text-lg font-bold text-emerald-400">
-                          {fee.amount}
-                        </span>
-                      </td>
-                      <td className="py-4 px-4 text-slate-300">
-                        {formatDate(fee.createdAt)}
-                      </td>
-                      <td className="py-4 px-4">
-                        <button
-                          onClick={() => handleClaim(fee)}
-                          disabled={claiming}
-                          className="px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                        >
-                          {claiming ? "Claiming..." : "Claim"}
-                        </button>
-                      </td>
-                    </motion.tr>
-                  ))}
+                              )}
+                            </div>
+                            <div>
+                              {tokenMetadata ? (
+                                <>
+                                  <p className="text-white font-medium">
+                                    {tokenMetadata.symbol}
+                                  </p>
+                                  <p className="text-slate-400 text-sm">
+                                    {tokenMetadata.name}
+                                  </p>
+                                </>
+                              ) : (
+                                <>
+                                  <p className="text-white font-medium font-mono">
+                                    {fee.token.slice(0, 6)}...
+                                    {fee.token.slice(-4)}
+                                  </p>
+                                  <p className="text-slate-400 text-sm">
+                                    Token Address
+                                  </p>
+                                </>
+                              )}
+                            </div>
+                          </div>
+                        </td>
+                        <td className="py-4 px-4">
+                          <span className="text-lg font-bold text-emerald-400">
+                            {fee.amount}
+                          </span>
+                        </td>
+                        <td className="py-4 px-4 text-slate-300">
+                          {formatDate(fee.createdAt)}
+                        </td>
+                        <td className="py-4 px-4">
+                          <div className="flex items-center gap-3">
+                            {tokenMetadata && (
+                              <AddToWalletButton
+                                token={{
+                                  address: tokenMetadata.address,
+                                  symbol: tokenMetadata.symbol,
+                                  decimals: tokenMetadata.decimals,
+                                  chainId: tokenChainId,
+                                }}
+                                variant="outline"
+                                size="sm"
+                              />
+                            )}
+                            <button
+                              onClick={() => handleClaim(fee)}
+                              disabled={claiming}
+                              className="px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                              {claiming ? "Claiming..." : "Claim"}
+                            </button>
+                          </div>
+                        </td>
+                      </motion.tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
