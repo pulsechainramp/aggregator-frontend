@@ -10,7 +10,7 @@ Welcome to the PulseChainRamp beta. Use this checklist to exercise critical flow
 ## Core Scenarios
 
 ### 1. Bridge Coverage
-- Initiate bridge transfers for ETH, USDC, UDT, and DAI.
+- Initiate bridge transfers for ETH, USDC, USDT, and DAI.
 - Verify quoted arrival times and confirm that target wallets receive bridged assets.
 - Note any discrepancies between estimated gas/fees and actual costs.
 
