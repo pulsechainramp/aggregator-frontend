@@ -16,6 +16,12 @@ export default function AppFooter() {
             >
               Affiliate<span className="hidden sm:inline"> Program</span>
             </Link>
+            <Link
+              to="/docs"
+              className="text-sm text-slate-400 hover:text-emerald-300 underline underline-offset-4 whitespace-nowrap"
+            >
+              Docs
+            </Link>
             <button
               onClick={() => setShowContactModal(true)}
               className="text-sm text-slate-400 hover:text-emerald-300 underline underline-offset-4 whitespace-nowrap"
