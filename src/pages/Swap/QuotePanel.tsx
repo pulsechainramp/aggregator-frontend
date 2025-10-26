@@ -3,7 +3,7 @@ import { ChevronDownIcon, ChevronUpIcon } from "@heroicons/react/24/solid";
 import { useAppSelector } from "../../store/hooks";
 import { ethers } from "ethers";
 import RouteDetailsPopup from "./RouteDetailPopup";
-import { AnimatePresence, motion } from "framer-motion";
+import { motion } from "framer-motion";
 
 const QuotePanel = () => {
   const { fromToken, toToken, quote, slippage, fromAmount } = useAppSelector(
@@ -30,29 +30,29 @@ const QuotePanel = () => {
       : 0;
 
   return (
-    <div className="bg-[#1e2030] rounded-xl p-4 shadow-lg text-white w-full mt-2">
+    <div className="mt-2 w-full rounded-xl border border-border bg-bg-surface p-4 text-text shadow-sm sm:p-5">
       {/* Top row */}
       <div
         className="flex items-center justify-between cursor-pointer w-full"
         onClick={() => setOpen((v) => !v)}
       >
-        <div className="flex items-center gap-2 text-base font-semibold">
-          <span className="text-white/90">
+        <div className="flex items-center gap-2 text-base font-semibold text-text">
+          <span>
             1 {toToken?.symbol} ={" "}
             {Number(((Number(fromAmount) || 1) / toTokenAmount).toFixed(10))}{" "}
             {fromToken?.symbol}
           </span>
-          <span className="text-white/50">
+          <span className="text-text-muted">
             ($
             {Number(toToken?.usdPrice).toFixed(5).toLocaleString()})
           </span>
         </div>
-        <div className="flex items-center gap-1 text-sm text-white/60 select-none">
+        <div className="select-none flex items-center gap-1 text-sm text-text-muted">
           Details
           {open ? (
-            <ChevronUpIcon className="w-4 h-4 ml-1" />
+            <ChevronUpIcon className="ml-1 h-4 w-4 text-text-muted" />
           ) : (
-            <ChevronDownIcon className="w-4 h-4 ml-1" />
+            <ChevronDownIcon className="ml-1 h-4 w-4 text-text-muted" />
           )}
         </div>
       </div>
@@ -60,39 +60,39 @@ const QuotePanel = () => {
       {open && (
         <div className="mt-4 space-y-2 text-sm">
           <div className="flex justify-between">
-            <span className="text-white/50">Network fee</span>
-            <span className="text-white/80">
+            <span className="text-text-muted">Network fee</span>
+            <span className="font-medium text-text">
               {quote?.gasUSDEstimated?.toFixed(3)}$
             </span>
           </div>
           <div className="flex justify-between">
-            <span className="text-white/50">Price Impact</span>
-            <span className="text-white/80">{impact.toFixed(2)}%</span>
+            <span className="text-text-muted">Price impact</span>
+            <span className="font-medium text-text">{impact.toFixed(2)}%</span>
           </div>
           <div className="flex justify-between">
-            <span className="text-white/50">Slippage tolerance</span>
-            <span className="text-white/80">{slippage}%</span>
+            <span className="text-text-muted">Slippage tolerance</span>
+            <span className="font-medium text-text">{slippage}%</span>
           </div>
           <div className="flex justify-between">
-            <span className="text-white/50">Minimum output</span>
-            <span className="text-white/80 font-mono">
+            <span className="text-text-muted">Minimum output</span>
+            <span className="font-mono font-medium text-text">
               {Number(minOutput.toFixed(10))} {toToken?.symbol}
             </span>
           </div>
           <div className="flex justify-between">
-            <span className="text-white/50">Expected output</span>
-            <span className="text-white/80 font-mono">
+            <span className="text-text-muted">Expected output</span>
+            <span className="font-mono font-medium text-text">
               {Number(toTokenAmount.toFixed(10))} {toToken?.symbol}
             </span>
           </div>
-          <div className="flex justify-between items-center pt-2 border-t border-white/10 mt-2">
-            <span className="text-xs text-white/40">
+          <div className="mt-2 flex items-center justify-between border-t border-border pt-2">
+            <span className="text-xs text-text-subtle">
             </span>
             <div
               className="relative flex items-center cursor-pointer"
               onClick={() => setShowRoute(true)}
             >
-              <button className="text-pink-500 text-xs font-semibold flex items-center gap-1 hover:underline">
+              <button className="flex items-center gap-1 rounded-md px-1 py-1 text-xs font-semibold text-primary transition-colors hover:text-primary-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus/40">
                 Show Route
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
@@ -109,7 +109,6 @@ const QuotePanel = () => {
                   />
                 </svg>
               </button>
-              <AnimatePresence></AnimatePresence>
             </div>
           </div>
         </div>
@@ -117,11 +116,11 @@ const QuotePanel = () => {
 
       {showRoute && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-overlay"
           onClick={() => setShowRoute(false)}
         >
           <motion.div
-            className="bg-[#191b2a] border border-[#23263b] rounded-2xl shadow-lg p-6 text-white max-w-full"
+            className="max-w-full rounded-2xl border border-border bg-bg-surface p-6 text-text shadow-floating"
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.95 }}

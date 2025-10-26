@@ -23,7 +23,7 @@ const Navbar: React.FC = () => {
               className={`px-3 py-2 rounded-md text-sm font-medium ${
                 isActive('/') 
                   ? 'bg-gray-900 text-white' 
-                  : 'text-gray-300 hover:bg-gray-700 hover:text-white'
+                  : 'text-text-muted hover:bg-gray-700 hover:text-white'
               }`}
             >
               Swap
@@ -33,7 +33,7 @@ const Navbar: React.FC = () => {
               className={`px-3 py-2 rounded-md text-sm font-medium ${
                 isActive('/bridge')
                   ? 'bg-gray-900 text-white'
-                  : 'text-gray-300 hover:bg-gray-700 hover:text-white'
+                  : 'text-text-muted hover:bg-gray-700 hover:text-white'
               }`}
             >
               Bridge
@@ -43,7 +43,7 @@ const Navbar: React.FC = () => {
               className={`px-3 py-2 rounded-md text-sm font-medium ${
                 isActive('/activity')
                   ? 'bg-gray-900 text-white'
-                  : 'text-gray-300 hover:bg-gray-700 hover:text-white'
+                  : 'text-text-muted hover:bg-gray-700 hover:text-white'
               }`}
             >
               Activity

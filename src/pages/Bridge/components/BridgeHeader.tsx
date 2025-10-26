@@ -8,15 +8,15 @@ const BridgeHeader: React.FC = () => {
       initial={{ opacity: 0, y: -10 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4 }}
-      className="flex flex-row justify-between items-center gap-4 mb-6 sm:mb-8"
+      className="mb-6 flex flex-row items-center justify-between gap-4 sm:mb-8"
     >
-      <h2 className="font-bold text-2xl sm:text-3xl text-white">
+      <h2 className="text-2xl font-semibold text-text sm:text-3xl">
         Bridge
       </h2>
       
       <Link
         to="/activity"
-        className="px-4 py-2 bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white rounded-lg font-medium transition-all duration-200 shadow-lg shadow-blue-500/25 hover:shadow-blue-500/40 whitespace-nowrap"
+        className="touch-target inline-flex items-center justify-center rounded-lg border border-primary bg-primary-050 px-4 py-2 text-sm font-semibold text-primary transition-colors hover:border-primary-600 hover:bg-primary-050/80 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus whitespace-nowrap"
       >
         View Activity
       </Link>

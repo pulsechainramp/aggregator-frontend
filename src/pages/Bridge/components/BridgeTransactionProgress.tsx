@@ -110,7 +110,7 @@ const BridgeTransactionProgress: React.FC<BridgeTransactionProgressProps> = ({
       case "current":
         return "text-yellow-400 bg-yellow-500/20 border-yellow-500/50";
       case "pending":
-        return "text-gray-400 bg-gray-500/20 border-gray-500/50";
+        return "text-text-subtle bg-gray-500/20 border-gray-500/50";
     }
   };
 
@@ -177,7 +177,7 @@ const BridgeTransactionProgress: React.FC<BridgeTransactionProgressProps> = ({
           </div>
           <div>
             <h3 className="text-white font-semibold text-lg">Bridge Order</h3>
-            <p className="text-gray-400 text-sm">ID: {bridgeTransaction.id}</p>
+            <p className="text-text-subtle text-sm">ID: {bridgeTransaction.id}</p>
           </div>
         </div>
         <div
@@ -208,7 +208,7 @@ const BridgeTransactionProgress: React.FC<BridgeTransactionProgressProps> = ({
                         ? "text-green-400"
                         : status === "current"
                         ? "text-yellow-400"
-                        : "text-gray-400"
+                        : "text-text-subtle"
                     }`}
                   >
                     {step.name}
@@ -246,7 +246,7 @@ const BridgeTransactionProgress: React.FC<BridgeTransactionProgressProps> = ({
                 />
               </svg>
             </div>
-            <span className="text-gray-300 text-sm font-medium">
+            <span className="text-text-muted text-sm font-medium">
               Block Progress
             </span>
           </div>
@@ -255,7 +255,7 @@ const BridgeTransactionProgress: React.FC<BridgeTransactionProgressProps> = ({
               {getBlockProgress().blocksElapsed} /{" "}
               {getBlockProgress().totalBlocks} blocks
             </div>
-            <div className="text-gray-400 text-xs">
+            <div className="text-text-subtle text-xs">
               {getBlockProgress().isBlockProgressComplete
                 ? "Block time completed"
                 : "Processing blocks..."}
@@ -269,7 +269,7 @@ const BridgeTransactionProgress: React.FC<BridgeTransactionProgressProps> = ({
             className={`h-2 rounded-full transition-all duration-500 ${
               getBlockProgress().isBlockProgressComplete
                 ? "bg-green-500"
-                : "bg-gradient-to-r from-blue-500 to-purple-500"
+                : "bg-primary-050"
             }`}
             style={{ width: `${getBlockProgress().progress * 100}%` }}
           />
@@ -315,7 +315,7 @@ const BridgeTransactionProgress: React.FC<BridgeTransactionProgressProps> = ({
         {bridgeTransaction.status === "pending" &&
           !getBlockProgress().isBlockProgressComplete && (
             <div className="mt-2 text-center">
-              <div className="text-gray-400 text-xs">
+              <div className="text-text-subtle text-xs">
                 Estimated time remaining:{" "}
                 {Math.ceil(getBlockProgress().timeRemaining / 60000)} minutes
               </div>
@@ -325,13 +325,13 @@ const BridgeTransactionProgress: React.FC<BridgeTransactionProgressProps> = ({
         {/* Block Details */}
         <div className="mt-3 grid grid-cols-2 gap-4 text-xs">
           <div className="text-center">
-            <div className="text-gray-400">Blocks Processed</div>
+            <div className="text-text-subtle">Blocks Processed</div>
             <div className="text-white font-medium">
               {getBlockProgress().blocksElapsed}
             </div>
           </div>
           <div className="text-center">
-            <div className="text-gray-400">Blocks Remaining</div>
+            <div className="text-text-subtle">Blocks Remaining</div>
             <div className="text-white font-medium">
               {getBlockProgress().totalBlocks -
                 getBlockProgress().blocksElapsed}
@@ -353,7 +353,7 @@ const BridgeTransactionProgress: React.FC<BridgeTransactionProgressProps> = ({
                 <path d="M3 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V4zM3 10a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H4a1 1 0 01-1-1v-6zM14 9a1 1 0 00-1 1v6a1 1 0 001 1h2a1 1 0 001-1v-6a1 1 0 00-1-1h-2z" />
               </svg>
             </div>
-            <span className="text-gray-400 text-sm">From</span>
+            <span className="text-text-subtle text-sm">From</span>
           </div>
           <div className="text-white font-medium">
             Amount:{" "}
@@ -376,7 +376,7 @@ const BridgeTransactionProgress: React.FC<BridgeTransactionProgressProps> = ({
                 <path d="M3 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V4zM3 10a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H4a1 1 0 01-1-1v-6zM14 9a1 1 0 00-1 1v6a1 1 0 001 1h2a1 1 0 001-1v-6a1 1 0 00-1-1h-2z" />
               </svg>
             </div>
-            <span className="text-gray-400 text-sm">To</span>
+            <span className="text-text-subtle text-sm">To</span>
           </div>
           <div className="text-white font-medium">
             Amount:{" "}
@@ -391,7 +391,7 @@ const BridgeTransactionProgress: React.FC<BridgeTransactionProgressProps> = ({
         <div className="bg-[#1e2030] rounded-lg p-4">
           <div className="flex items-center gap-2 mb-2">
             <svg
-              className="w-4 h-4 text-gray-400"
+              className="w-4 h-4 text-text-subtle"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -403,7 +403,7 @@ const BridgeTransactionProgress: React.FC<BridgeTransactionProgressProps> = ({
                 d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
               />
             </svg>
-            <span className="text-gray-400 text-sm">Timeline</span>
+            <span className="text-text-subtle text-sm">Timeline</span>
           </div>
           <div className="text-white text-sm">
             <div>
@@ -421,7 +421,7 @@ const BridgeTransactionProgress: React.FC<BridgeTransactionProgressProps> = ({
         <div className="bg-[#1e2030] rounded-lg p-4">
           <div className="flex items-center gap-2 mb-2">
             <svg
-              className="w-4 h-4 text-gray-400"
+              className="w-4 h-4 text-text-subtle"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -433,7 +433,7 @@ const BridgeTransactionProgress: React.FC<BridgeTransactionProgressProps> = ({
                 d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"
               />
             </svg>
-            <span className="text-gray-400 text-sm">Payin Hash</span>
+            <span className="text-text-subtle text-sm">Payin Hash</span>
           </div>
           <div className="text-white text-sm font-mono">
             {bridgeTransaction.sourceTxHash.slice(0, 10)}...
@@ -446,7 +446,7 @@ const BridgeTransactionProgress: React.FC<BridgeTransactionProgressProps> = ({
         <div className="mt-4 bg-[#1e2030] rounded-lg p-4">
           <div className="flex items-center gap-2 mb-2">
             <svg
-              className="w-4 h-4 text-gray-400"
+              className="w-4 h-4 text-text-subtle"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -458,7 +458,7 @@ const BridgeTransactionProgress: React.FC<BridgeTransactionProgressProps> = ({
                 d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"
               />
             </svg>
-            <span className="text-gray-400 text-sm">Payout Hash</span>
+            <span className="text-text-subtle text-sm">Payout Hash</span>
           </div>
           <div className="text-white text-sm font-mono">
             {bridgeTransaction.targetTxHash.slice(0, 10)}...

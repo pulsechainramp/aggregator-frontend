@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import useWallet from "../hooks/useWallet";
 
@@ -7,131 +7,135 @@ interface NetworkIndicatorProps {
 }
 
 const NetworkIndicator: React.FC<NetworkIndicatorProps> = ({ className = "" }) => {
-  const { 
-    currentChainId, 
-    getCurrentNetworkName, 
+  const {
+    currentChainId,
+    getCurrentNetworkName,
     getCurrentNetworkSymbol,
     isOnEthereum,
     isOnPulseChain,
     switchToPulsechain,
     switchToEthereum,
-    wallet
+    wallet,
   } = useWallet();
-  
-  const [showSwitchMenu, setShowSwitchMenu] = useState(false);
+
+  const [isOpen, setIsOpen] = useState(false);
+  const containerRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    if (!isOpen) {
+      return;
+    }
+
+    const handleClick = (event: MouseEvent) => {
+      if (
+        containerRef.current &&
+        !containerRef.current.contains(event.target as Node)
+      ) {
+        setIsOpen(false);
+      }
+    };
+
+    const handleKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setIsOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClick);
+    document.addEventListener("keydown", handleKey);
+
+    return () => {
+      document.removeEventListener("mousedown", handleClick);
+      document.removeEventListener("keydown", handleKey);
+    };
+  }, [isOpen]);
 
   if (!wallet || !currentChainId) {
     return null;
   }
 
-  const getNetworkColor = () => {
-    if (isOnEthereum()) return "from-blue-500 to-blue-600";
-    if (isOnPulseChain()) return "from-emerald-500 to-teal-500";
-    return "from-gray-500 to-gray-600";
+  const statusColor = isOnPulseChain()
+    ? "bg-success"
+    : isOnEthereum()
+    ? "bg-primary"
+    : "bg-warning";
+
+  const handlePulseChain = async () => {
+    await switchToPulsechain();
+    setIsOpen(false);
   };
 
-  const getNetworkIcon = () => {
-    if (isOnEthereum()) return "🔵";
-    if (isOnPulseChain()) return "🟢";
-    return "❓";
-  };
-
-  const handleSwitchToPulseChain = async () => {
-    try {
-      await switchToPulsechain();
-      setShowSwitchMenu(false);
-    } catch (error) {
-      console.error("Failed to switch to PulseChain:", error);
-    }
-  };
-
-  const handleSwitchToEthereum = async () => {
-    try {
-      await switchToEthereum();
-      setShowSwitchMenu(false);
-    } catch (error) {
-      console.error("Failed to switch to Ethereum:", error);
-    }
+  const handleEthereum = async () => {
+    await switchToEthereum();
+    setIsOpen(false);
   };
 
   return (
-    <div className={`relative ${className}`}>
-      <motion.button
-        whileHover={{ scale: 1.02 }}
-        whileTap={{ scale: 0.98 }}
-        onMouseEnter={() => setShowSwitchMenu(true)}
-        onMouseLeave={() => setShowSwitchMenu(false)}
-        className={`bg-gradient-to-r ${getNetworkColor()} px-3 py-1.5 rounded-lg border border-transparent shadow-lg transition-all duration-200 flex items-center space-x-2`}
+    <div ref={containerRef} className={`relative ${className}`}>
+      <button
+        type="button"
+        onClick={() => setIsOpen((prev) => !prev)}
+        className="touch-target inline-flex items-center gap-2 rounded-lg border border-border bg-bg-surface px-3 py-2 text-sm font-medium text-text transition-colors hover:border-primary hover:text-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus shadow-sm"
+        aria-haspopup="menu"
+        aria-expanded={isOpen}
       >
-        <span className="text-white text-sm font-medium">
-          {getNetworkIcon()}
-        </span>
-        <span className="text-white text-sm font-semibold">
-          {getCurrentNetworkSymbol()}
-        </span>
-        <svg 
-          className="w-3 h-3 text-white/70" 
-          fill="currentColor" 
-          viewBox="0 0 20 20"
-        >
-          <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
-        </svg>
-      </motion.button>
+        <span className={`inline-flex h-2.5 w-2.5 rounded-full ${statusColor}`} aria-hidden="true" />
+        <span>Network</span>
+        <span className="font-semibold">{getCurrentNetworkSymbol()}</span>
+      </button>
 
-      {/* Network Switch Menu */}
-      {showSwitchMenu && (
+      {isOpen && (
         <motion.div
-          initial={{ opacity: 0, y: -10, scale: 0.95 }}
-          animate={{ opacity: 1, y: 0, scale: 1 }}
-          exit={{ opacity: 0, y: -10, scale: 0.95 }}
-          className="absolute top-full right-0 mt-2 w-48 bg-[#1e2030] border border-[#3a3f5a] rounded-xl shadow-xl z-50 overflow-hidden"
+          initial={{ opacity: 0, y: -6 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.18 }}
+          className="absolute right-0 mt-2 w-60 rounded-lg border border-border bg-bg-surface shadow-md"
+          role="menu"
         >
-          <div className="p-2">
-            <div className="px-3 py-2 text-xs text-gray-400 font-medium border-b border-[#3a3f5a] mb-2">
-              Switch Network
+          <div className="p-4 space-y-3">
+            <div className="text-xs font-semibold uppercase tracking-wide text-text-muted">
+              Select network
             </div>
-            
-            {/* Ethereum Option */}
+
             <button
-              onClick={handleSwitchToEthereum}
-              disabled={isOnEthereum()}
-              className={`w-full flex items-center space-x-3 px-3 py-2.5 rounded-lg transition-all duration-200 ${
-                isOnEthereum()
-                  ? 'bg-blue-500/20 border border-blue-500/30 cursor-not-allowed'
-                  : 'hover:bg-blue-500/10 hover:border-blue-500/20 border border-transparent'
+              onClick={handlePulseChain}
+              disabled={isOnPulseChain()}
+              className={`flex w-full items-start justify-between rounded-lg border px-4 py-3 text-left transition-colors ${
+                isOnPulseChain()
+                  ? "border-primary bg-primary-050 text-primary cursor-default"
+                  : "border-border text-text hover:border-primary hover:bg-primary-050/60"
               }`}
+              role="menuitem"
             >
-              <span className="text-lg">🔵</span>
-              <div className="flex-1 text-left">
-                <div className="text-sm font-medium text-white">Ethereum</div>
-                <div className="text-xs text-gray-400">ETH</div>
-              </div>
-              {isOnEthereum() && (
-                <svg className="w-4 h-4 text-blue-400" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                </svg>
+              <span>
+                <span className="block text-sm font-semibold text-text">
+                  PulseChain
+                </span>
+                <span className="text-xs text-text-muted">PLS</span>
+              </span>
+              {isOnPulseChain() && (
+                <span className="text-xs font-semibold text-primary">Active</span>
               )}
             </button>
 
-            {/* PulseChain Option */}
             <button
-              onClick={handleSwitchToPulseChain}
-              disabled={isOnPulseChain()}
-              className={`w-full flex items-center space-x-3 px-3 py-2.5 rounded-lg transition-all duration-200 ${
-                isOnPulseChain()
-                  ? 'bg-emerald-500/20 border border-emerald-500/30 cursor-not-allowed'
-                  : 'hover:bg-emerald-500/10 hover:border-emerald-500/20 border border-transparent'
+              onClick={handleEthereum}
+              disabled={isOnEthereum()}
+              className={`flex w-full items-start justify-between rounded-lg border px-4 py-3 text-left transition-colors ${
+                isOnEthereum()
+                  ? "border-primary bg-primary-050 text-primary cursor-default"
+                  : "border-border text-text hover:border-primary hover:bg-primary-050/60"
               }`}
+              role="menuitem"
             >
-              <span className="text-lg">🟢</span>
-              <div className="flex-1 text-left">
-                <div className="text-sm font-medium text-white">PulseChain</div>
-                <div className="text-xs text-gray-400">PLS</div>
-              </div>
-              {isOnPulseChain() && (
-                <svg className="w-4 h-4 text-emerald-400" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                </svg>
+              <span>
+                <span className="block text-sm font-semibold text-text">
+                  Ethereum
+                </span>
+                <span className="text-xs text-text-muted">ETH</span>
+              </span>
+              {isOnEthereum() && (
+                <span className="text-xs font-semibold text-primary">Active</span>
               )}
             </button>
           </div>
@@ -141,4 +145,4 @@ const NetworkIndicator: React.FC<NetworkIndicatorProps> = ({ className = "" }) =
   );
 };
 
-export default NetworkIndicator; 
+export default NetworkIndicator;

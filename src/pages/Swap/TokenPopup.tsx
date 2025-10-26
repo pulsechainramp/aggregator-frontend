@@ -66,23 +66,23 @@ const TokenPopup = ({
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-2 sm:p-4"
+          className="fixed inset-0 bg-overlay backdrop-blur-sm z-50 flex items-center justify-center p-2 sm:p-4"
           onClick={onClose}
         >
           <motion.div
             initial={{ scale: 0.9, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             exit={{ scale: 0.9, opacity: 0 }}
-            className="bg-[#1a1c2e] rounded-xl w-full max-w-2xl shadow-2xl border border-gray-800 max-h-[90vh] overflow-hidden"
+            className="w-full max-w-2xl rounded-xl border border-border bg-bg-surface shadow-floating max-h-[90vh] overflow-hidden"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex justify-between items-center p-3 sm:p-4 border-b border-gray-800">
-              <h2 className="text-base sm:text-lg font-semibold text-white">
+            <div className="flex justify-between items-center p-3 sm:p-4 border-b border-border">
+              <h2 className="text-base sm:text-lg font-semibold text-text">
                 Select Token
               </h2>
               <button
                 onClick={onClose}
-                className="text-gray-400 hover:text-white transition-colors p-1"
+                className="text-text-subtle hover:text-text transition-colors p-1"
               >
                 <svg
                   className="w-4 h-4 sm:w-5 sm:h-5"
@@ -109,12 +109,12 @@ const TokenPopup = ({
                     <input
                       type="text"
                       placeholder="Search chains"
-                      className="w-full bg-[#2b2e4a] text-white px-3 py-2 rounded-lg pl-8 text-sm focus:outline-none focus:ring-2 focus:ring-green-500/50 transition-all"
+                      className="w-full rounded-lg border border-border bg-bg-page px-3 py-2 pl-8 text-sm text-text focus:outline-none focus:ring-2 focus:ring-primary/40 transition-all"
                       value={searchChain}
                       onChange={(e) => setSearchChain(e.target.value)}
                     />
                     <svg
-                      className="w-4 h-4 text-gray-400 absolute left-2.5 top-1/2 transform -translate-y-1/2"
+                      className="w-4 h-4 text-text-subtle absolute left-2.5 top-1/2 transform -translate-y-1/2"
                       fill="none"
                       stroke="currentColor"
                       viewBox="0 0 24 24"
@@ -131,7 +131,7 @@ const TokenPopup = ({
                         type="button"
                         aria-label="Clear chain search"
                         onClick={() => setSearchChain("")}
-                        className="absolute right-2.5 top-1/2 -translate-y-1/2 p-1 rounded hover:bg-[#3a3f5a] focus:outline-none"
+                        className="absolute right-2.5 top-1/2 -translate-y-1/2 rounded p-1 hover:bg-primary-050/60 focus:outline-none"
                       >
                         <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
@@ -140,10 +140,10 @@ const TokenPopup = ({
                     )}
                   </div>
                   <div className="space-y-1 max-h-[200px] sm:max-h-[310px] overflow-y-auto custom-scrollbar pr-2">
-                    <div className="flex items-center justify-center text-xs sm:text-sm text-gray-400">
+                    <div className="flex items-center justify-center text-xs sm:text-sm text-text-subtle">
                       PulseChain Network
                     </div>
-                    <hr className="border-gray-800" />
+                    <hr className="border-border" />
                     {pulsechainChains
                       .filter(
                         (tempChain) =>
@@ -154,11 +154,10 @@ const TokenPopup = ({
                       .map((tempChain, index) => (
                         <button
                           key={index}
-                          className={`w-full text-left px-3 py-2 rounded-lg text-xs sm:text-sm transition-all duration-200 flex items-center ${
-                            chain?.blockchainNetwork ===
-                            tempChain.blockchainNetwork
-                              ? "bg-[#3a3f5a] text-white font-medium"
-                              : "text-gray-300 hover:bg-[#2b2e4a] hover:text-white"
+                          className={`flex w-full items-center rounded-lg px-3 py-2 text-left text-xs transition-colors sm:text-sm ${
+                            chain?.blockchainNetwork === tempChain.blockchainNetwork
+                              ? "bg-primary-050 text-primary font-semibold"
+                              : "text-text hover:bg-primary-050/40"
                           }`}
                           onClick={() => setChain(tempChain)}
                         >
@@ -181,10 +180,10 @@ const TokenPopup = ({
                       placeholder="Search tokens"
                       value={searchToken}
                       onChange={(e) => setSearchToken(e.target.value)}
-                      className="w-full bg-[#2b2e4a] text-white px-3 py-2 rounded-lg pl-8 text-sm focus:outline-none focus:ring-2 focus:ring-green-500/50 transition-all"
+                      className="w-full rounded-lg border border-border bg-bg-page px-3 py-2 pl-8 text-sm text-text focus:outline-none focus:ring-2 focus:ring-primary/40 transition-all"
                     />
                     <svg
-                      className="w-4 h-4 text-gray-400 absolute left-2.5 top-1/2 transform -translate-y-1/2"
+                      className="w-4 h-4 text-text-subtle absolute left-2.5 top-1/2 transform -translate-y-1/2"
                       fill="none"
                       stroke="currentColor"
                       viewBox="0 0 24 24"
@@ -200,7 +199,7 @@ const TokenPopup = ({
                       type="button"
                       aria-label="Clear token search"
                       onClick={() => setSearchToken("")}
-                      className="absolute right-2.5 top-1/2 -translate-y-1/2 p-1 rounded hover:bg-[#3a3f5a] focus:outline-none"
+                      className="absolute right-2.5 top-1/2 -translate-y-1/2 rounded p-1 hover:bg-primary-050/60 focus:outline-none"
                     >
                       <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
@@ -212,24 +211,24 @@ const TokenPopup = ({
                       ? pulsechainTokens.map((token, index) => (
                           <motion.button
                             key={index}
-                            className="w-full flex items-center space-x-3 py-2 px-3 sm:px-4 rounded-lg bg-[#2b2e4a] hover:bg-[#3a3f5a] transition-all duration-200"
+                            className="flex w-full items-center gap-3 rounded-lg border border-border bg-bg-page px-3 py-2 transition-colors hover:border-primary hover:bg-primary-050/60 sm:px-4"
                             onClick={() => {
                               handleSetToken(token);
                               onClose();
                             }}
                           >
-                            <div className="text-xl rounded-full flex-shrink-0">
+                            <div className="flex-shrink-0 rounded-full text-xl">
                               <img
                                 src={token.image}
                                 alt={token.symbol}
-                                className="w-8 h-8 sm:w-10 sm:h-10 rounded-full"
+                                className="h-8 w-8 rounded-full object-cover sm:h-10 sm:w-10"
                               />
                             </div>
-                            <div className="text-left min-w-0 flex-1">
-                              <div className="font-medium text-white text-xs sm:text-sm truncate">
+                            <div className="min-w-0 flex-1 text-left">
+                              <div className="truncate text-sm font-semibold text-text">
                                 {token.symbol}
                               </div>
-                              <div className="text-xs text-gray-400 truncate">
+                              <div className="truncate text-xs text-text-muted">
                                 {token.name}
                               </div>
                             </div>
@@ -238,7 +237,7 @@ const TokenPopup = ({
                       : Array.from({ length: 10 }).map((_, index) => (
                           <div
                             key={index}
-                            className="w-full h-8 sm:h-10 bg-[#2b2e4a] rounded-lg"
+                            className="h-8 w-full rounded-lg border border-border bg-bg-page sm:h-10"
                           ></div>
                         ))}
                   </div>

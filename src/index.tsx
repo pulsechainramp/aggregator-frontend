@@ -9,6 +9,7 @@ import { PulseChainConfig } from "./config/chainConfig";
 import injectedModule from "@web3-onboard/injected-wallets";
 import trustModule from "@web3-onboard/trust";
 import coinbaseModule from "@web3-onboard/coinbase";
+import { ThemeProvider } from "./theme/ThemeProvider";
 
 const injected = injectedModule();
 const trust = trustModule();
@@ -40,7 +41,7 @@ const web3Onboard = init({
     desktop: { enabled: false },
     mobile: { enabled: false },
   },
-  theme: "dark",
+  theme: "light",
   appMetadata: {
     name: "PulseChainRamp",
     icon: "https://pulsechain.com/favicon128.png",
@@ -62,7 +63,9 @@ const root = ReactDOM.createRoot(
 root.render(
   <React.StrictMode>
     <Web3OnboardProvider web3Onboard={web3Onboard}>
-      <App />
+      <ThemeProvider>
+        <App />
+      </ThemeProvider>
     </Web3OnboardProvider>
   </React.StrictMode>
 );

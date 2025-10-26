@@ -21,12 +21,12 @@ const NetworkSelector: React.FC<NetworkSelectorProps> = ({
 
   return (
     <div className="bg-[#1e2030] rounded-xl p-4 border border-[#3a3f5a]">
-      <h3 className="text-gray-300 font-semibold mb-4 text-sm">Network Selection</h3>
+      <h3 className="text-text-muted font-semibold mb-4 text-sm">Network Selection</h3>
       
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         {/* From Network */}
         <div>
-          <label className="block text-gray-400 text-xs font-medium mb-2">
+          <label className="block text-text-subtle text-xs font-medium mb-2">
             From Network
           </label>
           <div className="space-y-2">
@@ -39,7 +39,7 @@ const NetworkSelector: React.FC<NetworkSelectorProps> = ({
                 className={`w-full flex items-center space-x-3 p-3 rounded-xl border transition-all duration-200 ${
                   fromNetwork === network.id
                     ? `bg-gradient-to-r ${network.color} border-transparent text-white shadow-lg`
-                    : 'bg-[#2b2e4a] border-[#3a3f5a] text-gray-300 hover:bg-[#3a3f5a] hover:border-[#4a4f6a]'
+                    : 'bg-[#2b2e4a] border-[#3a3f5a] text-text-muted hover:bg-[#3a3f5a] hover:border-[#4a4f6a]'
                 }`}
               >
                 <span className="text-xl">{network.icon}</span>
@@ -73,7 +73,7 @@ const NetworkSelector: React.FC<NetworkSelectorProps> = ({
 
         {/* To Network */}
         <div>
-          <label className="block text-gray-400 text-xs font-medium mb-2">
+          <label className="block text-text-subtle text-xs font-medium mb-2">
             To Network
           </label>
           <div className="space-y-2">
@@ -86,7 +86,7 @@ const NetworkSelector: React.FC<NetworkSelectorProps> = ({
                 className={`w-full flex items-center space-x-3 p-3 rounded-xl border transition-all duration-200 ${
                   toNetwork === network.id
                     ? `bg-gradient-to-r ${network.color} border-transparent text-white shadow-lg`
-                    : 'bg-[#2b2e4a] border-[#3a3f5a] text-gray-300 hover:bg-[#3a3f5a] hover:border-[#4a4f6a]'
+                    : 'bg-[#2b2e4a] border-[#3a3f5a] text-text-muted hover:bg-[#3a3f5a] hover:border-[#4a4f6a]'
                 }`}
               >
                 <span className="text-xl">{network.icon}</span>
@@ -120,15 +120,15 @@ const NetworkSelector: React.FC<NetworkSelectorProps> = ({
       </div>
 
       <div className="mt-6 p-4 bg-[#2b2e4a] rounded-xl border border-[#3a3f5a]">
-        <h4 className="text-gray-300 font-medium mb-2 text-sm">Bridge Information</h4>
-        <div className="space-y-2 text-xs text-gray-400">
+        <h4 className="text-text-muted font-medium mb-2 text-sm">Bridge Information</h4>
+        <div className="space-y-2 text-xs text-text-subtle">
           <div className="flex justify-between">
             <span>Estimated Time:</span>
-            <span className="text-gray-300">5-10 minutes</span>
+            <span className="text-text-muted">5-10 minutes</span>
           </div>
           <div className="flex justify-between">
             <span>Bridge Fee:</span>
-            <span className="text-gray-300">0.1%</span>
+            <span className="text-text-muted">0.1%</span>
           </div>
           <div className="flex justify-between">
             <span>Security:</span>

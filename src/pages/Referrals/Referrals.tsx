@@ -195,10 +195,10 @@ const Referrals: React.FC = () => {
 
   if (!account) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center">
+      <div className="min-h-screen bg-bg-page text-text flex items-center justify-center">
         <div className="text-center">
-          <h2 className="text-2xl font-bold text-white mb-4">Connect Wallet</h2>
-          <p className="text-slate-400">
+          <h2 className="text-2xl font-bold text-text mb-4">Connect Wallet</h2>
+          <p className="text-text-muted">
             Please connect your wallet to view referrals
           </p>
         </div>
@@ -222,7 +222,7 @@ const Referrals: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
+    <div className="min-h-screen bg-bg-page text-text">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}
         <motion.div
@@ -231,42 +231,42 @@ const Referrals: React.FC = () => {
           transition={{ duration: 0.5 }}
           className="text-center mb-8"
         >
-          <h1 className="text-4xl font-bold bg-gradient-to-r from-emerald-400 via-teal-400 to-cyan-500 bg-clip-text text-transparent mb-4">
+          <h1 className="text-4xl font-bold text-primary mb-4">
             Referral Dashboard
           </h1>
-          <p className="text-slate-400 text-lg">
+          <p className="text-text-muted text-lg">
             Track your referral earnings and claim your rewards
           </p>
         </motion.div>
 
         {/* Your referral link */}
-        <section className="mb-6 rounded-2xl border border-slate-700/60 bg-slate-800/60 p-4">
-          <h2 className="text-slate-200 font-semibold mb-2">Your referral link</h2>
+        <section className="mb-6 rounded-2xl border border-border bg-bg-surface p-4">
+          <h2 className="text-text font-semibold mb-2">Your referral link</h2>
 
           {account ? (
             <div className="flex gap-2">
               <input
-                className="flex-1 rounded-md bg-slate-900/60 border border-slate-700/60 px-3 py-2 text-slate-200 text-sm"
+                className="flex-1 rounded-md bg-bg-surface border border-border px-3 py-2 text-text text-sm"
                 readOnly
                 value={referralLink || "Generating..."}
               />
               <button
                 onClick={copyReferralLink}
                 disabled={!referralLink}
-                className="px-4 py-2 rounded-md bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-semibold disabled:opacity-50"
+                className="px-4 py-2 rounded-md bg-primary hover:bg-primary-600 text-white text-sm font-semibold disabled:opacity-50"
               >
                 Copy
               </button>
             </div>
           ) : (
-            <p className="text-slate-400 text-sm">Connect your wallet to get your referral link.</p>
+            <p className="text-text-muted text-sm">Connect your wallet to get your referral link.</p>
           )}
 
           {/* NEW: open existing fee popup from here */}
           <div className="mt-3">
             <button
               onClick={() => setIsFeePopupOpen(true)}
-              className="text-emerald-300 underline underline-offset-4 text-sm"
+              className="text-success underline underline-offset-4 text-sm"
             >
               Update your referral fee
             </button>
@@ -278,16 +278,16 @@ const Referrals: React.FC = () => {
           initial={{ y: 20, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           transition={{ duration: 0.5, delay: 0.2 }}
-          className="bg-slate-800/50 backdrop-blur-md border border-slate-700/50 rounded-xl p-6"
+          className="bg-bg-surface backdrop-blur-md border border-border rounded-xl p-6"
         >
           <div className="flex items-center justify-between mb-6">
-            <h2 className="text-2xl font-bold text-white">Claimable Tokens</h2>
+            <h2 className="text-2xl font-bold text-text">Claimable Tokens</h2>
             <div className="flex items-center space-x-3">
               {filteredReferralFees.length > 0 && (
                 <button
                   onClick={handleBulkClaim}
                   disabled={claiming || loading || tokensLoading}
-                  className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg font-medium transition-colors disabled:opacity-50"
+                  className="rounded-lg border border-primary bg-primary px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-primary-600 disabled:cursor-not-allowed disabled:border-border disabled:bg-border disabled:text-text-muted"
                 >
                   {claiming
                     ? "Claiming All..."
@@ -297,7 +297,7 @@ const Referrals: React.FC = () => {
               <button
                 onClick={handleRefresh}
                 disabled={loading || tokensLoading}
-                className="px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg font-medium transition-colors disabled:opacity-50"
+                className="px-4 py-2 rounded-lg border border-success bg-success text-white font-medium transition-colors hover:bg-success/90 disabled:cursor-not-allowed disabled:border-border disabled:bg-border disabled:text-text-muted"
               >
                 {loading || tokensLoading ? "Refreshing..." : "Refresh"}
               </button>
@@ -306,18 +306,18 @@ const Referrals: React.FC = () => {
           {loading ? (
             <div className="text-center py-8">
               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-500 mx-auto"></div>
-              <p className="text-slate-400 mt-4">Loading referral fees...</p>
+              <p className="text-text-muted mt-4">Loading referral fees...</p>
             </div>
           ) : tokensLoading ? (
             <div className="text-center py-8">
               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto"></div>
-              <p className="text-slate-400 mt-4">Loading token metadata...</p>
+              <p className="text-text-muted mt-4">Loading token metadata...</p>
             </div>
           ) : filteredReferralFees.length === 0 ? (
             <div className="text-center py-8">
               <span className="text-4xl mb-4 block">🎯</span>
-              <p className="text-slate-400 text-lg">No referral fees found</p>
-              <p className="text-slate-500 text-sm mt-2">
+              <p className="text-text-muted text-lg">No referral fees found</p>
+              <p className="text-text-muted text-sm mt-2">
                 Start referring friends to earn rewards!
               </p>
             </div>
@@ -325,17 +325,17 @@ const Referrals: React.FC = () => {
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead>
-                  <tr className="border-b border-slate-700/50">
-                    <th className="text-left py-3 px-4 text-slate-400 font-medium">
+                  <tr className="border-b border-border">
+                    <th className="text-left py-3 px-4 text-text-muted font-medium">
                       Token
                     </th>
-                    <th className="text-left py-3 px-4 text-slate-400 font-medium">
+                    <th className="text-left py-3 px-4 text-text-muted font-medium">
                       Amount
                     </th>
-                    <th className="text-left py-3 px-4 text-slate-400 font-medium">
+                    <th className="text-left py-3 px-4 text-text-muted font-medium">
                       Created
                     </th>
-                    <th className="text-left py-3 px-4 text-slate-400 font-medium">
+                    <th className="text-left py-3 px-4 text-text-muted font-medium">
                       Action
                     </th>
                   </tr>
@@ -346,13 +346,12 @@ const Referrals: React.FC = () => {
                       key={fee.id}
                       initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
-                      className="border-b border-slate-700/30 hover:bg-slate-700/20 transition-colors"
+                      className="border-b border-border hover:bg-primary-050/40 transition-colors"
                     >
                       <td className="py-4 px-4">
                         <div className="flex items-center space-x-3">
                           {(() => {
                             const tokenMetadata = getTokenMetadata(fee.token);
-                            console.log(tokenMetadata);
                             return (
                               <>
                                 <div className="w-8 h-8 rounded-lg flex items-center justify-center overflow-hidden">
@@ -367,28 +366,28 @@ const Referrals: React.FC = () => {
                                       }}
                                     />
                                   ) : (
-                                    <div className="w-full h-full bg-emerald-500/20 flex items-center justify-center">
-                                      <span className="text-sm">🪙</span>
+                                    <div className="flex h-full w-full items-center justify-center rounded-lg bg-primary-050 text-primary">
+                                      <span className="text-sm font-semibold">{fee.token.slice(2, 6).toUpperCase()}</span>
                                     </div>
                                   )}
                                 </div>
                                 <div>
                                   {tokenMetadata ? (
                                     <>
-                                      <p className="text-white font-medium">
+                                      <p className="text-text font-medium">
                                         {tokenMetadata.symbol}
                                       </p>
-                                      <p className="text-slate-400 text-sm">
+                                      <p className="text-text-muted text-sm">
                                         {tokenMetadata.name}
                                       </p>
                                     </>
                                   ) : (
                                     <>
-                                      <p className="text-white font-medium font-mono">
+                                      <p className="text-text font-medium font-mono">
                                         {fee.token.slice(0, 6)}...
                                         {fee.token.slice(-4)}
                                       </p>
-                                      <p className="text-slate-400 text-sm">
+                                      <p className="text-text-muted text-sm">
                                         Token Address
                                       </p>
                                     </>
@@ -400,18 +399,18 @@ const Referrals: React.FC = () => {
                         </div>
                       </td>
                       <td className="py-4 px-4">
-                        <span className="text-lg font-bold text-emerald-400">
+                        <span className="text-lg font-bold text-success">
                           {fee.amount}
                         </span>
                       </td>
-                      <td className="py-4 px-4 text-slate-300">
+                      <td className="py-4 px-4 text-text-muted">
                         {formatDate(fee.createdAt)}
                       </td>
                       <td className="py-4 px-4">
                         <button
                           onClick={() => handleClaim(fee)}
                           disabled={claiming}
-                          className="px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                          className="rounded-lg border border-success bg-success px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-success/80 disabled:cursor-not-allowed disabled:border-border disabled:bg-border disabled:text-text-muted"
                         >
                           {claiming ? "Claiming..." : "Claim"}
                         </button>
@@ -434,3 +433,11 @@ const Referrals: React.FC = () => {
 };
 
 export default Referrals;
+
+
+
+
+
+
+
+

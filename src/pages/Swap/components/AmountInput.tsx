@@ -99,35 +99,34 @@ const AmountInput: React.FC<AmountInputProps> = ({
   };
 
   return (
-    <motion.div className="flex flex-col items-end justify-center gap-2 w-full sm:w-auto">
-      <div className="flex items-center justify-between w-full">
+    <motion.div className="flex w-full flex-col items-end justify-center gap-2 sm:w-auto">
+      <div className="flex w-full items-center justify-between">
         {/* Display Value or Input Field */}
         {isOutput ? (
-          <div className="text-base sm:text-lg font-medium flex-1 mr-3">
+          <div className="mr-3 flex-1 text-right text-base font-semibold sm:text-lg">
             {isLoading ? (
               <div className="flex items-center justify-end">
-                <div className="w-20 sm:w-28 h-5 sm:h-6 bg-gray-600 rounded-full animate-pulse opacity-30"></div>
+                <div className="h-5 w-20 animate-pulse rounded-full bg-border opacity-60 sm:h-6 sm:w-28"></div>
               </div>
             ) : (
               getDisplayValue()
             )}
           </div>
         ) : (
-          <div className="relative flex-1 mr-3">
+          <div className="relative mr-3 flex-1">
             <motion.input
               whileFocus={{ scale: 1.02 }}
               type="text"
               placeholder="Enter an Amount"
               value={getDisplayValue()}
               onChange={handleInputChange}
-              className="w-full px-4 py-3 bg-[#2b2e4a] border-2 border-[#3a3f5a] rounded-xl text-right text-lg sm:text-xl placeholder-gray-300 font-medium text-white focus:outline-none focus:border-emerald-500/50 focus:bg-[#2b2e4a] transition-all duration-200 shadow-sm hover:border-[#4a4f6a]"
+              className="w-full rounded-xl border border-border bg-bg-surface px-4 py-3 text-right text-lg font-semibold text-text transition-colors placeholder-text-muted focus:border-primary focus:outline-none sm:text-xl"
             />
-            <div className="absolute inset-0 rounded-xl border-2 border-transparent pointer-events-none transition-all duration-200 focus-within:border-emerald-500/30"></div>
           </div>
         )}
         
         {/* Consistent Button Group - Always Show for Both Input and Output */}
-        <div className="flex items-center space-x-1">
+        <div className="flex items-center gap-2">
           {/* MAX Button - Only for Input */}
           {!isOutput && (
             <motion.button
@@ -135,7 +134,7 @@ const AmountInput: React.FC<AmountInputProps> = ({
               whileTap={{ scale: 0.95 }}
               onClick={handleMaxClick}
               disabled={balanceLoading || parseFloat(balance || "0") <= 0}
-              className="px-3 py-3 text-xs bg-gradient-to-r from-[#3a3f5a] to-[#2b2e4a] text-gray-300 rounded-lg hover:from-[#4a4f6a] hover:to-[#3a3f5a] hover:text-white transition-all duration-200 font-medium disabled:opacity-50 disabled:cursor-not-allowed border border-[#4a4f6a] hover:border-[#5a5f7a] flex-shrink-0"
+              className="flex-shrink-0 rounded-lg border border-border bg-bg-page px-3 py-2 text-xs font-semibold text-text transition-colors hover:border-primary hover:text-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus disabled:cursor-not-allowed disabled:opacity-60"
             >
               MAX
             </motion.button>
@@ -147,11 +146,11 @@ const AmountInput: React.FC<AmountInputProps> = ({
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
               onClick={onCopyAddress}
-              className="px-2 py-2 text-xs bg-gradient-to-r from-[#3a3f5a] to-[#2b2e4a] text-gray-300 rounded-lg hover:from-[#4a4f6a] hover:to-[#3a3f5a] hover:text-white transition-all duration-200 font-medium border border-[#4a4f6a] hover:border-[#5a5f7a] flex-shrink-0"
+              className="flex-shrink-0 rounded-lg border border-border bg-bg-page px-2 py-2 text-xs font-semibold text-text transition-colors hover:border-primary hover:text-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
               title="Copy token address"
             >
               <svg
-                className="w-4 h-4"
+                className="h-4 w-4"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -183,9 +182,9 @@ const AmountInput: React.FC<AmountInputProps> = ({
         </div>
       </div>
       
-      <div className="text-xs sm:text-sm text-gray-400">
+      <div className="text-xs text-text-muted sm:text-sm">
         {isLoading ? (
-          <div className="w-12 sm:w-16 h-5 sm:h-6 bg-gray-600 rounded-full animate-pulse opacity-30"></div>
+          <div className="h-5 w-12 animate-pulse rounded-full bg-border opacity-60 sm:h-6 sm:w-16"></div>
         ) : (
           getPriceDisplay()
         )}
