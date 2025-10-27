@@ -6,21 +6,56 @@ import reportWebVitals from "./reportWebVitals";
 import walletConnectModule from "@web3-onboard/walletconnect";
 import { init, Web3OnboardProvider } from "@web3-onboard/react";
 import { PulseChainConfig } from "./config/chainConfig";
-import injectedModule from "@web3-onboard/injected-wallets";
-import trustModule from "@web3-onboard/trust";
-import coinbaseModule from "@web3-onboard/coinbase";
+import createInjectedWalletInit from "./wallets/createInjectedWalletInit";
+import internetMoneyWalletInit from "./wallets/internetMoneyWallet";
 
-const injected = injectedModule();
-const trust = trustModule();
-const coinbase = coinbaseModule();
+const INTERNET_MONEY_WALLETCONNECT_LISTING_ID =
+  "dd43441a6368ec9046540c46c5fdc58f79926d17ce61a176444568ca7c970dcd";
+const INTERNET_MONEY_WALLET_IMAGE =
+  "https://explorer-api.walletconnect.com/v3/logo/md/204b2240-5ce4-4996-6ec4-f06a22726900?projectId=69cb42390db7c00d8858c388405d3324";
+
+const rabbyWallet = createInjectedWalletInit("Rabby Wallet");
+const metamaskWallet = createInjectedWalletInit("MetaMask");
+const trustWallet = createInjectedWalletInit("Trust Wallet");
+const okxWallet = createInjectedWalletInit("OKX Wallet");
+const coinbaseWallet = createInjectedWalletInit("Coinbase Wallet");
+const bitgetWallet = createInjectedWalletInit("Bitget Wallet");
+const braveWallet = createInjectedWalletInit("Brave Wallet");
+const internetMoneyWallet = internetMoneyWalletInit;
 
 const walletConnect = walletConnectModule({
   projectId: "69cb42390db7c00d8858c388405d3324",
   requiredChains: [PulseChainConfig.chainId],
   dappUrl: "http://localhost:5173",
+  qrModalOptions: {
+    explorerRecommendedWalletIds: [INTERNET_MONEY_WALLETCONNECT_LISTING_ID],
+    mobileWallets: [
+      {
+        id: "internetmoney",
+        name: "Internet Money",
+        links: {
+          native: "internetmoney://",
+          universal: "https://internetmoney.io",
+        },
+      },
+    ],
+    walletImages: {
+      internetmoney: INTERNET_MONEY_WALLET_IMAGE,
+    },
+  },
 });
 
-const wallets = [injected, coinbase, trust, walletConnect];
+const wallets = [
+  rabbyWallet,
+  metamaskWallet,
+  internetMoneyWallet,
+  trustWallet,
+  okxWallet,
+  coinbaseWallet,
+  braveWallet,
+  walletConnect,
+  bitgetWallet,
+];
 
 const web3Onboard = init({
   chains: [
@@ -46,12 +81,15 @@ const web3Onboard = init({
     icon: "https://pulsechain.com/favicon128.png",
     description: "PulseChain - Swap & Bridge",
     recommendedInjectedWallets: [
+      { name: "Rabby Wallet", url: "https://rabby.io/" },
       { name: "MetaMask", url: "https://metamask.io" },
-      { name: "Coinbase", url: "https://www.coinbase.com/wallet" },
+      { name: "Internet Money", url: "https://internetmoney.io/" },
       { name: "Trust Wallet", url: "https://trustwallet.com" },
-      { name: "Rabby", url: "https://rabby.io/" },
-      { name: "OKX Wallet", url: "https://web3.okx.com/" },
-      { name: "Internet Money", url: "https://internetmoney.io/" }
+      { name: "OKX Wallet", url: "https://www.okx.com/web3" },
+      { name: "Coinbase Wallet", url: "https://www.coinbase.com/wallet" },
+      { name: "Brave Wallet", url: "https://brave.com/wallet/" },
+      { name: "WalletConnect", url: "https://walletconnect.com/" },
+      { name: "Bitget Wallet", url: "https://web3.bitget.com/en/wallet-download" },
     ],
   },
 });
