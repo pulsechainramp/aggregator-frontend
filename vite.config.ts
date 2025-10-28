@@ -1,5 +1,6 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
+import path from 'node:path';
 import type { IncomingMessage, ServerResponse } from 'http';
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import contactHandler from './api/contact';
