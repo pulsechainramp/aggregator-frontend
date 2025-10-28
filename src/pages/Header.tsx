@@ -172,7 +172,9 @@ const Header = () => {
                   }`}
                 >
                   <span className="flex items-center space-x-2">
-                    <span className="text-lg">💳</span>
+                    <span className="inline-flex items-center justify-center text-lg leading-none relative -top-[3px]">
+                      💳
+                    </span>
                     <span>Onramp</span>
                   </span>
                   {isActive("/onramp") && (
@@ -386,7 +388,9 @@ const Header = () => {
                   : "bg-slate-800/60 text-slate-300 border border-slate-700/50 hover:bg-slate-700/80 hover:text-white"
               }`}>
               <span className="inline-flex items-center justify-center gap-2">
-                <span className="text-base">💳</span>
+                <span className="inline-flex items-center justify-center text-base leading-none relative -top-[3px]">
+                  💳
+                </span>
                 <span>Onramp</span>
               </span>
             </Link>
