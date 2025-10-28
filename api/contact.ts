@@ -77,8 +77,16 @@ export default async function handler(
     });
   }
 
-  const payload: ContactPayload =
-    typeof req.body === "string" ? JSON.parse(req.body) : req.body;
+  let payload: ContactPayload;
+  if (typeof req.body === "string") {
+    try {
+      payload = JSON.parse(req.body);
+    } catch (err) {
+      return res.status(400).json({ error: "Invalid JSON in request body." });
+    }
+  } else {
+    payload = req.body;
+  }
 
   if (!payload || typeof payload !== "object") {
     return res.status(400).json({ error: "Invalid request body." });
