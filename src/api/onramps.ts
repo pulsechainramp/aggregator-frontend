@@ -1,10 +1,13 @@
 import { BackendURL } from "../const/swap";
 
-export type GeoResponse = {
-  ip: string;
+const withBase = (path: string) =>
+  new URL(path, BackendURL || window.location.origin).toString();
+
+export type GeoResponse = { 
+  ip?: string | null; 
   country: string | null;
-  region: string | null;
-  city: string | null;
+  region?: string | null; 
+  city?: string | null 
 };
 
 export type Provider = {
@@ -34,12 +37,21 @@ export type ProvidersResponse = {
   country: string;
   providers: Provider[];
   fallback_providers: string[];
+  fallback_provider_details?: Provider[];
 };
 
 export async function fetchGeo(): Promise<GeoResponse> {
-  const r = await fetch(`${BackendURL}onramps/geo`, { credentials: "omit" });
-  if (!r.ok) throw new Error(`Geo error ${r.status}`);
-  return r.json();
+  // Prefer /onramps/geo; fall back to /geo for older deployments
+  let res = await fetch(withBase("/onramps/geo"), { cache: "no-store" });
+  if (!res.ok) res = await fetch(withBase("/geo"), { cache: "no-store" });
+
+  const data = await res.json().catch(() => ({}));
+  return {
+    ip: data?.ip ?? null,
+    country: (data?.country ?? null),
+    region: data?.region ?? null,
+    city: data?.city ?? null,
+  };
 }
 
 export async function fetchProviders(params: {
@@ -53,7 +65,10 @@ export async function fetchProviders(params: {
   if (params.address) q.set("address", params.address);
   if (params.amount) q.set("amount", params.amount);
   if (params.fiat) q.set("fiat", params.fiat);
-  const r = await fetch(`${BackendURL}onramps/providers?${q.toString()}`, { credentials: "omit" });
+  const r = await fetch(withBase(`/onramps/providers?${q.toString()}`), {
+    cache: "no-store",
+    credentials: "omit"
+  });  
   if (!r.ok) throw new Error(`Providers error ${r.status}`);
   return r.json();
 }
