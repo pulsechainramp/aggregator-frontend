@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useLayoutEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import useWallet from "../../hooks/useWallet";
 import {
@@ -8,6 +8,8 @@ import {
   useReferralLoading,
   useReferralError,
   useReferralClaiming,
+  useReferralFeeBasisPoints,
+  useReferralFeeBasisPointsLoading,
 } from "../../store/hooks";
 import {
   fetchReferralFees,
@@ -17,12 +19,13 @@ import {
 import { getAvailableTokensFromChain } from "../../store/swapSlice";
 import { toast } from "react-toastify";
 import { TokenType } from "../../types/Swap";
-import { Link } from "react-router-dom";
+import AddToWalletButton from "../../components/AddToWalletButton";
 import ReferralFeePopup from "../Swap/ReferralFeePopup";
 import {
   fetchReferralCode,
   fetchReferralFeeBasisPoints,
 } from "../../store/referralSlice";
+import { formatFeeBasisPoints } from "../../utils/referralUtils";
 
 const Referrals: React.FC = () => {
   const { account } = useWallet();
@@ -35,6 +38,29 @@ const Referrals: React.FC = () => {
   const [tokensLoading, setTokensLoading] = useState(false);
   const claiming = useReferralClaiming();
   const [isFeePopupOpen, setIsFeePopupOpen] = useState(false);
+  const referralFeeBasisPoints = useReferralFeeBasisPoints();
+  const feeBasisPointsLoading = useReferralFeeBasisPointsLoading();
+
+  useLayoutEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const resetScroll = () => {
+      window.scrollTo(0, 0);
+      if (typeof document !== "undefined") {
+        document.documentElement.scrollTop = 0;
+        document.body.scrollTop = 0;
+      }
+    };
+
+    resetScroll();
+    const raf = window.requestAnimationFrame(resetScroll);
+
+    return () => {
+      if (raf) {
+        window.cancelAnimationFrame(raf);
+      }
+    };
+  }, []);
 
   // Check if referral code is available
   useEffect(() => {
@@ -79,6 +105,7 @@ const Referrals: React.FC = () => {
   useEffect(() => {
     if (account) {
       dispatch(fetchReferralFees(account));
+      dispatch(fetchReferralFeeBasisPoints(account));
       fetchTokens();
     }
   }, [account, dispatch]);
@@ -223,7 +250,7 @@ const Referrals: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}
         <motion.div
           initial={{ y: -20, opacity: 0 }}
@@ -240,11 +267,20 @@ const Referrals: React.FC = () => {
         </motion.div>
 
         {/* Your referral link */}
-        <section className="mb-6 rounded-2xl border border-slate-700/60 bg-slate-800/60 p-4">
-          <h2 className="text-slate-200 font-semibold mb-2">Your referral link</h2>
+        <section className="mb-6 rounded-2xl border border-slate-700/60 bg-slate-800/60 p-4 md:p-6">
+          <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <h2 className="text-slate-200 font-semibold">Your referral link</h2>
+            <p className="text-sm text-slate-300">
+              {feeBasisPointsLoading
+                ? "Fetching your referral fee..."
+                : referralFeeBasisPoints
+                ? `Current referral fee: ${formatFeeBasisPoints(referralFeeBasisPoints)}`
+                : "Referral fee not set yet"}
+            </p>
+          </div>
 
           {account ? (
-            <div className="flex gap-2">
+            <div className="flex flex-col gap-2 sm:flex-row">
               <input
                 className="flex-1 rounded-md bg-slate-900/60 border border-slate-700/60 px-3 py-2 text-slate-200 text-sm"
                 readOnly
@@ -263,12 +299,13 @@ const Referrals: React.FC = () => {
           )}
 
           {/* NEW: open existing fee popup from here */}
-          <div className="mt-3">
+          <div className="mt-4">
             <button
+              type="button"
               onClick={() => setIsFeePopupOpen(true)}
-              className="text-emerald-300 underline underline-offset-4 text-sm"
+              className="inline-flex items-center justify-center rounded-md border border-emerald-400/30 bg-slate-900/60 px-4 py-2 text-sm font-semibold text-emerald-300 transition-colors hover:bg-slate-800 hover:text-emerald-200 focus:outline-none focus:ring-2 focus:ring-emerald-500/40"
             >
-              Update your referral fee
+              Manage referral fee
             </button>
           </div>
         </section>
@@ -341,83 +378,97 @@ const Referrals: React.FC = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredReferralFees.map((fee) => (
-                    <motion.tr
-                      key={fee.id}
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      className="border-b border-slate-700/30 hover:bg-slate-700/20 transition-colors"
-                    >
-                      <td className="py-4 px-4">
-                        <div className="flex items-center space-x-3">
-                          {(() => {
-                            const tokenMetadata = getTokenMetadata(fee.token);
-                            console.log(tokenMetadata);
-                            return (
-                              <>
-                                <div className="w-8 h-8 rounded-lg flex items-center justify-center overflow-hidden">
-                                  {tokenMetadata?.image ? (
-                                    <img
-                                      src={tokenMetadata.image}
-                                      alt={tokenMetadata.symbol}
-                                      className="w-full h-full object-cover"
-                                      onError={(e) => {
-                                        e.currentTarget.src =
-                                          "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzIiIGhlaWdodD0iMzIiIHZpZXdCb3g9IjAgMCAzMiAzMiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMTYiIGN5PSIxNiIgcj0iMTYiIGZpbGw9IiMxMEI5NjEiLz4KPHN2ZyB4PSI4IiB5PSI4IiB3aWR0aD0iMTYiIGhlaWdodD0iMTYiIHZpZXdCb3g9IjAgMCAxNiAxNiIgZmlsbD0ibm9uZSI+CjxwYXRoIGQ9Ik04IDhIMTZWMThIOFY4WiIgZmlsbD0id2hpdGUiLz4KPC9zdmc+Cjwvc3ZnPgo=";
-                                      }}
-                                    />
-                                  ) : (
-                                    <div className="w-full h-full bg-emerald-500/20 flex items-center justify-center">
-                                      <span className="text-sm">🪙</span>
-                                    </div>
-                                  )}
+                  {filteredReferralFees.map((fee) => {
+                    const tokenMetadata = getTokenMetadata(fee.token);
+                    const tokenChainId =
+                      tokenMetadata?.blockchainNetwork?.toLowerCase() === "ethereum"
+                        ? 1
+                        : 369;
+
+                    return (
+                      <motion.tr
+                        key={fee.id}
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="border-b border-slate-700/30 hover:bg-slate-700/20 transition-colors"
+                      >
+                        <td className="py-4 px-4">
+                          <div className="flex items-center space-x-3">
+                            <div className="w-8 h-8 rounded-lg flex items-center justify-center overflow-hidden">
+                              {tokenMetadata?.image ? (
+                                <img
+                                  src={tokenMetadata.image}
+                                  alt={tokenMetadata.symbol}
+                                  className="w-full h-full object-cover"
+                                  onError={(e) => {
+                                    e.currentTarget.src =
+                                      "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzIiIGhlaWdodD0iMzIiIHZpZXdCb3g9IjAgMCAzMiAzMiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMTYiIGN5PSIxNiIgcj0iMTYiIGZpbGw9IiMxMEI5NjEiLz4KPHN2ZyB4PSI4IiB5PSI4IiB3aWR0aD0iMTYiIGhlaWdodD0iMTYiIHZpZXdCb3g9IjAgMCAxNiAxNiIgZmlsbD0ibm9uZSI+CjxwYXRoIGQ9Ik04IDhIMTZWMThIOFY4WiIgZmlsbD0id2hpdGUiLz4KPC9zdmc+Cjwvc3ZnPgo=";
+                                  }}
+                                />
+                              ) : (
+                                <div className="w-full h-full bg-emerald-500/20 flex items-center justify-center">
+                                  <span className="text-sm">🪙</span>
                                 </div>
-                                <div>
-                                  {tokenMetadata ? (
-                                    <>
-                                      <p className="text-white font-medium">
-                                        {tokenMetadata.symbol}
-                                      </p>
-                                      <p className="text-slate-400 text-sm">
-                                        {tokenMetadata.name}
-                                      </p>
-                                    </>
-                                  ) : (
-                                    <>
-                                      <p className="text-white font-medium font-mono">
-                                        {fee.token.slice(0, 6)}...
-                                        {fee.token.slice(-4)}
-                                      </p>
-                                      <p className="text-slate-400 text-sm">
-                                        Token Address
-                                      </p>
-                                    </>
-                                  )}
-                                </div>
-                              </>
-                            );
-                          })()}
-                        </div>
-                      </td>
-                      <td className="py-4 px-4">
-                        <span className="text-lg font-bold text-emerald-400">
-                          {fee.amount}
-                        </span>
-                      </td>
-                      <td className="py-4 px-4 text-slate-300">
-                        {formatDate(fee.createdAt)}
-                      </td>
-                      <td className="py-4 px-4">
-                        <button
-                          onClick={() => handleClaim(fee)}
-                          disabled={claiming}
-                          className="px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                        >
-                          {claiming ? "Claiming..." : "Claim"}
-                        </button>
-                      </td>
-                    </motion.tr>
-                  ))}
+                              )}
+                            </div>
+                            <div>
+                              {tokenMetadata ? (
+                                <>
+                                  <p className="text-white font-medium">
+                                    {tokenMetadata.symbol}
+                                  </p>
+                                  <p className="text-slate-400 text-sm">
+                                    {tokenMetadata.name}
+                                  </p>
+                                </>
+                              ) : (
+                                <>
+                                  <p className="text-white font-medium font-mono">
+                                    {fee.token.slice(0, 6)}...
+                                    {fee.token.slice(-4)}
+                                  </p>
+                                  <p className="text-slate-400 text-sm">
+                                    Token Address
+                                  </p>
+                                </>
+                              )}
+                            </div>
+                          </div>
+                        </td>
+                        <td className="py-4 px-4">
+                          <span className="text-lg font-bold text-emerald-400">
+                            {fee.amount}
+                          </span>
+                        </td>
+                        <td className="py-4 px-4 text-slate-300">
+                          {formatDate(fee.createdAt)}
+                        </td>
+                        <td className="py-4 px-4">
+                          <div className="flex items-center gap-3">
+                            {tokenMetadata && (
+                              <AddToWalletButton
+                                token={{
+                                  address: tokenMetadata.address,
+                                  symbol: tokenMetadata.symbol,
+                                  decimals: tokenMetadata.decimals,
+                                  chainId: tokenChainId,
+                                }}
+                                variant="outline"
+                                size="sm"
+                              />
+                            )}
+                            <button
+                              onClick={() => handleClaim(fee)}
+                              disabled={claiming}
+                              className="px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                              {claiming ? "Claiming..." : "Claim"}
+                            </button>
+                          </div>
+                        </td>
+                      </motion.tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
