@@ -3,25 +3,25 @@ import { Link } from 'react-router-dom';
 
 const Home: React.FC = () => {
   return (
-    <div className="min-h-screen bg-gray-100">
-      <div className="container mx-auto px-4 py-16">
-        <h1 className="text-4xl font-bold text-gray-900 mb-8">Welcome to PulseBridge</h1>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-          <div className="bg-white rounded-lg shadow-md p-6">
-            <h2 className="text-2xl font-semibold text-gray-800 mb-4">Getting Started</h2>
-            <p className="text-gray-600 mb-4">
+    <div className="min-h-screen bg-bg-page text-text">
+      <div className="mx-auto max-w-5xl px-4 py-16 sm:px-6 lg:px-8">
+        <h1 className="mb-8 text-4xl font-bold">Welcome to PulseBridge</h1>
+        <div className="grid grid-cols-1 gap-8 md:grid-cols-2">
+          <div className="rounded-xl border border-border bg-bg-surface p-6 shadow-floating">
+            <h2 className="text-2xl font-semibold">Getting Started</h2>
+            <p className="mt-4 text-text-muted">
               This is your home page. Start building your application by adding more pages and components.
             </p>
             <Link 
               to="/about" 
-              className="inline-block bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 transition-colors"
+              className="mt-6 touch-target inline-flex items-center rounded-lg border border-border bg-bg-surface px-4 py-2 text-sm font-semibold text-text transition-colors hover:border-primary hover:bg-primary-050/80 hover:text-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
             >
               Learn More
             </Link>
           </div>
-          <div className="bg-white rounded-lg shadow-md p-6">
-            <h2 className="text-2xl font-semibold text-gray-800 mb-4">Features</h2>
-            <ul className="list-disc list-inside text-gray-600 space-y-2">
+          <div className="rounded-xl border border-border bg-bg-surface p-6 shadow-floating">
+            <h2 className="text-2xl font-semibold">Features</h2>
+            <ul className="mt-4 list-disc space-y-2 pl-5 text-text-muted">
               <li>React with TypeScript</li>
               <li>Tailwind CSS for styling</li>
               <li>React Router for navigation</li>

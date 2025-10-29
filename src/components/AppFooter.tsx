@@ -7,36 +7,34 @@ export default function AppFooter() {
 
   return (
     <>
-      <footer className="mt-8 border-t border-slate-800/60">
-        <div className="mx-auto max-w-6xl px-4 py-6">
-          <nav className="w-full flex flex-wrap items-center justify-center gap-x-4 gap-y-3 sm:gap-x-6">
-            <Link
-              to="/referrals"
-              className="text-sm text-slate-400 hover:text-emerald-300 underline underline-offset-4 whitespace-nowrap"
-            >
-              Affiliate<span className="hidden sm:inline"> Program</span>
-            </Link>
+      <footer className="border-t border-border bg-bg-surface">
+        <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-4 px-4 py-6 sm:flex-row sm:px-6">
+          <span className="text-sm text-text-subtle">
+            &copy; {new Date().getFullYear()} PulseChainRamp. All rights reserved.
+          </span>
+          <nav className="flex flex-wrap items-center justify-center gap-x-4 gap-y-3 sm:gap-x-6">
             <Link
               to="/docs"
-              className="text-sm text-slate-400 hover:text-emerald-300 underline underline-offset-4 whitespace-nowrap"
+              className="hidden text-sm font-medium text-text-muted transition-colors hover:text-primary"
             >
-              Docs
+              Documentation
             </Link>
             <button
               onClick={() => setShowContactModal(true)}
-              className="text-sm text-slate-400 hover:text-emerald-300 underline underline-offset-4 whitespace-nowrap"
+              className="text-sm font-medium text-text-muted transition-colors hover:text-primary underline underline-offset-4"
+              type="button"
             >
               Contact Us
             </button>
             <Link
               to="/terms"
-              className="text-sm text-slate-400 hover:text-emerald-300 underline underline-offset-4 whitespace-nowrap"
+              className="text-sm font-medium text-text-muted transition-colors hover:text-primary"
             >
               Terms of Use
             </Link>
             <Link
               to="/privacy"
-              className="text-sm text-slate-400 hover:text-emerald-300 underline underline-offset-4 whitespace-nowrap"
+              className="text-sm font-medium text-text-muted transition-colors hover:text-primary"
             >
               Privacy Policy
             </Link>

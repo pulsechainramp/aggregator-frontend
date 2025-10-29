@@ -18,22 +18,24 @@ export default function OnRampBanner({ onClickBuy, currentEth, thresholdEth = 0.
   if (!needsEth) return null;
 
   return (
-    <div className="mt-6 rounded-xl bg-gradient-to-r from-indigo-500/10 to-purple-500/10 p-4">
-      <div className="flex">
-        <div className="flex-shrink-0">
-            <InfoIcon />
+    <div className="mt-6 rounded-lg border border-border bg-primary-050/60 p-4 shadow-sm">
+      <div className="flex items-start gap-3">
+        <div className="text-primary">
+          <InfoIcon />
         </div>
-        <div className="ml-3 flex-1 md:flex md:items-center md:justify-between">
+        <div className="flex-1 md:flex md:items-center md:justify-between">
           <div>
-            <p className="font-semibold text-white">You'll Need ETH for this Transaction</p>
-            <p className="mt-1 text-sm text-white/70">
-              Your wallet has <span className="font-mono">{currentEth.toFixed(6)} ETH</span>. (We recommend at least $100 for bridging)
+            <p className="font-semibold text-text">
+              You&apos;ll need ETH for this transaction
+            </p>
+            <p className="mt-1 text-sm text-text-muted">
+              Your wallet has <span className="font-mono">{currentEth.toFixed(6)} ETH</span>. We recommend keeping at least $5 for gas.
             </p>
           </div>
-          <div className="mt-3 md:mt-0 md:ml-6">
+          <div className="mt-3 md:ml-6 md:mt-0">
             <button
               onClick={onClickBuy}
-              className="inline-flex items-center rounded-lg bg-indigo-500 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:ring-offset-gray-900 whitespace-nowrap"
+              className="touch-target inline-flex items-center rounded-lg border border-primary bg-primary px-4 py-2 text-sm font-semibold text-white transition-colors hover:border-primary-600 hover:bg-primary-600 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
             >
               Buy ETH
             </button>

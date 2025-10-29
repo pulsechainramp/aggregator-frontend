@@ -84,13 +84,13 @@ export default function ContactUsModal({ open, onClose }: Props) {
 
   return (
     <div className={`fixed inset-0 z-50 grid place-items-center transition ${visible}`}>
-      <div className="absolute inset-0 bg-black/60" onClick={handleClose} />
-      <div className="relative z-10 flex w-[92vw] max-w-md flex-col overflow-y-auto rounded-2xl border border-white/10 bg-[#151528] p-6 shadow-xl max-h-[90vh]">
+      <div className="absolute inset-0 bg-overlay" onClick={handleClose} />
+      <div className="relative z-10 flex max-h-[90vh] w-[92vw] max-w-lg flex-col overflow-y-auto rounded-2xl border border-border bg-bg-surface p-6 shadow-floating">
         <div className="mb-4 flex flex-shrink-0 items-center justify-between">
-          <h3 className="text-xl font-semibold text-white">Contact Us</h3>
+          <h3 className="text-xl font-semibold text-text">Contact Us</h3>
           <button
             onClick={handleClose}
-            className="text-2xl text-white/70 transition-colors hover:text-white"
+            className="text-2xl font-semibold text-text-muted transition-colors hover:text-text"
             aria-label="Close"
             type="button"
           >
@@ -99,13 +99,13 @@ export default function ContactUsModal({ open, onClose }: Props) {
         </div>
 
         <form className="flex-1 space-y-5 overflow-y-auto" onSubmit={handleSubmit}>
-          <p className="text-sm text-white/70">
+          <p className="text-sm leading-relaxed text-text-muted">
             Send us a note and the team will follow up by email. Prefer live chat?{" "}
             <a
               href={simplexLink}
               target="_blank"
               rel="noopener noreferrer"
-              className="text-emerald-400 underline transition-colors hover:text-emerald-300"
+              className="font-semibold text-primary hover:text-primary-600"
             >
               SimpleX
             </a>{" "}
@@ -114,37 +114,37 @@ export default function ContactUsModal({ open, onClose }: Props) {
               href={telegramLink}
               target="_blank"
               rel="noopener noreferrer"
-              className="text-emerald-400 underline transition-colors hover:text-emerald-300"
+              className="font-semibold text-primary hover:text-primary-600"
             >
               Telegram
             </a>
             .
           </p>
-          <p className="text-xs text-white/60">
+          <p className="text-xs text-text-subtle">
             You can also email us directly at{" "}
             <a
               href="mailto:PulseChainRamp@gmail.com"
-              className="text-emerald-300 underline transition-colors hover:text-emerald-200"
+              className="font-semibold text-primary hover:text-primary-600"
             >
               PulseChainRamp@gmail.com
             </a>
           </p>
 
           <div className="grid gap-4">
-            <div className="flex flex-col items-center gap-3 rounded-xl border border-white/10 bg-white/5 p-4 text-center">
+            <div className="flex flex-col items-center gap-3 rounded-xl border border-border bg-primary-050/40 p-4 text-center">
               <img
                 src="/simplex-qrcode.jpg"
                 alt="Scan to join the PulseChain Ramp SimpleX chat"
-                className="h-48 w-48 rounded-lg border border-white/10 object-contain"
+                className="h-48 w-48 rounded-lg border border-border object-contain"
               />
-              <p className="text-xs text-white/60">
+              <p className="text-xs text-text-muted">
                 Scan with SimpleX to open our support group instantly.
               </p>
               <a
                 href={simplexLink}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center justify-center rounded-lg border border-emerald-400/60 px-3 py-2 text-xs font-semibold text-emerald-300 transition-colors hover:bg-emerald-400/10"
+                className="inline-flex items-center justify-center rounded-lg border border-primary bg-primary px-3 py-2 text-xs font-semibold text-white transition-colors hover:border-primary-600 hover:bg-primary-600"
               >
                 Open SimpleX Chat
               </a>
@@ -152,14 +152,14 @@ export default function ContactUsModal({ open, onClose }: Props) {
                 href={telegramLink}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center justify-center rounded-lg bg-[#229ED9] px-3 py-2 text-xs font-semibold text-white transition-colors hover:bg-[#1c8dc4]"
+                className="inline-flex items-center justify-center rounded-lg border border-border bg-bg-surface px-3 py-2 text-xs font-semibold text-text transition-colors hover:border-primary hover:bg-primary-050/60"
               >
                 Message us on Telegram
               </a>
             </div>
 
             <div className="grid gap-2">
-              <label className="text-xs uppercase tracking-wide text-white/60" htmlFor="contact-name">
+              <label className="text-xs font-medium uppercase tracking-wide text-text-muted" htmlFor="contact-name">
                 Name
               </label>
               <input
@@ -169,14 +169,14 @@ export default function ContactUsModal({ open, onClose }: Props) {
                 autoComplete="name"
                 value={form.name}
                 onChange={handleChange}
-                className="rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white outline-none focus:border-emerald-400"
+                className="rounded-lg border border-border bg-bg-surface px-3 py-2 text-sm text-text transition-colors focus:border-primary focus:outline-none"
                 placeholder="Jane Doe"
                 required
               />
             </div>
 
             <div className="grid gap-2">
-              <label className="text-xs uppercase tracking-wide text-white/60" htmlFor="contact-email">
+              <label className="text-xs font-medium uppercase tracking-wide text-text-muted" htmlFor="contact-email">
                 Email
               </label>
               <input
@@ -186,15 +186,15 @@ export default function ContactUsModal({ open, onClose }: Props) {
                 autoComplete="email"
                 value={form.email}
                 onChange={handleChange}
-                className="rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white outline-none focus:border-emerald-400"
+                className="rounded-lg border border-border bg-bg-surface px-3 py-2 text-sm text-text transition-colors focus:border-primary focus:outline-none"
                 placeholder="you@example.com"
                 required
               />
             </div>
 
             <div className="grid gap-2">
-              <label className="text-xs uppercase tracking-wide text-white/60" htmlFor="contact-subject">
-                Subject <span className="text-white/40">(optional)</span>
+              <label className="text-xs font-medium uppercase tracking-wide text-text-muted" htmlFor="contact-subject">
+                Subject <span className="font-normal text-text-subtle">(optional)</span>
               </label>
               <input
                 id="contact-subject"
@@ -202,13 +202,13 @@ export default function ContactUsModal({ open, onClose }: Props) {
                 type="text"
                 value={form.subject}
                 onChange={handleChange}
-                className="rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white outline-none focus:border-emerald-400"
+                className="rounded-lg border border-border bg-bg-surface px-3 py-2 text-sm text-text transition-colors focus:border-primary focus:outline-none"
                 placeholder="How can we help?"
               />
             </div>
 
             <div className="grid gap-2">
-              <label className="text-xs uppercase tracking-wide text-white/60" htmlFor="contact-message">
+              <label className="text-xs font-medium uppercase tracking-wide text-text-muted" htmlFor="contact-message">
                 Message
               </label>
               <textarea
@@ -216,7 +216,7 @@ export default function ContactUsModal({ open, onClose }: Props) {
                 name="message"
                 value={form.message}
                 onChange={handleChange}
-                className="min-h-[120px] rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white outline-none focus:border-emerald-400"
+                className="min-h-[120px] rounded-lg border border-border bg-bg-surface px-3 py-2 text-sm text-text transition-colors focus:border-primary focus:outline-none"
                 placeholder="Share a few details..."
                 required
                 maxLength={4000}
@@ -236,13 +236,13 @@ export default function ContactUsModal({ open, onClose }: Props) {
           />
 
           {submitted ? (
-            <div className="rounded-lg border border-emerald-500/40 bg-emerald-500/10 px-3 py-2 text-sm text-emerald-200">
+            <div className="rounded-lg border border-success bg-success/10 px-3 py-2 text-sm text-success">
               Thanks! Your message is on the way. We'll respond from our support inbox.
             </div>
           ) : (
             <button
               type="submit"
-              className="w-full rounded-lg bg-emerald-500 px-4 py-3 text-sm font-semibold text-white transition-colors hover:bg-emerald-400 disabled:bg-emerald-500/50 disabled:text-white/60"
+              className="w-full touch-target rounded-lg border border-primary bg-primary px-4 py-3 text-sm font-semibold text-white transition-colors hover:border-primary-600 hover:bg-primary-600 disabled:cursor-not-allowed disabled:border-border disabled:bg-border disabled:text-text-muted"
               disabled={submitting}
             >
               {submitting ? "Sending..." : "Send Message"}

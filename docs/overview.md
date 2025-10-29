@@ -1,4 +1,4 @@
-# PulseChainRamp Overview
+# Overview
 
 ## What Is PulseChainRamp?
 PulseChainRamp is a web experience that helps you move value onto PulseChain and swap between its most popular tokens. Think of it as a single doorway where you can:

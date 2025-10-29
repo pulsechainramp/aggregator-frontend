@@ -1,5 +1,4 @@
 import React, { useEffect, useCallback } from "react";
-import { motion } from "framer-motion";
 import { useAppDispatch, useAppSelector } from "../../store/hooks";
 import {
   fetchTokenPairs,
@@ -203,25 +202,9 @@ const Bridge: React.FC = () => {
   const [onrampOpen, setOnrampOpen] = useState(false);
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5, ease: "easeOut" }}
-      className="min-h-screen bg-gradient-to-br from-[#1a1c2c] via-[#1e2030] to-[#1a1c2c] text-white flex flex-col items-center justify-start px-4 sm:px-6 lg:px-8 font-['Red_Hat_Display'] relative overflow-hidden"
-    >
-      <div className="relative z-10 w-full max-w-4xl mx-auto pt-8 sm:pt-12 lg:pt-16 pb-8">
-        <motion.div 
-          initial={{ opacity: 0, y: 30 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.1 }}
-          className="w-full"
-        >
-          <motion.div 
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.6, delay: 0.4 }}
-            className="bg-gradient-to-br from-[#2b2e4a] to-[#1e2030] rounded-3xl p-6 sm:p-8 lg:p-10 shadow-2xl border border-[#3a3f5a]/50 backdrop-blur-sm"
-          >
+    <div className="relative flex flex-col items-center bg-bg-page px-4 pt-3 pb-10 text-text sm:px-6 lg:px-8">
+      <div className="relative z-10 mx-auto w-full max-w-4xl pb-6">
+        <div className="w-full rounded-3xl border border-border bg-bg-surface p-6 shadow-floating sm:p-8 lg:p-10">
             <BridgeHeader />
 
             {/* On-Ramp suggestion (only when on Ethereum with low ETH) */}
@@ -271,10 +254,9 @@ const Bridge: React.FC = () => {
               onClose={() => setOnrampOpen(false)}
               address={account}
             />
-          </motion.div>
-        </motion.div>
+        </div>
       </div>
-    </motion.div>
+    </div>
   );
 };
 

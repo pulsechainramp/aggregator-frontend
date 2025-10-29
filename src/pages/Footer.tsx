@@ -6,7 +6,7 @@ const Footer = () => {
       initial={{ y: 20, opacity: 0 }}
       animate={{ y: 0, opacity: 1 }}
       transition={{ delay: 0.4 }}
-      className="text-center text-sm text-gray-400 space-y-3 h-[100px]"
+      className="text-center text-sm text-text-subtle space-y-3 h-[100px]"
     >
       <p>
         🔁 Accumulated Transaction Volume:{" "}

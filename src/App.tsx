@@ -8,18 +8,23 @@ import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import NetworkWarning from "./components/NetworkWarning";
 import AppFooter from "./components/AppFooter";
+import { useTheme } from "./theme/ThemeProvider";
+import ScrollToTop from "./components/ScrollToTop";
 
 function App() {
+  const { theme } = useTheme();
+
   return (
     <Provider store={store}>
       <Router>
-        <div className="min-h-screen bg-gradient-to-br from-[#0f0f23] via-[#1a1a2e] to-[#16213e]">
+        <ScrollToTop />
+        <div className="flex min-h-screen flex-col bg-bg-page text-text transition-colors duration-200">
           <Header />
           
           {/* Network Warning - shows when on wrong network */}
           <NetworkWarning />
           
-          <main className="">
+          <main className="flex-1 pb-10">
             <AppRoutes />
           </main>
           <ToastContainer
@@ -32,7 +37,7 @@ function App() {
             pauseOnFocusLoss
             draggable
             pauseOnHover
-            theme="dark"
+            theme={theme === "dark" ? "dark" : "light"}
           />
           {/* Footer at the bottom */}
           <AppFooter />

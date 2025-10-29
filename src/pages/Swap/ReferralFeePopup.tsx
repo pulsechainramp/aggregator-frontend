@@ -137,7 +137,7 @@ const ReferralFeePopup: React.FC<ReferralFeePopupProps> = ({ isOpen, onClose }) 
     <AnimatePresence>
       {isOpen && (
         <motion.div 
-          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-overlay"
           onClick={onClose}
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -145,7 +145,7 @@ const ReferralFeePopup: React.FC<ReferralFeePopupProps> = ({ isOpen, onClose }) 
           transition={{ duration: 0.2 }}
         >
           <motion.div 
-            className="bg-[#2b2e4a] rounded-lg p-6 w-96 max-w-[90vw] shadow-xl border border-[#3a3f5a]"
+            className="w-96 max-w-[90vw] rounded-2xl border border-border bg-bg-surface p-6 shadow-floating"
             onClick={(e) => e.stopPropagation()}
             initial={{ opacity: 0, scale: 0.9, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -153,11 +153,11 @@ const ReferralFeePopup: React.FC<ReferralFeePopupProps> = ({ isOpen, onClose }) 
             transition={{ duration: 0.3, ease: "easeOut" }}
           >
             {/* Header */}
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-xl font-semibold text-white">Referral Fee Setting</h2>
+            <div className="mb-6 flex items-center justify-between">
+              <h2 className="text-xl font-semibold text-text">Referral Fee Setting</h2>
               <button
                 onClick={onClose}
-                className="text-gray-400 hover:text-gray-600 transition-colors"
+                className="text-text-muted transition-colors hover:text-primary"
               >
                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -166,40 +166,35 @@ const ReferralFeePopup: React.FC<ReferralFeePopupProps> = ({ isOpen, onClose }) 
             </div>
 
             {/* Description */}
-            <p className="text-sm text-gray-300 mb-6">
+            <p className="text-sm text-text-muted mb-6">
               Set your referral fee percentage. This is the fee you'll earn when users swap using your referral code.
             </p>
 
             {/* Current Fee Display */}
             {currentFeeBasisPoints && (
-              <div className="mb-6 p-3 bg-emerald-500/10 border border-emerald-500/30 rounded-lg">
-                <div className="flex items-center">
-                  <span className="text-emerald-400 mr-2">💰</span>
-                  <div>
-                    <p className="text-sm text-emerald-400 font-medium">Current Fee</p>
-                    <p className="text-lg text-emerald-300 font-bold">
-                      {formatBasisPointsToPercentage(parseInt(currentFeeBasisPoints))}
-                    </p>
-                  </div>
-                </div>
+              <div className="mb-6 rounded-lg border border-success bg-success/10 p-3">
+                <p className="text-sm font-medium text-success">Current Fee</p>
+                <p className="text-lg font-semibold text-success">
+                  {formatBasisPointsToPercentage(parseInt(currentFeeBasisPoints))}
+                </p>
               </div>
             )}
 
             {feeBasisPointsLoading && (
-              <div className="mb-6 p-3 bg-slate-500/10 border border-slate-500/30 rounded-lg">
+              <div className="mb-6 rounded-lg border border-primary/30 bg-primary-050 p-3">
                 <div className="flex items-center">
-                  <svg className="animate-spin h-5 w-5 text-slate-400 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <svg className="mr-2 h-5 w-5 animate-spin text-primary" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                   </svg>
-                  <p className="text-sm text-slate-400">Loading current fee...</p>
+                  <p className="text-sm text-text-muted">Loading current fee...</p>
                 </div>
               </div>
             )}
 
-                        {/* Preset Options */}
+            {/* Preset Options */}
             <div className="mb-6">
-              <label className="block text-sm font-medium text-gray-300 mb-3">
+              <label className="block text-sm font-medium text-text-muted mb-3">
                 Quick Select
               </label>
               <div className="grid grid-cols-3 gap-2">
@@ -207,10 +202,10 @@ const ReferralFeePopup: React.FC<ReferralFeePopupProps> = ({ isOpen, onClose }) 
                   <button
                     key={basisPoints}
                     onClick={() => handlePresetSelect(basisPoints)}
-                    className={`px-3 py-2 rounded-lg border-2 transition-all text-sm font-medium ${
+                    className={`rounded-lg border px-3 py-2 text-sm font-semibold transition-colors focus-visible:ring-2 focus-visible:ring-focus focus-visible:outline-none ${
                       selectedOption === 'preset' && selectedPreset === basisPoints
-                        ? 'border-emerald-500 bg-emerald-500/20 text-emerald-300 shadow-lg'
-                        : 'border-[#3a3f5a] hover:border-emerald-500/50 hover:bg-emerald-500/10 text-gray-300 bg-[#1e2030] hover:text-emerald-300'
+                        ? 'border-primary bg-primary-050 text-primary shadow-sm'
+                        : 'border-border bg-bg-surface text-text-muted hover:border-primary hover:bg-primary-050 hover:text-primary'
                     }`}
                   >
                     {formatBasisPointsToPercentage(basisPoints)}
@@ -221,7 +216,7 @@ const ReferralFeePopup: React.FC<ReferralFeePopupProps> = ({ isOpen, onClose }) 
 
             {/* Custom Input */}
             <div className="mb-6">
-              <label className="block text-sm font-medium text-gray-300 mb-3">
+              <label className="block text-sm font-medium text-text-muted mb-3">
                 Custom Fee
               </label>
               <div className="relative">
@@ -237,35 +232,37 @@ const ReferralFeePopup: React.FC<ReferralFeePopupProps> = ({ isOpen, onClose }) 
                   step="0.01"
                   min="0.1"
                   max="3.0"
-                  className={`w-full px-4 py-3 border-2 rounded-lg transition-all bg-[#1e2030] text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 ${
-                    selectedOption === 'custom'
-                      ? 'border-emerald-500 bg-[#1e2030]'
-                      : 'border-[#3a3f5a]'
-                  } ${inputError ? 'border-red-500' : ''}`}
+                  className={`w-full rounded-lg border px-4 py-3 bg-bg-surface text-base text-text placeholder:text-text-muted transition-all focus:outline-none focus:ring-2 ${
+                    inputError
+                      ? 'border-danger focus:border-danger focus:ring-danger/30'
+                      : selectedOption === 'custom'
+                      ? 'border-focus shadow-sm focus:border-focus focus:ring-focus/30'
+                      : 'border-border focus:ring-focus/30'
+                  }`}
                 />
-                <span className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400">
+                <span className="absolute right-4 top-1/2 transform -translate-y-1/2 text-text-muted">
                   %
                 </span>
               </div>
               {inputError && (
-                <p className="text-red-400 text-sm mt-2">{inputError}</p>
+                <p className="mt-2 text-sm text-danger">{inputError}</p>
               )}
               {selectedOption === 'custom' && customFee && !inputError && (
-                <p className="text-emerald-400 text-sm mt-2">
+                <p className="text-success text-sm mt-2">
                   Fee will be set to: {customFee}%
                 </p>
               )}
             </div>
 
             {/* Info Box */}
-            <div className="mb-6 p-3 bg-blue-500/10 border border-blue-500/30 rounded-lg">
+            <div className="mb-6 rounded-lg border border-primary/30 bg-primary-050 p-3">
               <div className="flex items-start">
-                <svg className="w-5 h-5 text-blue-400 mt-0.5 mr-2 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                <svg className="mt-0.5 mr-2 h-5 w-5 flex-shrink-0 text-primary" fill="currentColor" viewBox="0 0 20 20">
                   <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
                 </svg>
                 <div>
-                  <p className="text-sm text-blue-300 font-medium">Fee Range</p>
-                  <p className="text-sm text-blue-200 mt-1">
+                  <p className="text-sm font-medium text-text">Fee Range</p>
+                  <p className="mt-1 text-sm text-text-muted">
                     Your referral fee must be between 0.1% and 3.0%. Higher fees may reduce user adoption.
                   </p>
                 </div>
@@ -274,8 +271,8 @@ const ReferralFeePopup: React.FC<ReferralFeePopupProps> = ({ isOpen, onClose }) 
 
             {/* Error Display */}
             {error && (
-              <div className="mb-6 p-3 bg-red-500/10 border border-red-500/30 rounded-lg">
-                <p className="text-sm text-red-400">{error}</p>
+              <div className="mb-6 rounded-lg border border-danger/30 bg-danger/10 p-3">
+                <p className="text-sm text-danger">{error}</p>
               </div>
             )}
 
@@ -284,18 +281,18 @@ const ReferralFeePopup: React.FC<ReferralFeePopupProps> = ({ isOpen, onClose }) 
               <button
                 onClick={handleCancel}
                 disabled={updatingFeeBasisPoints}
-                className="flex-1 px-4 py-3 border border-[#3a3f5a] text-gray-300 rounded-lg hover:bg-[#3a3f5a] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex-1 rounded-lg border border-border bg-bg-surface px-4 py-3 text-text font-semibold transition-colors hover:bg-primary-050 disabled:cursor-not-allowed disabled:border-border disabled:text-text-muted focus-visible:ring-2 focus-visible:ring-focus focus-visible:outline-none"
               >
                 Cancel
               </button>
               <button
                 onClick={handleSave}
                 disabled={!!inputError || updatingFeeBasisPoints || !account}
-                className="flex-1 px-4 py-3 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 disabled:bg-gray-600 disabled:cursor-not-allowed transition-colors flex items-center justify-center"
+                className="flex-1 flex items-center justify-center gap-2 rounded-lg bg-primary px-4 py-3 text-white font-semibold transition-colors hover:bg-primary-600 disabled:cursor-not-allowed disabled:bg-border disabled:text-text-muted focus-visible:ring-2 focus-visible:ring-focus focus-visible:outline-none"
               >
                 {updatingFeeBasisPoints ? (
                   <>
-                    <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <svg className="h-5 w-5 animate-spin text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                       <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                       <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                     </svg>
@@ -314,3 +311,5 @@ const ReferralFeePopup: React.FC<ReferralFeePopupProps> = ({ isOpen, onClose }) 
 };
 
 export default ReferralFeePopup; 
+
+

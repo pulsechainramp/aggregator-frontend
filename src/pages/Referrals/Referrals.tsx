@@ -26,6 +26,7 @@ import {
   fetchReferralFeeBasisPoints,
 } from "../../store/referralSlice";
 import { formatFeeBasisPoints } from "../../utils/referralUtils";
+import { BackendURL } from "../../const/swap";
 
 const Referrals: React.FC = () => {
   const { account } = useWallet();
@@ -222,10 +223,10 @@ const Referrals: React.FC = () => {
 
   if (!account) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center">
+      <div className="min-h-screen bg-bg-page text-text flex items-center justify-center">
         <div className="text-center">
-          <h2 className="text-2xl font-bold text-white mb-4">Connect Wallet</h2>
-          <p className="text-slate-400">
+          <h2 className="text-2xl font-bold text-text mb-4">Connect Wallet</h2>
+          <p className="text-text-muted">
             Please connect your wallet to view referrals
           </p>
         </div>
@@ -234,8 +235,31 @@ const Referrals: React.FC = () => {
   }
 
   // referral link & copy
+  const referralBaseUrl = useMemo(() => {
+    const normalize = (value?: string) => {
+      if (!value) return "";
+      return value.endsWith("/") ? value.slice(0, -1) : value;
+    };
+
+    const backend = normalize(BackendURL);
+
+    if (typeof window === "undefined") {
+      return backend;
+    }
+
+    const origin = window.location.origin;
+    const isLocal =
+      origin.includes("localhost") || origin.includes("127.0.0.1");
+
+    if (isLocal) {
+      return backend || origin;
+    }
+
+    return backend || origin;
+  }, []);
+
   const referralLink = referralCode?.referralCode
-    ? `${window.location.origin}?code=${referralCode.referralCode}`
+    ? `${referralBaseUrl}?code=${referralCode.referralCode}`
     : "";
 
   const copyReferralLink = async () => {
@@ -249,8 +273,8 @@ const Referrals: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
-      <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div className="min-h-screen bg-bg-page text-text">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}
         <motion.div
           initial={{ y: -20, opacity: 0 }}
@@ -258,56 +282,57 @@ const Referrals: React.FC = () => {
           transition={{ duration: 0.5 }}
           className="text-center mb-8"
         >
-          <h1 className="text-4xl font-bold bg-gradient-to-r from-emerald-400 via-teal-400 to-cyan-500 bg-clip-text text-transparent mb-4">
+          <h1 className="text-4xl font-bold text-primary mb-4">
             Referral Dashboard
           </h1>
-          <p className="text-slate-400 text-lg">
+          <p className="text-text-muted text-lg">
             Track your referral earnings and claim your rewards
           </p>
         </motion.div>
 
         {/* Your referral link */}
-        <section className="mb-6 rounded-2xl border border-slate-700/60 bg-slate-800/60 p-4 md:p-6">
-          <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-            <h2 className="text-slate-200 font-semibold">Your referral link</h2>
-            <p className="text-sm text-slate-300">
-              {feeBasisPointsLoading
-                ? "Fetching your referral fee..."
-                : referralFeeBasisPoints
-                ? `Current referral fee: ${formatFeeBasisPoints(referralFeeBasisPoints)}`
-                : "Referral fee not set yet"}
-            </p>
-          </div>
+        <section className="mb-6 rounded-2xl border border-border bg-bg-surface p-4">
+          <h2 className="text-text font-semibold mb-2">Your referral link</h2>
 
           {account ? (
-            <div className="flex flex-col gap-2 sm:flex-row">
-              <input
-                className="flex-1 rounded-md bg-slate-900/60 border border-slate-700/60 px-3 py-2 text-slate-200 text-sm"
-                readOnly
-                value={referralLink || "Generating..."}
-              />
-              <button
-                onClick={copyReferralLink}
-                disabled={!referralLink}
-                className="px-4 py-2 rounded-md bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-semibold disabled:opacity-50"
-              >
-                Copy
-              </button>
+            <div className="flex flex-col gap-2">
+              <div className="flex gap-2">
+                <input
+                  className="flex-1 rounded-md bg-bg-surface border border-border px-3 py-2 text-text text-sm"
+                  readOnly
+                  value={referralLink || "Generating..."}
+                />
+                <button
+                  onClick={copyReferralLink}
+                  disabled={!referralLink}
+                  className="px-4 py-2 rounded-md bg-primary hover:bg-primary-600 text-white text-sm font-semibold disabled:opacity-50"
+                >
+                  Copy
+                </button>
+              </div>
+              <p className="text-xs text-text-muted">
+                {feeBasisPointsLoading
+                  ? "Fetching your referral fee..."
+                  : referralFeeBasisPoints
+                  ? `Current referral fee: ${formatFeeBasisPoints(
+                      referralFeeBasisPoints
+                    )}`
+                  : "Referral fee not set yet"}
+              </p>
+              <div className="pt-1">
+                <button
+                  onClick={() => setIsFeePopupOpen(true)}
+                  className="touch-target inline-flex items-center justify-center rounded-lg border border-success bg-success px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-success/80 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
+                >
+                  Update referral fee
+                </button>
+              </div>
             </div>
           ) : (
-            <p className="text-slate-400 text-sm">Connect your wallet to get your referral link.</p>
+            <p className="text-text-muted text-sm">
+              Connect your wallet to get your referral link.
+            </p>
           )}
-
-          {/* NEW: open existing fee popup from here */}
-          <div className="mt-4">
-            <button
-              type="button"
-              onClick={() => setIsFeePopupOpen(true)}
-              className="inline-flex items-center justify-center rounded-md border border-emerald-400/30 bg-slate-900/60 px-4 py-2 text-sm font-semibold text-emerald-300 transition-colors hover:bg-slate-800 hover:text-emerald-200 focus:outline-none focus:ring-2 focus:ring-emerald-500/40"
-            >
-              Manage referral fee
-            </button>
-          </div>
         </section>
 
         {/* Referral Fees List */}
@@ -315,16 +340,16 @@ const Referrals: React.FC = () => {
           initial={{ y: 20, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           transition={{ duration: 0.5, delay: 0.2 }}
-          className="bg-slate-800/50 backdrop-blur-md border border-slate-700/50 rounded-xl p-6"
+          className="bg-bg-surface backdrop-blur-md border border-border rounded-xl p-6"
         >
           <div className="flex items-center justify-between mb-6">
-            <h2 className="text-2xl font-bold text-white">Claimable Tokens</h2>
+            <h2 className="text-2xl font-bold text-text">Claimable Tokens</h2>
             <div className="flex items-center space-x-3">
               {filteredReferralFees.length > 0 && (
                 <button
                   onClick={handleBulkClaim}
                   disabled={claiming || loading || tokensLoading}
-                  className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg font-medium transition-colors disabled:opacity-50"
+                  className="rounded-lg border border-primary bg-primary px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-primary-600 disabled:cursor-not-allowed disabled:border-border disabled:bg-border disabled:text-text-muted"
                 >
                   {claiming
                     ? "Claiming All..."
@@ -334,7 +359,7 @@ const Referrals: React.FC = () => {
               <button
                 onClick={handleRefresh}
                 disabled={loading || tokensLoading}
-                className="px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg font-medium transition-colors disabled:opacity-50"
+                className="px-4 py-2 rounded-lg border border-success bg-success text-white font-medium transition-colors hover:bg-success/90 disabled:cursor-not-allowed disabled:border-border disabled:bg-border disabled:text-text-muted"
               >
                 {loading || tokensLoading ? "Refreshing..." : "Refresh"}
               </button>
@@ -343,18 +368,18 @@ const Referrals: React.FC = () => {
           {loading ? (
             <div className="text-center py-8">
               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-500 mx-auto"></div>
-              <p className="text-slate-400 mt-4">Loading referral fees...</p>
+              <p className="text-text-muted mt-4">Loading referral fees...</p>
             </div>
           ) : tokensLoading ? (
             <div className="text-center py-8">
               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto"></div>
-              <p className="text-slate-400 mt-4">Loading token metadata...</p>
+              <p className="text-text-muted mt-4">Loading token metadata...</p>
             </div>
           ) : filteredReferralFees.length === 0 ? (
             <div className="text-center py-8">
               <span className="text-4xl mb-4 block">🎯</span>
-              <p className="text-slate-400 text-lg">No referral fees found</p>
-              <p className="text-slate-500 text-sm mt-2">
+              <p className="text-text-muted text-lg">No referral fees found</p>
+              <p className="text-text-muted text-sm mt-2">
                 Start referring friends to earn rewards!
               </p>
             </div>
@@ -362,17 +387,17 @@ const Referrals: React.FC = () => {
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead>
-                  <tr className="border-b border-slate-700/50">
-                    <th className="text-left py-3 px-4 text-slate-400 font-medium">
+                  <tr className="border-b border-border">
+                    <th className="text-left py-3 px-4 text-text-muted font-medium">
                       Token
                     </th>
-                    <th className="text-left py-3 px-4 text-slate-400 font-medium">
+                    <th className="text-left py-3 px-4 text-text-muted font-medium">
                       Amount
                     </th>
-                    <th className="text-left py-3 px-4 text-slate-400 font-medium">
+                    <th className="text-left py-3 px-4 text-text-muted font-medium">
                       Created
                     </th>
-                    <th className="text-left py-3 px-4 text-slate-400 font-medium">
+                    <th className="text-left py-3 px-4 text-text-muted font-medium">
                       Action
                     </th>
                   </tr>
@@ -390,57 +415,50 @@ const Referrals: React.FC = () => {
                         key={fee.id}
                         initial={{ opacity: 0, y: 10 }}
                         animate={{ opacity: 1, y: 0 }}
-                        className="border-b border-slate-700/30 hover:bg-slate-700/20 transition-colors"
+                        className="border-b border-border transition-colors hover:bg-primary-050/40"
                       >
                         <td className="py-4 px-4">
-                          <div className="flex items-center space-x-3">
-                            <div className="w-8 h-8 rounded-lg flex items-center justify-center overflow-hidden">
+                          <div className="flex items-center gap-3">
+                            <div className="flex h-8 w-8 items-center justify-center overflow-hidden rounded-lg border border-border bg-bg-raised text-xs font-semibold uppercase text-primary">
                               {tokenMetadata?.image ? (
                                 <img
                                   src={tokenMetadata.image}
                                   alt={tokenMetadata.symbol}
-                                  className="w-full h-full object-cover"
-                                  onError={(e) => {
-                                    e.currentTarget.src =
-                                      "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzIiIGhlaWdodD0iMzIiIHZpZXdCb3g9IjAgMCAzMiAzMiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMTYiIGN5PSIxNiIgcj0iMTYiIGZpbGw9IiMxMEI5NjEiLz4KPHN2ZyB4PSI4IiB5PSI4IiB3aWR0aD0iMTYiIGhlaWdodD0iMTYiIHZpZXdCb3g9IjAgMCAxNiAxNiIgZmlsbD0ibm9uZSI+CjxwYXRoIGQ9Ik04IDhIMTZWMThIOFY4WiIgZmlsbD0id2hpdGUiLz4KPC9zdmc+Cjwvc3ZnPgo=";
+                                  className="h-full w-full object-cover"
+                                  onError={(event) => {
+                                    event.currentTarget.src =
+                                      "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzIiIGhlaWdodD0iMzIiIHZpZXdCb3g9IjAgMCAzMiAzMiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMTYiIGN5PSIxNiIgcj0iMTYiIGZpbGw9IiMxMEI5NjEiLz4KPC9zdmc+Cg==";
                                   }}
                                 />
                               ) : (
-                                <div className="w-full h-full bg-emerald-500/20 flex items-center justify-center">
-                                  <span className="text-sm">🪙</span>
+                                <div className="flex h-full w-full items-center justify-center bg-primary-050 text-primary">
+                                  {(tokenMetadata?.symbol || fee.token.slice(2, 6)).toUpperCase()}
                                 </div>
                               )}
                             </div>
                             <div>
                               {tokenMetadata ? (
                                 <>
-                                  <p className="text-white font-medium">
-                                    {tokenMetadata.symbol}
-                                  </p>
-                                  <p className="text-slate-400 text-sm">
-                                    {tokenMetadata.name}
-                                  </p>
+                                  <p className="text-text font-medium">{tokenMetadata.symbol}</p>
+                                  <p className="text-sm text-text-muted">{tokenMetadata.name}</p>
                                 </>
                               ) : (
                                 <>
-                                  <p className="text-white font-medium font-mono">
-                                    {fee.token.slice(0, 6)}...
-                                    {fee.token.slice(-4)}
+                                  <p className="font-mono text-text font-medium">
+                                    {fee.token.slice(0, 6)}...{fee.token.slice(-4)}
                                   </p>
-                                  <p className="text-slate-400 text-sm">
-                                    Token Address
-                                  </p>
+                                  <p className="text-sm text-text-muted">Token Address</p>
                                 </>
                               )}
                             </div>
                           </div>
                         </td>
                         <td className="py-4 px-4">
-                          <span className="text-lg font-bold text-emerald-400">
+                          <span className="text-lg font-bold text-success">
                             {fee.amount}
                           </span>
                         </td>
-                        <td className="py-4 px-4 text-slate-300">
+                        <td className="py-4 px-4 text-text-muted">
                           {formatDate(fee.createdAt)}
                         </td>
                         <td className="py-4 px-4">
@@ -460,7 +478,7 @@ const Referrals: React.FC = () => {
                             <button
                               onClick={() => handleClaim(fee)}
                               disabled={claiming}
-                              className="px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                              className="rounded-lg border border-success bg-success px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-success/80 disabled:cursor-not-allowed disabled:border-border disabled:bg-border disabled:text-text-muted"
                             >
                               {claiming ? "Claiming..." : "Claim"}
                             </button>
@@ -485,3 +503,11 @@ const Referrals: React.FC = () => {
 };
 
 export default Referrals;
+
+
+
+
+
+
+
+

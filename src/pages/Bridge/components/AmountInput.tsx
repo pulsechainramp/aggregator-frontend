@@ -64,19 +64,19 @@ const AmountInput: React.FC<AmountInputProps> = ({
       transition={{ duration: 0.3 }}
       className="relative"
     >
-      <div className={`flex items-center justify-between p-4 bg-gradient-to-br from-[#2b2e4a] to-[#1e2030] rounded-xl border transition-all duration-200 shadow-lg ${
-        isBelowMinimum 
-          ? 'border-red-500/50 hover:border-red-500/70' 
-          : 'border-[#3a3f5a] hover:border-[#4a4f6a]'
-      }`}>
-        <div className="flex-1 min-w-0 mr-4">
+      <div
+        className={`flex items-center justify-between rounded-xl border p-4 shadow-sm transition-colors ${
+          isBelowMinimum ? "border-danger" : "border-border hover:border-primary"
+        } bg-bg-surface`}
+      >
+        <div className="mr-4 min-w-0 flex-1">
           <input
             type="text"
             value={value}
             onChange={handleInputChange}
             placeholder="0.00"
-            className={`w-full bg-transparent text-xl font-semibold placeholder-gray-500 focus:outline-none ${
-              isBelowMinimum ? 'text-red-300' : 'text-white'
+            className={`w-full bg-transparent text-xl font-semibold placeholder-text-muted focus:outline-none ${
+              isBelowMinimum ? "text-danger" : "text-text"
             }`}
           />
         </div>
@@ -85,7 +85,7 @@ const AmountInput: React.FC<AmountInputProps> = ({
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
             onClick={handleMaxClick}
-            className="px-3 py-1.5 text-xs bg-gradient-to-r from-[#3a3f5a] to-[#2b2e4a] text-gray-300 rounded-lg hover:from-[#4a4f6a] hover:to-[#3a3f5a] hover:text-white transition-all duration-200 font-medium flex-shrink-0"
+            className="flex-shrink-0 rounded-lg border border-border bg-bg-page px-3 py-1.5 text-xs font-semibold text-text transition-colors hover:border-primary hover:text-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
           >
             MAX
           </motion.button>
@@ -96,7 +96,7 @@ const AmountInput: React.FC<AmountInputProps> = ({
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
               onClick={onCopyAddress}
-              className="px-3 py-1.5 text-xs bg-gradient-to-r from-[#3a3f5a] to-[#2b2e4a] text-gray-300 rounded-lg hover:from-[#4a4f6a] hover:to-[#3a3f5a] hover:text-white transition-all duration-200 font-medium border border-[#4a4f6a] hover:border-[#5a5f7a] flex-shrink-0"
+              className="flex-shrink-0 rounded-lg border border-border bg-bg-page px-3 py-1.5 text-xs font-semibold text-text transition-colors hover:border-primary hover:text-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
               title="Copy token address"
             >
               <svg
@@ -139,7 +139,7 @@ const AmountInput: React.FC<AmountInputProps> = ({
           animate={{ opacity: 1, y: 0 }}
           className="mt-2 flex items-center gap-2 text-sm"
         >
-          <div className="flex items-center gap-2 text-red-400">
+          <div className="flex items-center gap-2 text-danger">
             <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
               <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
             </svg>
@@ -151,7 +151,7 @@ const AmountInput: React.FC<AmountInputProps> = ({
             <button
               onMouseEnter={() => setShowTooltip(true)}
               onMouseLeave={() => setShowTooltip(false)}
-              className="text-gray-400 hover:text-gray-300 transition-colors"
+              className="transition-colors text-text-muted hover:text-primary"
             >
               <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
                 <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-3a1 1 0 00-.867.5 1 1 0 11-1.731-1A3 3 0 0113 8a3.001 3.001 0 01-2 2.83V11a1 1 0 11-2 0v-1a1 1 0 011-1 1 1 0 100-2zm0 8a1 1 0 100-2 1 1 0 000 2z" clipRule="evenodd" />
@@ -163,19 +163,19 @@ const AmountInput: React.FC<AmountInputProps> = ({
               <motion.div
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 w-80 bg-[#1e2030] border border-[#3a3f5a] rounded-lg p-3 shadow-xl z-50"
+                className="absolute bottom-full left-1/2 z-50 mb-2 w-80 -translate-x-1/2 transform rounded-lg border border-border bg-bg-surface p-3 shadow-md"
               >
-                <div className="text-xs text-gray-300 leading-relaxed">
-                  <p className="font-medium text-white mb-1">Why this minimum exists:</p>
+                <div className="text-xs leading-relaxed text-text-muted">
+                  <p className="mb-1 font-medium text-text">Why this minimum exists:</p>
                   <p>This minimum is set by the official PulseChain bridge to ensure the transaction can cover its complex gas fees on both the Ethereum and PulseChain networks. The bridge needs sufficient ETH to:</p>
-                  <ul className="mt-2 space-y-1 text-gray-400">
-                    <li>• Pay Ethereum gas fees for the initial transaction</li>
-                    <li>• Cover PulseChain gas fees for the final transaction</li>
-                    <li>• Handle the bridge's internal processing costs</li>
+                  <ul className="mt-2 space-y-1 text-text-muted">
+                    <li>- Pay Ethereum gas fees for the initial transaction</li>
+                    <li>- Cover PulseChain gas fees for the final transaction</li>
+                    <li>- Handle the bridge&apos;s internal processing costs</li>
                   </ul>
                 </div>
                 {/* Arrow */}
-                <div className="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-[#3a3f5a]"></div>
+                <div className="absolute top-full left-1/2 h-0 w-0 -translate-x-1/2 transform border-l-4 border-r-4 border-t-4 border-transparent border-t-border"></div>
               </motion.div>
             )}
           </div>
@@ -187,9 +187,9 @@ const AmountInput: React.FC<AmountInputProps> = ({
         <motion.div
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
-          className="mt-2 flex items-center gap-2 text-sm text-green-400"
+          className="mt-2 flex items-center gap-2 text-sm text-success"
         >
-          <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+          <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
             <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
           </svg>
           <span>Amount meets minimum requirement for bridging</span>
