@@ -7,7 +7,7 @@ export const COUNTRY_OPTIONS: CountryOption[] = [
   { code: "CA", name: "Canada", fiat: "CAD" },
   { code: "GB", name: "United Kingdom", fiat: "GBP" },
 
-  // A–Z (by country name)
+  // A-Z (by country name)
   { code: "AE", name: "United Arab Emirates", fiat: "AED" },
   { code: "AR", name: "Argentina", fiat: "ARS" },
   { code: "AT", name: "Austria", fiat: "EUR" },
@@ -57,7 +57,7 @@ export const COUNTRY_OPTIONS: CountryOption[] = [
   { code: "SE", name: "Sweden", fiat: "SEK" },
   { code: "CH", name: "Switzerland", fiat: "CHF" },
   { code: "TH", name: "Thailand", fiat: "THB" },
-  { code: "TR", name: "Turkey (Türkiye)", fiat: "TRY" },
+  { code: "TR", name: "Turkey (Turkiye)", fiat: "TRY" },
   { code: "TW", name: "Taiwan", fiat: "TWD" },
-  { code: "UA", name: "Ukraine", fiat: "UAH" }
+  { code: "UA", name: "Ukraine", fiat: "UAH" },
 ];

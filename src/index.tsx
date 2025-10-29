@@ -8,6 +8,7 @@ import { init, Web3OnboardProvider } from "@web3-onboard/react";
 import { PulseChainConfig } from "./config/chainConfig";
 import createInjectedWalletInit from "./wallets/createInjectedWalletInit";
 import internetMoneyWalletInit from "./wallets/internetMoneyWallet";
+import { ThemeProvider } from "./theme/ThemeProvider";
 
 const INTERNET_MONEY_WALLETCONNECT_LISTING_ID =
   "dd43441a6368ec9046540c46c5fdc58f79926d17ce61a176444568ca7c970dcd";
@@ -75,7 +76,7 @@ const web3Onboard = init({
     desktop: { enabled: false },
     mobile: { enabled: false },
   },
-  theme: "dark",
+  theme: "light",
   appMetadata: {
     name: "PulseChainRamp",
     icon: "https://pulsechain.com/favicon128.png",
@@ -100,7 +101,9 @@ const root = ReactDOM.createRoot(
 root.render(
   <React.StrictMode>
     <Web3OnboardProvider web3Onboard={web3Onboard}>
-      <App />
+      <ThemeProvider>
+        <App />
+      </ThemeProvider>
     </Web3OnboardProvider>
   </React.StrictMode>
 );

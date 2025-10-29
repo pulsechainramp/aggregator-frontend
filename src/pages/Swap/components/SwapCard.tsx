@@ -105,9 +105,9 @@ const SwapCard: React.FC<SwapCardProps> = ({
   };
 
   return (
-    <motion.div className="bg-[#1e2030] rounded-xl p-3 sm:p-4 flex-grow relative gap-2 flex flex-col border border-[#3a3f5a] shadow-lg">
+    <motion.div className="relative flex flex-col gap-4 rounded-xl border border-border bg-bg-surface p-4 shadow-sm sm:p-6">
       {/* From Token Section */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-0">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div className="flex flex-col gap-2">
           <TokenSelector
             token={fromToken}
@@ -116,7 +116,7 @@ const SwapCard: React.FC<SwapCardProps> = ({
             onSelect={onFromTokenSelect}
           />
           {fromToken && (
-            <div className="text-xs text-gray-400 ml-2">
+            <div className="ml-1 text-xs text-text-muted">
               Balance: {getFromTokenBalance()} {fromToken.symbol}
             </div>
           )}
@@ -177,7 +177,7 @@ const SwapCard: React.FC<SwapCardProps> = ({
       </div>
 
       {/* To Token Section */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-0">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div className="flex flex-col gap-2">
           <TokenSelector
             token={toToken}
@@ -186,7 +186,7 @@ const SwapCard: React.FC<SwapCardProps> = ({
             onSelect={onToTokenSelect}
           />
           {toToken && (
-            <div className="text-xs text-gray-400 ml-2">
+            <div className="ml-1 text-xs text-text-muted">
               Balance: {getToTokenBalance()} {toToken.symbol}
             </div>
           )}

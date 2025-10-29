@@ -158,13 +158,7 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
 
     return (
       <div
-        className={`${
-          sizeClasses[size]
-        } rounded-full flex items-center justify-center text-white font-bold ${
-          token?.chainId === 1
-            ? "bg-gradient-to-br from-blue-500 to-purple-500"
-            : "bg-gradient-to-br from-green-500 to-emerald-500"
-        }`}
+        className={`${sizeClasses[size]} rounded-full border border-border bg-primary-050 text-primary flex items-center justify-center font-semibold`}
       >
         {(token?.symbol || fallbackSymbol).charAt(0)}
       </div>
@@ -207,34 +201,34 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
     switch (status) {
       case "executed":
         return {
-          color: "text-green-400",
-          bgColor: "bg-green-400/10",
-          borderColor: "border-green-400/30",
-          icon: "✅",
+          color: "text-success",
+          bgColor: "bg-success/10",
+          borderColor: "border-success",
+          icon: "",
           message: "Bridge Completed",
         };
       case "pending":
         return {
-          color: "text-yellow-400",
-          bgColor: "bg-yellow-400/10",
-          borderColor: "border-yellow-400/30",
-          icon: "⏳",
+          color: "text-warning",
+          bgColor: "bg-warning/10",
+          borderColor: "border-warning",
+          icon: "",
           message: "Bridge in Progress",
         };
       case "failed":
         return {
-          color: "text-red-400",
-          bgColor: "bg-red-400/10",
-          borderColor: "border-red-400/30",
-          icon: "❌",
+          color: "text-danger",
+          bgColor: "bg-danger/10",
+          borderColor: "border-danger",
+          icon: "",
           message: "Bridge Failed",
         };
       default:
         return {
-          color: "text-gray-400",
-          bgColor: "bg-gray-400/10",
-          borderColor: "border-gray-400/30",
-          icon: "❓",
+          color: "text-text-muted",
+          bgColor: "bg-bg-surface",
+          borderColor: "border-border",
+          icon: "",
           message: "Unknown Status",
         };
     }
@@ -306,7 +300,7 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
     <motion.div
       initial={false}
       animate={{ height: isExpanded ? "auto" : "auto" }}
-      className="p-6 hover:bg-[#2a2d3a] transition-colors duration-200"
+      className="p-6 transition-colors duration-200 hover:bg-primary-050/40"
     >
       {/* Main Transaction Info */}
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
@@ -323,18 +317,18 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
                   formatAmount(transaction.amount, transaction.tokenDecimals)}
               </span>
               <div className="flex items-center space-x-2">
-                <span className="text-gray-400">{transaction.tokenSymbol}</span>
+                <span className="text-text-muted">{transaction.tokenSymbol}</span>
               </div>
             </div>
 
-            <div className="flex items-center space-x-2 text-sm text-gray-400 mb-2">
+            <div className="flex items-center space-x-2 text-sm text-text-muted mb-2">
               <span className="flex items-center space-x-1">
-                <span className="w-2 h-2 bg-blue-500 rounded-full"></span>
+                <span className="w-2 h-2 bg-primary rounded-full"></span>
                 <span>{getChainName(transaction.sourceChainId)}</span>
               </span>
               <span className="text-blue-400">→</span>
               <span className="flex items-center space-x-1">
-                <span className="w-2 h-2 bg-green-500 rounded-full"></span>
+                <span className="w-2 h-2 bg-success rounded-full"></span>
                 <span>{getChainName(transaction.targetChainId)}</span>
               </span>
             </div>
@@ -348,8 +342,7 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
             className={`px-3 py-2 rounded-lg ${statusInfo.bgColor} ${statusInfo.borderColor} border`}
           >
             <div className="flex items-center space-x-2">
-              <span className="text-lg">{statusInfo.icon}</span>
-              <span className={`font-medium ${statusInfo.color}`}>
+    <span className={`font-medium ${statusInfo.color}`}>
                 {statusInfo.message}
               </span>
             </div>
@@ -360,7 +353,7 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
             onClick={() => setIsExpanded(!isExpanded)}
-            className="p-2 text-gray-400 hover:text-white hover:bg-[#3a3f5a] rounded-lg transition-all duration-200"
+            className="p-2 text-text-muted hover:text-primary hover:bg-primary-050/60 rounded-lg transition-all duration-200"
           >
             <svg
               className={`w-5 h-5 transform transition-transform duration-200 ${
@@ -387,21 +380,21 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
           initial={{ opacity: 0, height: 0 }}
           animate={{ opacity: 1, height: "auto" }}
           exit={{ opacity: 0, height: 0 }}
-          className="mt-6 pt-6 border-t border-[#3a3f5a]"
+          className="mt-6 pt-6 border-t border-border"
         >
           {/* Token Information Section */}
           <div className="mb-6">
-            <h4 className="font-semibold text-gray-300 mb-4">
+            <h4 className="font-semibold text-text-muted mb-4">
               Token Information
             </h4>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* From Token */}
-              <div className="bg-[#2a2d3a] rounded-lg p-4 border border-[#3a3f5a]">
+              <div className="bg-bg-surface rounded-lg p-4 border border-border">
                 <div className="flex items-center space-x-3 mb-3">
                   {getTokenLogo(fromToken, transaction.tokenSymbol, "md")}
                   <div>
                     <h5 className="font-medium text-white">From Token</h5>
-                    <p className="text-sm text-gray-400">
+                    <p className="text-sm text-text-muted">
                       {getChainName(transaction.sourceChainId)}
                     </p>
                   </div>
@@ -410,7 +403,7 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
                 <div className="space-y-2 mb-4">
                   {"name" in (fromToken || {}) && (
                     <div className="flex justify-between">
-                      <span className="text-gray-400 text-sm">Name:</span>
+                      <span className="text-text-muted text-sm">Name:</span>
                       <div className="flex items-center space-x-2">
                         <span className="text-white font-medium">
                           {(fromToken as any).name}
@@ -432,7 +425,7 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
                     </div>
                   )}
                   <div className="flex justify-between">
-                    <span className="text-gray-400 text-sm">Symbol:</span>
+                    <span className="text-text-muted text-sm">Symbol:</span>
                     <div className="flex items-center space-x-2">
                       <span className="text-white font-medium">
                         {fromToken?.symbol || transaction.tokenSymbol}
@@ -453,8 +446,8 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
                     </div>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-gray-400 text-sm">Address:</span>
-                    <span className="text-xs font-mono text-gray-300 break-all">
+                    <span className="text-text-muted text-sm">Address:</span>
+                    <span className="text-xs font-mono text-text-muted break-all">
                       {fromToken?.address || transaction.tokenAddress}
                     </span>
                   </div>
@@ -462,12 +455,12 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
               </div>
 
               {/* To Token */}
-              <div className="bg-[#2a2d3a] rounded-lg p-4 border border-[#3a3f5a]">
+              <div className="bg-bg-surface rounded-lg p-4 border border-border">
                 <div className="flex items-center space-x-3 mb-3">
                   {getTokenLogo(toToken, transaction.tokenSymbol, "md")}
                   <div>
                     <h5 className="font-medium text-white">To Token</h5>
-                    <p className="text-sm text-gray-400">
+                    <p className="text-sm text-text-muted">
                       {getChainName(transaction.targetChainId)}
                     </p>
                   </div>
@@ -476,7 +469,7 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
                 <div className="space-y-2 mb-4">
                   {"name" in (toToken || {}) && (
                     <div className="flex justify-between">
-                      <span className="text-gray-400 text-sm">Name:</span>
+                      <span className="text-text-muted text-sm">Name:</span>
                       <div className="flex items-center space-x-2">
                         <span className="text-white font-medium">
                           {(toToken as any).name}
@@ -498,7 +491,7 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
                     </div>
                   )}
                   <div className="flex justify-between">
-                    <span className="text-gray-400 text-sm">Symbol:</span>
+                    <span className="text-text-muted text-sm">Symbol:</span>
                     <div className="flex items-center space-x-2">
                       <span className="text-white font-medium">
                         {toToken?.symbol || transaction.tokenSymbol}
@@ -519,8 +512,8 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
                     </div>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-gray-400 text-sm">Address:</span>
-                    <span className="text-xs font-mono text-gray-300 break-all">
+                    <span className="text-text-muted text-sm">Address:</span>
+                    <span className="text-xs font-mono text-text-muted break-all">
                       {toToken?.address || transaction.tokenAddress}
                     </span>
                   </div>
@@ -532,20 +525,20 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Transaction Details */}
             <div className="space-y-4">
-              <h4 className="font-semibold text-gray-300 mb-3">
+              <h4 className="font-semibold text-text-muted mb-3">
                 Transaction Details
               </h4>
 
               <div className="space-y-3">
                 <div className="flex justify-between">
-                  <span className="text-gray-400">Message ID:</span>
-                  <span className="text-sm font-mono text-gray-300 break-all">
+                  <span className="text-text-muted">Message ID:</span>
+                  <span className="text-sm font-mono text-text-muted break-all">
                     {transaction.messageId}
                   </span>
                 </div>
 
                 <div className="flex justify-between">
-                  <span className="text-gray-400">Amount:</span>
+                  <span className="text-text-muted">Amount:</span>
                   <span className="font-medium">
                     {transaction.humanReadableAmount ||
                       formatAmount(
@@ -557,16 +550,16 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
                 </div>
 
                 <div className="flex justify-between">
-                  <span className="text-gray-400">Created:</span>
-                  <span className="text-gray-300">
+                  <span className="text-text-muted">Created:</span>
+                  <span className="text-text-muted">
                     {formatDate(transaction.createdAt)}
                   </span>
                 </div>
 
                 {transaction.updatedAt && (
                   <div className="flex justify-between">
-                    <span className="text-gray-400">Updated:</span>
-                    <span className="text-gray-300">
+                    <span className="text-text-muted">Updated:</span>
+                    <span className="text-text-muted">
                       {formatDate(transaction.updatedAt)}
                     </span>
                   </div>
@@ -576,7 +569,7 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
 
             {/* Transaction Hashes */}
             <div className="space-y-4">
-              <h4 className="font-semibold text-gray-300 mb-3">
+              <h4 className="font-semibold text-text-muted mb-3">
                 Transaction Hashes
               </h4>
 
@@ -584,7 +577,7 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
                 {/* Source Transaction */}
                 <div>
                   <div className="flex justify-between items-center mb-2">
-                    <span className="text-gray-400 text-sm">
+                    <span className="text-text-muted text-sm">
                       Source ({getChainName(transaction.sourceChainId)})
                     </span>
                     <span className="text-xs text-gray-500">
@@ -592,7 +585,7 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
                     </span>
                   </div>
                   <div className="flex items-center space-x-2">
-                    <span className="text-sm font-mono text-gray-300 break-all">
+                    <span className="text-sm font-mono text-text-muted break-all">
                       {transaction.sourceTxHash}
                     </span>
                     <button
@@ -613,7 +606,7 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
                 {transaction.targetTxHash && (
                   <div>
                     <div className="flex justify-between items-center mb-2">
-                      <span className="text-gray-400 text-sm">
+                      <span className="text-text-muted text-sm">
                         Target ({getChainName(transaction.targetChainId)})
                       </span>
                       {transaction.targetTimestamp && (
@@ -623,7 +616,7 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
                       )}
                     </div>
                     <div className="flex items-center space-x-2">
-                      <span className="text-sm font-mono text-gray-300 break-all">
+                      <span className="text-sm font-mono text-text-muted break-all">
                         {transaction.targetTxHash}
                       </span>
                       <button
@@ -650,13 +643,13 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
               onClick={handleRefreshStatus}
-              className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg text-sm font-medium transition-colors"
+              className="px-4 py-2 bg-primary hover:bg-primary-600 text-white rounded-lg text-sm font-medium transition-colors"
             >
               Refresh Status
             </motion.button>
 
             {transaction.status === "pending" && (
-              <div className="px-4 py-2 bg-yellow-500/20 text-yellow-400 rounded-lg text-sm border border-yellow-500/30">
+              <div className="px-4 py-2 bg-warning/10 text-warning rounded-lg text-sm border border-warning">
                 ⏳ Bridge in progress.
               </div>
             )}
@@ -668,3 +661,10 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
 };
 
 export default TransactionCard;
+
+
+
+
+
+
+

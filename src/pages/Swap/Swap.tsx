@@ -423,10 +423,10 @@ const Swap: React.FC = () => {
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      className="min-h-screen bg-[#1a1c2c] text-white flex flex-col items-center justify-start px-2 sm:px-4 font-['Red_Hat_Display']"
+      className="flex flex-col items-center justify-start bg-bg-page px-4 pt-5 pb-8 text-text sm:px-6"
     >
-      <motion.div className="w-full max-w-3xl pb-10 sm:pb-0 flex flex-col min-w-[320px] sm:min-w-[900px] mt-4 sm:mt-10 overflow-y-auto">
-        <div className="flex flex-col bg-[#2b2e4a] rounded-2xl p-3 sm:p-6 w-full">
+      <motion.div className="mt-6 flex w-full max-w-4xl flex-col gap-6">
+        <div className="flex w-full flex-col gap-4 rounded-2xl border border-border bg-bg-surface p-4 shadow-floating sm:p-6">
           <SwapHeader
             slippage={slippage}
             onSlippageClick={() => setIsSlippagePopupOpen(true)}
@@ -461,11 +461,11 @@ const Swap: React.FC = () => {
           {quote && fromToken && toToken && fromAmount && <QuotePanel />}
           
           {showBetterRouterMessage && (
-            <div className="mt-3 p-3 bg-blue-900/20 border border-blue-500/30 rounded-lg">
-              <div className="flex items-center justify-center">
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-400 mr-2"></div>
-                <span className="text-blue-300 text-sm">
-                  For a better router, please wait a moment...
+            <div className="rounded-lg border border-primary bg-primary-050/60 p-3">
+              <div className="flex items-center justify-center gap-2 text-sm text-primary">
+                <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent"></div>
+                <span>
+                  For a better rate, please wait a moment...
                 </span>
               </div>
             </div>

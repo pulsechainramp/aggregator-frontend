@@ -18,7 +18,7 @@ export default function Privacy() {
         [&_h1]:text-slate-50 [&_h1]:mb-6
         [&_h2]:text-slate-100 [&_h2]:mt-8 [&_h2]:mb-2
         [&_ul]:list-disc [&_ul]:pl-6
-        [&_a]:underline [&_a]:text-emerald-300 hover:[&_a]:text-emerald-200
+        [&_a]:underline [&_a]:text-success hover:[&_a]:text-emerald-200
       ">
       <h1>Privacy Policy</h1>
       <p><strong>Last updated:</strong> 04 October 2025</p>

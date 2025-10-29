@@ -276,26 +276,26 @@ const AddToWalletButton: React.FC<AddToWalletButtonProps> = ({
   const getVariantClasses = () => {
     switch (variant) {
       case "primary":
-        return "bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white shadow-lg shadow-emerald-500/25 hover:shadow-emerald-500/40";
+        return "border border-primary bg-primary text-white hover:border-primary-600 hover:bg-primary-600 shadow-sm";
       case "secondary":
-        return "bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white shadow-lg shadow-blue-500/25 hover:shadow-blue-500/40";
+        return "border border-primary bg-primary-050 text-primary hover:border-primary-600 hover:bg-primary-050/80";
       case "outline":
-        return "bg-gradient-to-r from-[#3a3f5a] to-[#2b2e4a] text-gray-300 hover:from-[#4a4f6a] hover:to-[#3a3f5a] hover:text-white border border-[#4a4f6a] hover:border-[#5a5f7a]";
+        return "border border-border bg-bg-surface text-text hover:border-primary hover:text-primary";
       default:
-        return "bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white shadow-lg shadow-emerald-500/25 hover:shadow-emerald-500/40";
+        return "border border-primary bg-primary text-white hover:border-primary-600 hover:bg-primary-600 shadow-sm";
     }
   };
 
   const getSizeClasses = () => {
     switch (size) {
       case "sm":
-        return "w-auto h-auto p-2";
+        return "px-3 py-2 text-sm";
       case "md":
-        return "w-auto h-auto p-2.5";
+        return "px-4 py-2 text-sm";
       case "lg":
-        return "w-auto h-auto p-3";
+        return "px-5 py-3 text-base";
       default:
-        return "w-auto h-auto p-2";
+        return "px-4 py-2 text-sm";
     }
   };
 
@@ -317,15 +317,10 @@ const AddToWalletButton: React.FC<AddToWalletButtonProps> = ({
             ? `Switch to ${getRequiredNetworkName()} & Add ${token.symbol}`
             : `Add ${token.symbol} to wallet`
         }
-        className={`
-          ${getVariantClasses()}
-          ${getSizeClasses()}
-          rounded-lg font-medium transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center
-          ${className}
-        `}
+        className={`touch-target inline-flex items-center justify-center rounded-lg font-semibold transition-all duration-200 disabled:cursor-not-allowed disabled:opacity-60 ${getVariantClasses()} ${getSizeClasses()} ${className}`}
       >
         {isAdding || isSwitchingNetwork ? (
-          <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+          <div className="h-5 w-5 rounded-full border-2 border-white border-t-transparent animate-spin"></div>
         ) : (
           <ProviderIcon 
             provider={(wallet as any)?.provider?.provider ?? (wallet as any)?.provider ?? null} 
@@ -342,9 +337,9 @@ const AddToWalletButton: React.FC<AddToWalletButtonProps> = ({
           initial={{ opacity: 0, y: -10, scale: 0.95 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
           exit={{ opacity: 0, y: -10, scale: 0.95 }}
-          className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-green-500 text-white text-sm rounded-lg shadow-lg z-50 whitespace-nowrap"
+          className="absolute bottom-full left-1/2 z-50 mb-2 -translate-x-1/2 transform whitespace-nowrap rounded-lg border border-success bg-success/10 px-3 py-2 text-sm font-semibold text-success shadow-sm"
         >
-          ✓ {token.symbol} added to wallet!
+          Success: {token.symbol} added to wallet!
         </motion.div>
       )}
 
@@ -354,7 +349,7 @@ const AddToWalletButton: React.FC<AddToWalletButtonProps> = ({
           initial={{ opacity: 0, y: -10, scale: 0.95 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
           exit={{ opacity: 0, y: -10, scale: 0.95 }}
-          className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-red-500 text-white text-sm rounded-lg shadow-lg z-50 whitespace-nowrap max-w-xs"
+          className="absolute bottom-full left-1/2 z-50 mb-2 max-w-xs -translate-x-1/2 transform whitespace-nowrap rounded-lg border border-danger bg-danger/10 px-3 py-2 text-sm font-semibold text-danger shadow-sm"
         >
           {!isOnCorrectNetwork()
             ? `Failed to switch to ${getRequiredNetworkName()}. Please try again.`

@@ -165,13 +165,12 @@ const SwapButton: React.FC<SwapButtonProps> = ({
             onSwap();
           }
         }}
-        className={`w-full mt-6 py-4 rounded-xl font-semibold text-lg transition-all duration-300 ${
+        className={`mt-6 w-full rounded-xl border py-4 text-lg font-semibold transition-colors ${
           isDisabled()
-            ? "bg-gray-100/10 border-2 border-gray-400/30 text-gray-300 cursor-not-allowed hover:bg-gray-100/15"
+            ? "cursor-not-allowed border-border bg-bg-page text-text-muted"
             : isConnect || (account && !isOnPulseChain())
-            // 🟣 Match Bridge "Connect Wallet" look: purple/pink gradient
-            ? "bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-400 hover:to-purple-400 text-white shadow-lg shadow-blue-500/25 hover:shadow-blue-500/40"
-            : "bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-white shadow-lg shadow-emerald-500/25 hover:shadow-emerald-500/40"
+            ? "border-primary bg-primary-050 text-primary hover:border-primary-600 hover:bg-primary-050/80"
+            : "bg-primary text-white hover:bg-primary-600"
         }`}
       >
         {getButtonText()}

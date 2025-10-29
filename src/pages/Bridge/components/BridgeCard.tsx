@@ -106,10 +106,10 @@ const BridgeCard: React.FC<BridgeCardProps> = ({
     return network === "ETH" ? "Ethereum" : "PulseChain";
   };
 
-  const getNetworkColor = (network: "ETH" | "PLS") => {
+  const getNetworkBadgeClass = (network: "ETH" | "PLS") => {
     return network === "ETH"
-      ? "from-blue-500 to-blue-600"
-      : "from-emerald-500 to-emerald-600";
+      ? "bg-primary-050 text-primary"
+      : "bg-success/10 text-success";
   };
 
   const getNetworkLogo = (network: "ETH" | "PLS"): string | undefined => {
@@ -409,49 +409,44 @@ const BridgeCard: React.FC<BridgeCardProps> = ({
     return "Bridge Tokens";
   };
 
+  const isConnectState = !account;
+  const needsNetworkSwitch = Boolean(
+    account && selectedTokenData && !isOnCorrectNetwork()
+  );
+  const disabled = isButtonDisabled();
+
+  const buttonClasses = disabled
+    ? "cursor-not-allowed border-2 border-gray-400/30 bg-gray-100/10 text-text-muted hover:bg-gray-100/15"
+    : needsNetworkSwitch || isConnectState
+    ? "border border-primary bg-primary-050 text-primary hover:border-primary hover:bg-primary-050/80"
+    : "border border-transparent bg-primary text-white hover:bg-primary-600";
+
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5 }}
-      className="bg-gradient-to-br from-[#1e2030] to-[#2b2e4a] rounded-2xl p-6 sm:p-8 flex flex-col gap-6 relative"
-    >
+    <div className="relative flex flex-col gap-6 rounded-2xl border border-border bg-bg-surface p-6 shadow-floating sm:p-8">
       {error && (
-        <motion.div
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="bg-red-500/20 border border-red-500/50 rounded-lg p-3 text-red-300 text-sm"
-        >
+        <div className="rounded-lg border border-danger bg-danger/10 p-3 text-sm text-danger">
           {error}
-        </motion.div>
+        </div>
       )}
 
       {bridgeTransactionLoading && (
-        <motion.div
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="bg-yellow-500/20 border border-yellow-500/50 rounded-lg p-3 text-yellow-300 text-sm"
-        >
+        <div className="rounded-lg border border-warning bg-warning/10 p-3 text-sm text-warning">
           <div className="flex items-center justify-between">
             <span>Submitting bridge transaction to API...</span>
-            <div className="w-4 h-4 border-2 border-yellow-400 border-t-transparent rounded-full animate-spin"></div>
+            <div className="h-4 w-4 rounded-full border-2 border-warning border-t-transparent animate-spin"></div>
           </div>
-        </motion.div>
+        </div>
       )}
 
       {bridgeTransactionError && (
-        <motion.div
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="bg-red-500/20 border border-red-500/50 rounded-lg p-3 text-red-300 text-sm"
-        >
+        <div className="rounded-lg border border-danger bg-danger/10 p-3 text-sm text-danger">
           <div className="flex items-center justify-between">
             <span>Failed to submit bridge transaction to API</span>
           </div>
-          <div className="mt-1 text-xs text-red-400/70">
+          <div className="mt-1 text-xs text-danger/80">
             Error: {bridgeTransactionError}
           </div>
-        </motion.div>
+        </div>
       )}
 
       {/* Bridge Transaction Progress */}
@@ -463,33 +458,29 @@ const BridgeCard: React.FC<BridgeCardProps> = ({
       )}
 
       {pollingError && (
-        <motion.div
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="bg-red-500/20 border border-red-500/50 rounded-lg p-3 text-red-300 text-sm"
-        >
+        <div className="rounded-lg border border-danger bg-danger/10 p-3 text-sm text-danger">
           <div className="flex items-center justify-between">
             <span>Failed to poll bridge transaction status</span>
           </div>
-          <div className="mt-1 text-xs text-red-400/70">
+          <div className="mt-1 text-xs text-danger/80">
             Error: {pollingError}
           </div>
-        </motion.div>
+        </div>
       )}
 
       <div className="space-y-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div
-              className={`w-8 h-8 rounded-full bg-gradient-to-r ${getNetworkColor(
+              className={`flex h-8 w-8 items-center justify-center rounded-full border border-border ${getNetworkBadgeClass(
                 fromNetwork
-              )} flex items-center justify-center overflow-hidden`}
+              )} overflow-hidden`}
             >
               {getNetworkLogo(fromNetwork) ? (
                 <img
                   src={getNetworkLogo(fromNetwork)}
                   alt={getNetworkName(fromNetwork)}
-                  className="w-5 h-5 rounded-full object-cover"
+                  className="h-5 w-5 rounded-full object-cover"
                   onError={(e) => {
                     const target = e.target as HTMLImageElement;
                     target.style.display = "none";
@@ -498,7 +489,7 @@ const BridgeCard: React.FC<BridgeCardProps> = ({
                 />
               ) : null}
               <span
-                className={`text-white font-bold text-sm ${
+                className={`text-sm font-semibold ${
                   getNetworkLogo(fromNetwork) ? "hidden" : ""
                 }`}
               >
@@ -506,10 +497,10 @@ const BridgeCard: React.FC<BridgeCardProps> = ({
               </span>
             </div>
             <div>
-              <h3 className="text-white font-semibold text-lg">
+              <h3 className="text-lg font-semibold text-text">
                 From {getNetworkName(fromNetwork)}
               </h3>
-              <p className="text-gray-400 text-sm">Source network</p>
+              <p className="text-sm text-text-muted">Source network</p>
             </div>
           </div>
         </div>
@@ -579,16 +570,16 @@ const BridgeCard: React.FC<BridgeCardProps> = ({
         </div>
 
         <div className="flex items-center justify-between text-sm">
-          <span className="text-gray-400">Balance:</span>
-          <div className="flex items-center space-x-2">
-            <span className="text-white font-medium">
+          <span className="text-text-subtle">Balance:</span>
+          <div className="flex items-center gap-2">
+            <span className="font-semibold text-text">
               {balanceLoading ? (
-                <div className="flex items-center space-x-2">
-                  <div className="w-3 h-3 border border-gray-400 border-t-transparent rounded-full animate-spin"></div>
-                  <span>Loading...</span>
+                <div className="flex items-center gap-2">
+                  <div className="h-3 w-3 rounded-full border border-border border-t-transparent animate-spin"></div>
+                  <span className="text-text-subtle">Loading...</span>
                 </div>
               ) : balanceError ? (
-                <span className="text-red-400">Error</span>
+                <span className="text-danger">Error</span>
               ) : (
                 `${formatBalance(balance)} ${selectedToken}`
               )}
@@ -599,14 +590,14 @@ const BridgeCard: React.FC<BridgeCardProps> = ({
 
       <motion.button
         whileHover={{ scale: 1.01 }}
-        whileTap={{ scale: 0.99 }}
-        onClick={handleNetworkSwap}
-        disabled={true}
-        className="cursor-not-allowed -full flex items-center justify-center py-4 bg-gradient-to-r from-[#3a3f5a] to-[#2b2e4a] hover:from-[#4a4f6a] hover:to-[#3a3f5a] rounded-xl border border-[#4a4f6a] hover:border-[#5a5f7a] transition-all duration-300 shadow-lg hidden"
-      >
+      whileTap={{ scale: 0.99 }}
+      onClick={handleNetworkSwap}
+      disabled={true}
+      className="hidden cursor-not-allowed items-center justify-center rounded-xl border border-border bg-bg-page px-4 py-4 text-sm font-semibold text-text"
+    >
         <div className="flex items-center gap-3">
           <svg
-            className="w-5 h-5 text-gray-300"
+            className="w-5 h-5 text-text-muted"
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"
@@ -618,7 +609,7 @@ const BridgeCard: React.FC<BridgeCardProps> = ({
               d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4"
             />
           </svg>
-          <span className="text-gray-300 font-medium">
+          <span className="text-text-muted font-medium">
             Swap Networks & Tokens
           </span>
         </div>
@@ -628,15 +619,15 @@ const BridgeCard: React.FC<BridgeCardProps> = ({
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div
-              className={`w-8 h-8 rounded-full bg-gradient-to-r ${getNetworkColor(
+              className={`flex h-8 w-8 items-center justify-center rounded-full border border-border ${getNetworkBadgeClass(
                 toNetwork
-              )} flex items-center justify-center overflow-hidden`}
+              )} overflow-hidden`}
             >
               {getNetworkLogo(toNetwork) ? (
                 <img
                   src={getNetworkLogo(toNetwork)}
                   alt={getNetworkName(toNetwork)}
-                  className="w-5 h-5 rounded-full object-cover"
+                  className="h-5 w-5 rounded-full object-cover"
                   onError={(e) => {
                     const target = e.target as HTMLImageElement;
                     target.style.display = "none";
@@ -645,7 +636,7 @@ const BridgeCard: React.FC<BridgeCardProps> = ({
                 />
               ) : null}
               <span
-                className={`text-white font-bold text-sm ${
+                className={`text-sm font-semibold ${
                   getNetworkLogo(toNetwork) ? "hidden" : ""
                 }`}
               >
@@ -653,23 +644,23 @@ const BridgeCard: React.FC<BridgeCardProps> = ({
               </span>
             </div>
             <div>
-              <h3 className="text-white font-semibold text-lg">
+              <h3 className="text-lg font-semibold text-text">
                 To {getNetworkName(toNetwork)}
               </h3>
-              <p className="text-gray-400 text-sm">Destination network</p>
+              <p className="text-sm text-text-muted">Destination network</p>
             </div>
           </div>
         </div>
 
-        <div className="bg-gradient-to-br from-[#2b2e4a] to-[#1e2030] rounded-xl p-4 border border-[#3a3f5a]">
+        <div className="rounded-xl border border-border bg-bg-surface p-4 shadow-sm">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
-              <div className="w-10 h-10 bg-gradient-to-br from-emerald-400 to-teal-500 rounded-full flex items-center justify-center overflow-hidden">
+              <div className="flex h-10 w-10 items-center justify-center rounded-full border border-border bg-primary-050 text-primary">
                 {correspondingTokenData?.logoURI ? (
                   <img
                     src={correspondingTokenData.logoURI}
                     alt={correspondingToken}
-                    className="w-6 h-6 rounded-full object-cover"
+                    className="h-6 w-6 rounded-full object-cover"
                     onError={(e) => {
                       const target = e.target as HTMLImageElement;
                       target.style.display = "none";
@@ -678,7 +669,7 @@ const BridgeCard: React.FC<BridgeCardProps> = ({
                   />
                 ) : null}
                 <span
-                  className={`text-white font-bold text-sm ${
+                  className={`text-sm font-semibold ${
                     correspondingTokenData?.logoURI ? "hidden" : ""
                   }`}
                 >
@@ -686,10 +677,10 @@ const BridgeCard: React.FC<BridgeCardProps> = ({
                 </span>
               </div>
               <div>
-                <div className="text-white font-semibold text-base">
+                <div className="text-base font-semibold text-text">
                   {correspondingToken}
                 </div>
-                <div className="text-gray-400 text-sm">
+                <div className="text-sm text-text-muted">
                   {getNetworkName(toNetwork)}
                 </div>
               </div>
@@ -698,15 +689,15 @@ const BridgeCard: React.FC<BridgeCardProps> = ({
             <div className="text-right">
               {estimateLoading ? (
                 <div className="flex items-center justify-center space-x-2">
-                  <div className="w-4 h-4 border-2 border-emerald-400 border-t-transparent rounded-full animate-spin"></div>
-                  <span className="text-emerald-400 text-sm">
+                  <div className="h-4 w-4 rounded-full border-2 border-primary border-t-transparent animate-spin"></div>
+                  <span className="text-sm text-text-muted">
                     Calculating...
                   </span>
                 </div>
               ) : estimate ? (
                 <div className="text-right">
                   <div className="flex items-center justify-end space-x-2">
-                    <span className="text-white font-semibold text-lg">
+                    <span className="text-lg font-semibold text-text">
                       {estimate.estimatedAmount
                         ? formatAmount(
                             estimate.estimatedAmount,
@@ -730,11 +721,11 @@ const BridgeCard: React.FC<BridgeCardProps> = ({
                               console.error("Failed to copy address:", error);
                             }
                           }}
-                          className="px-2 py-2 text-xs bg-gradient-to-r from-[#3a3f5a] to-[#2b2e4a] text-gray-300 rounded-lg hover:from-[#4a4f6a] hover:to-[#3a3f5a] hover:text-white transition-all duration-200 font-medium border border-[#4a4f6a] hover:border-[#5a5f7a] flex-shrink-0"
+                          className="flex-shrink-0 rounded-lg border border-border bg-bg-page px-3 py-2 text-xs font-semibold text-text transition-colors hover:border-primary hover:text-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
                           title="Copy token address"
                         >
                           <svg
-                            className="w-4 h-4"
+                            className="h-4 w-4"
                             fill="none"
                             stroke="currentColor"
                             viewBox="0 0 24 24"
@@ -761,23 +752,23 @@ const BridgeCard: React.FC<BridgeCardProps> = ({
                       </>
                     )}
                   </div>
-                  <div className="text-gray-400 text-sm">
-                    Fee: {" "}
+                  <div className="text-sm text-text-muted">
+                    Fee:&nbsp;
                     {estimate.fee
                       ? formatAmount(estimate.fee, selectedTokenData?.decimals)
                       : "0.00"}{" "}
                     ({estimate.feePercentage || 0}%)
                   </div>
-                  <div className="text-gray-400 text-sm">≈ $0.00</div>
+                  <div className="text-sm text-text-muted">Approx. $0.00</div>
                 </div>
               ) : estimateError ? (
-                <div className="text-red-400 text-sm">
+                <div className="text-danger text-sm">
                   Error loading estimate
                 </div>
               ) : (
                 <div className="text-right">
                   <div className="flex items-center justify-end space-x-2">
-                    <span className="text-white font-semibold text-lg">
+                    <span className="text-lg font-semibold text-text">
                       {amount || "0.00"}
                     </span>
 
@@ -796,7 +787,7 @@ const BridgeCard: React.FC<BridgeCardProps> = ({
                               console.error("Failed to copy address:", error);
                             }
                           }}
-                          className="px-2 py-2 text-xs bg-gradient-to-r from-[#3a3f5a] to-[#2b2e4a] text-gray-300 rounded-lg hover:from-[#4a4f6a] hover:to-[#3a3f5a] hover:text-white transition-all duration-200 font-medium border border-[#4a4f6a] hover:border-[#5a5f7a] flex-shrink-0"
+                          className="flex-shrink-0 rounded-lg border border-border bg-bg-page px-3 py-2 text-xs font-semibold text-text transition-colors hover:border-primary hover:text-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
                           title="Copy token address"
                         >
                           <svg
@@ -827,7 +818,7 @@ const BridgeCard: React.FC<BridgeCardProps> = ({
                       </>
                     )}
                   </div>
-                  <div className="text-gray-400 text-sm">≈ $0.00</div>
+                  <div className="text-sm text-text-muted">≈ $0.00</div>
                 </div>
               )}
             </div>
@@ -839,14 +830,8 @@ const BridgeCard: React.FC<BridgeCardProps> = ({
         whileHover={{ scale: 1.01 }}
         whileTap={{ scale: 0.99 }}
         onClick={handleButtonClick}
-        disabled={isButtonDisabled()}
-        className={`w-full mt-6 py-4 rounded-xl font-semibold text-lg transition-all duration-300 ${
-          isButtonDisabled()
-            ? "bg-gray-100/10 border-2 border-gray-400/30 text-gray-300 cursor-not-allowed hover:bg-gray-100/15"
-            : selectedTokenData && !isOnCorrectNetwork()
-            ? "bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white shadow-lg shadow-blue-500/25 hover:shadow-blue-500/40"
-            : "bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white shadow-lg shadow-emerald-500/25 hover:shadow-emerald-500/40"
-        }`}
+        disabled={disabled}
+        className={`mt-6 w-full rounded-xl py-4 text-lg font-semibold transition-all duration-300 shadow-sm ${buttonClasses}`}
       >
         {isBridging || isApproving ? (
           <div className="flex items-center justify-center space-x-3">
@@ -863,7 +848,7 @@ const BridgeCard: React.FC<BridgeCardProps> = ({
           getButtonText()
         )}
       </motion.button>
-    </motion.div>
+    </div>
   );
 };
 

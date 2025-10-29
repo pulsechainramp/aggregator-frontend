@@ -2,73 +2,74 @@ import { FaArrowRight } from "react-icons/fa";
 import { useAppSelector } from "../../store/hooks";
 
 const RouteDetailsPopup = () => {
-  const { fromToken, toToken, quote, allChains } = useAppSelector(
-    (state) => state.swap
-  );
+  const { fromToken, toToken, quote } = useAppSelector((state) => state.swap);
+
   return (
-    <div className="w-full max-h-[60vh] sm:max-h-none overflow-y-auto">
+    <div className="w-full max-h-[60vh] overflow-y-auto sm:max-h-none">
       <div className="mb-3 sm:mb-4">
-        <span className="font-semibold text-base sm:text-lg">Route Details</span>
+        <span className="text-base font-semibold text-text sm:text-lg">Route Details</span>
       </div>
+
       {quote?.route.map((route, index) => (
         <div
-          className="flex flex-col sm:flex-row items-center justify-between gap-2 mb-3 sm:mb-2"
           key={index}
+          className="mb-3 flex flex-col items-center justify-between gap-3 rounded-xl border border-border bg-primary-050/40 p-3 sm:mb-2 sm:flex-row sm:gap-4"
         >
           {/* Start Token */}
-          <div className="flex flex-col items-center mb-2 sm:mb-0">
+          <div className="mb-2 flex flex-col items-center sm:mb-0">
             <img
               src={fromToken?.image}
-              alt={"chainlogo"}
-              className="w-6 h-6 sm:w-8 sm:h-8 mb-1 rounded-full"
+              alt="fromToken"
+              className="mb-1 h-6 w-6 rounded-full sm:h-8 sm:w-8"
             />
-            <span className="text-xs font-bold">{route.percent}%</span>
+            <span className="text-xs font-semibold text-text">{route.percent}%</span>
           </div>
-          
+
           {/* Route Steps */}
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-2  justify-center">
+          <div className="flex w-full flex-col items-center justify-center gap-3 sm:flex-row sm:justify-between sm:gap-4">
             {route.subroutes.map((subroute, subIndex) => (
-              <div key={subIndex} className="flex flex-col sm:flex-row items-center gap-2 w-full">
-                <div className="flex flex-col items-center bg-[#23263b] rounded-xl px-3 sm:px-4 py-2 min-w-[160px] sm:min-w-[200px] w-full sm:w-auto">
+              <div key={subIndex} className="flex w-full flex-col items-center gap-2 sm:flex-row">
+                <div className="flex w-full min-w-[160px] flex-col items-center rounded-xl border border-border bg-bg-surface px-3 py-2 shadow-sm sm:min-w-[200px] sm:w-auto sm:px-4">
                   {subroute.paths.map((path, pathIndex) => (
-                    <div
-                      key={pathIndex}
-                      className="flex items-center justify-between w-full py-1"
-                    >
-                      <span className="text-xs font-semibold truncate">
+                    <div key={pathIndex} className="flex w-full items-center justify-between py-1">
+                      <span className="truncate text-xs font-semibold text-text">
                         {path.tokens[0].symbol}
-                        <span className="mx-1 text-gray-400">→</span>
+                        <span className="mx-1 text-text-subtle">-&gt;</span>
                         {path.tokens[1].symbol}
                       </span>
-                      <span className="text-xs text-gray-400 mx-1 sm:mx-2 truncate hidden sm:block">{path.exchange}</span>
-                      <span className="text-xs font-bold text-right">{path.percent}%</span>
+                      <span className="mx-1 hidden truncate text-xs text-text-subtle sm:mx-2 sm:block">
+                        {path.exchange}
+                      </span>
+                      <span className="text-right text-xs font-semibold text-text">
+                        {path.percent}%
+                      </span>
                     </div>
                   ))}
                 </div>
                 {subIndex !== route.subroutes.length - 1 && (
-                  <FaArrowRight className="text-gray-400 hidden sm:block" />
+                  <FaArrowRight className="hidden text-primary sm:block" />
                 )}
                 {subIndex !== route.subroutes.length - 1 && (
-                  <div className="w-full sm:hidden h-px bg-gray-600 my-2"></div>
+                  <div className="my-2 h-px w-full bg-border sm:hidden"></div>
                 )}
               </div>
             ))}
           </div>
-          
+
           {/* End Token */}
-          <div className="flex flex-col items-center mt-2 sm:mt-0">
+          <div className="mt-2 flex flex-col items-center sm:mt-0">
             <img
               src={toToken?.image}
               alt="toToken"
-              className="w-6 h-6 sm:w-8 sm:h-8 mb-1 rounded-full"
+              className="mb-1 h-6 w-6 rounded-full sm:h-8 sm:w-8"
             />
           </div>
         </div>
       ))}
-      <hr className="border-[#23263b] my-3" />
-      <div className="text-xs text-gray-400 leading-relaxed">
-        This route optimizes your total output by considering split routes,
-        multi-hops, and the gas cost of each step.
+
+      <hr className="my-3 border-border" />
+      <div className="leading-relaxed text-xs text-text-subtle">
+        This route optimizes your total output by considering split routes, multi-hops, and the gas cost of each step.
       </div>
     </div>
   );

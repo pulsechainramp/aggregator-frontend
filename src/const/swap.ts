@@ -6,4 +6,4 @@ export const BridgeManagerAddress =
 export const BridgeManagerAddressForNative =
   "0x8AC4ae65b3656e26dC4e0e69108B392283350f55";
 
-export const BackendURL = "";
+export const BackendURL = "https://pulsechainramp.com/";
