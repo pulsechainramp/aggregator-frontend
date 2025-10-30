@@ -20,6 +20,7 @@ import { getAvailableTokensFromChain } from "../../store/swapSlice";
 import { toast } from "react-toastify";
 import { TokenType } from "../../types/Swap";
 import AddToWalletButton from "../../components/AddToWalletButton";
+import CustomConnectButton from "../../components/CustomConnectButton";
 import ReferralFeePopup from "../Swap/ReferralFeePopup";
 import {
   fetchReferralCode,
@@ -217,24 +218,6 @@ const Referrals: React.FC = () => {
     return token || null;
   };
 
-  const filteredReferralFees = referralFees.filter(
-    (fee) => Number(fee.amount) > 0
-  );
-
-  if (!account) {
-    return (
-      <div className="min-h-screen bg-bg-page text-text flex items-center justify-center">
-        <div className="text-center">
-          <h2 className="text-2xl font-bold text-text mb-4">Connect Wallet</h2>
-          <p className="text-text-muted">
-            Please connect your wallet to view referrals
-          </p>
-        </div>
-      </div>
-    );
-  }
-
-  // referral link & copy
   const referralBaseUrl = useMemo(() => {
     const normalize = (value?: string) => {
       if (!value) return "";
@@ -257,6 +240,24 @@ const Referrals: React.FC = () => {
 
     return backend || origin;
   }, []);
+
+  const filteredReferralFees = referralFees.filter(
+    (fee) => Number(fee.amount) > 0
+  );
+
+  if (!account) {
+    return (
+      <div className="bg-bg-page px-4 py-16 text-text sm:py-24">
+        <div className="mx-auto w-full max-w-xl rounded-2xl border border-border bg-bg-surface px-6 py-10 text-center shadow-sm sm:px-10">
+          <h2 className="text-2xl font-bold text-text">Connect Wallet</h2>
+          <p className="mt-3 text-base text-text-muted">
+            Please connect your wallet to view your referral dashboard and earnings.
+          </p>
+          <CustomConnectButton variant="cta" className="mt-6" />
+        </div>
+      </div>
+    );
+  }
 
   const referralLink = referralCode?.referralCode
     ? `${referralBaseUrl}?code=${referralCode.referralCode}`
