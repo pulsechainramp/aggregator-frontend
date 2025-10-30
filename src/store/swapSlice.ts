@@ -2,7 +2,7 @@ import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
 import { QuoteType, TokenType } from "../types/Swap";
 import { ethers } from "ethers";
 import { isSelfReferral, getStoredReferralCode } from "../utils/referralUtils";
-import { ZeroAddress, SwapManagerAddress, BackendURL } from "../const/swap";
+import { ZeroAddress, AffiliateRouterAddress, BackendURL } from "../const/swap";
 import {
   approveToken,
   executeSwap,
@@ -151,7 +151,7 @@ export const checkTokenAllowance = createAsyncThunk(
     const isApproved = await needsApproval(
       tokenAddress,
       userAddress,
-      SwapManagerAddress,
+      AffiliateRouterAddress,
       amount,
       decimals
     );
@@ -182,7 +182,7 @@ export const approveTokenAction = createAsyncThunk(
 
     const transaction = await approveToken({
       tokenAddress,
-      spenderAddress: SwapManagerAddress,
+      spenderAddress: AffiliateRouterAddress,
       account,
       amount,
       decimals,

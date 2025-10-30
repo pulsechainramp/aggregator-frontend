@@ -4,7 +4,7 @@ import SwapManagerABI from "../abis/SwapManager.json";
 import ERC20ABI from "../abis/ERC20.json";
 import { QuoteType, TokenType } from "../types/Swap";
 import { PulseChainConfig } from "../config/chainConfig";
-import { SwapManagerAddress } from "../const/swap";
+import { AffiliateRouterAddress } from "../const/swap";
 import { BigNumberish, ethers, ZeroAddress } from "ethers";
 
 export interface ApprovalParams {
@@ -72,7 +72,7 @@ export const initializeSwapManager = () => {
     const web3 = getProvider();
     const swapManagerContract = new web3.eth.Contract(
       SwapManagerABI as unknown as AbiItem[],
-      SwapManagerAddress
+      AffiliateRouterAddress
     );
 
     return {
@@ -232,7 +232,7 @@ export const executeSwap = async (params: SwapParams): Promise<any> => {
     const web3 = getProvider(); // Use wallet provider for transactions
     const swapManagerContract = new web3.eth.Contract(
       SwapManagerABI as unknown as AbiItem[],
-      SwapManagerAddress
+      AffiliateRouterAddress
     );
 
     // Use referrer address from Redux state, fallback to zero address if not provided
@@ -276,7 +276,7 @@ export const updateFeeBasisPoints = async (
     const web3 = getProvider(); // Use wallet provider for transactions
     const swapManagerContract = new web3.eth.Contract(
       SwapManagerABI as unknown as AbiItem[],
-      SwapManagerAddress
+      AffiliateRouterAddress
     );
     console.log(newFeeBasisPoints, account);
 
@@ -304,7 +304,7 @@ export const getFeeBasisPoints = async (
     const web3 = getWeb3(); // Use public RPC for read operations
     const swapManagerContract = new web3.eth.Contract(
       SwapManagerABI as unknown as AbiItem[],
-      SwapManagerAddress
+      AffiliateRouterAddress
     );
 
     const feeBasisPoints: string = await swapManagerContract.methods
@@ -329,7 +329,7 @@ export const getReferrerEarnings = async (
     const web3 = getWeb3(); // Use public RPC for read operations
     const swapManagerContract = new web3.eth.Contract(
       SwapManagerABI as unknown as AbiItem[],
-      SwapManagerAddress
+      AffiliateRouterAddress
     );
 
     const earnings: string[] = await swapManagerContract.methods
@@ -380,7 +380,7 @@ export const withdrawReferralEarnings = async (
     const web3 = getProvider(); // Use wallet provider for transactions
     const swapManagerContract = new web3.eth.Contract(
       SwapManagerABI as unknown as AbiItem[],
-      SwapManagerAddress
+      AffiliateRouterAddress
     );
 
     // Execute referral earnings withdrawal
