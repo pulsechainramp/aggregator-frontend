@@ -36,7 +36,7 @@ const NAV_LINKS = [
   { path: "/swap", label: "Swap" },
   //{ path: "/activity", label: "Activity" },
   { path: "/docs", label: "About" },
-  //{ path: "/referrals", label: "Referrals" },
+  { path: "/referrals", label: "Referrals" },
 ];
 
 const MOBILE_LINKS = NAV_LINKS.slice(0, 3);

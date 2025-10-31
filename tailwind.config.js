@@ -71,9 +71,9 @@ module.exports = {
       },
       screens: {
         logo: "410px",
-        nav: "970px",
+        nav: "1020px",
         header: "1164px",
-        theme: "1070px",
+        theme: "1173px",
         network: "1250px",
       },
     },

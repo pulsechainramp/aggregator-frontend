@@ -30,6 +30,7 @@
   --radius-xl: 20px;
   --radius-2xl: 24px;
   --radius-full: 9999px;
+  --onboard-connect-content-height: 480px;
 }
 
 html[data-theme="dark"] {
@@ -60,6 +61,7 @@ html[data-theme="dark"] {
   --radius-xl: 20px;
   --radius-2xl: 24px;
   --radius-full: 9999px;
+  --onboard-connect-content-height: 480px;
 }
 
 @layer base {
@@ -187,3 +189,4 @@ html[data-theme="dark"] {
   scrollbar-width: thin;
   scrollbar-color: var(--border-strong) transparent;
 }
+
