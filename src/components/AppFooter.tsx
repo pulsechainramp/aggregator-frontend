@@ -1,6 +1,30 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import ContactUsModal from "./ContactUsModal";
+import { toast } from "react-toastify";
+
+const DONATION_ADDRESS = "0x137e0A3205023f78535Ed303DAED89FCde8d87c2";
+
+async function copyDonationAddress() {
+  try {
+    if ("clipboard" in navigator && navigator.clipboard?.writeText) {
+      await navigator.clipboard.writeText(DONATION_ADDRESS);
+    } else {
+      const textarea = document.createElement("textarea");
+      textarea.value = DONATION_ADDRESS;
+      textarea.style.position = "fixed";
+      textarea.style.opacity = "0";
+      document.body.appendChild(textarea);
+      textarea.focus();
+      textarea.select();
+      document.execCommand("copy");
+      document.body.removeChild(textarea);
+    }
+    toast.success("Donation address copied");
+  } catch (_error) {
+    toast.error("Could not copy donation address");
+  }
+}
 
 export default function AppFooter() {
   const [showContactModal, setShowContactModal] = useState(false);
@@ -21,6 +45,13 @@ export default function AppFooter() {
             >
               GitHub
             </a>
+            <button
+              onClick={copyDonationAddress}
+              type="button"
+              className="text-sm font-medium text-text-muted transition-colors hover:text-primary"
+            >
+              Donate
+            </button>
             <Link
               to="/docs"
               className="hidden text-sm font-medium text-text-muted transition-colors hover:text-primary"

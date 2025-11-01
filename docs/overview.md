@@ -27,6 +27,10 @@ No custodial account is required—you stay in control of your wallet at all tim
 - If a transaction fails due to slippage, adjust the tolerance slightly or try again when the market calms down.
 - On mobile, use the in-app browser offered by many wallets for the smoothest experience.
 
+## Support the Project
+- Source code: [github.com/pulsechainramp](https://github.com/pulsechainramp)
+- PulseChain donations: `0x137e0A3205023f78535Ed303DAED89FCde8d87c2`
+
 ## Need Assistance?
 - Message us via the Simplex widget in the footer, jump into Telegram at [t.me/PulseChainRamp](https://t.me/PulseChainRamp), or email [PulseChainRamp@gmail.com](mailto:PulseChainRamp@gmail.com).
 

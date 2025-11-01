@@ -21,6 +21,11 @@ http://localhost:5173
 
 ---
 
+## Support the Project
+- PulseChain donations: `0x137e0A3205023f78535Ed303DAED89FCde8d87c2`
+
+---
+
 ## What’s Inside (Features)
 - **Smart On-Ramp Discovery** — Geo-detect users and list compliant providers with deep links.
 - **Swap Aggregator** — Quote PulseChain DEX routes, auto-handle approvals, and execute via the AffiliateRouter smart contract.
