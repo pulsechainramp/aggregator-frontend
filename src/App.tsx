@@ -10,6 +10,7 @@ import NetworkWarning from "./components/NetworkWarning";
 import AppFooter from "./components/AppFooter";
 import { useTheme } from "./theme/ThemeProvider";
 import ScrollToTop from "./components/ScrollToTop";
+import AlphaNoticeBanner from "./components/AlphaNoticeBanner";
 
 function App() {
   const { theme } = useTheme();
@@ -19,11 +20,12 @@ function App() {
       <Router>
         <ScrollToTop />
         <div className="flex min-h-screen flex-col bg-bg-page text-text transition-colors duration-200">
+          <AlphaNoticeBanner />
           <Header />
-          
+
           {/* Network Warning - shows when on wrong network */}
           <NetworkWarning />
-          
+
           <main className="flex-1 pb-10">
             <AppRoutes />
           </main>
