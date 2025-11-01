@@ -13,6 +13,14 @@ export default function AppFooter() {
             &copy; {new Date().getFullYear()} PulseChainRamp. All rights reserved.
           </span>
           <nav className="flex flex-wrap items-center justify-center gap-x-4 gap-y-3 sm:gap-x-6">
+            <a
+              href="https://github.com/pulsechainramp"
+              target="_blank"
+              rel="noreferrer noopener"
+              className="text-sm font-medium text-text-muted transition-colors hover:text-primary"
+            >
+              GitHub
+            </a>
             <Link
               to="/docs"
               className="hidden text-sm font-medium text-text-muted transition-colors hover:text-primary"
