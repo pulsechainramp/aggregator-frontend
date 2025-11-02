@@ -12,6 +12,7 @@ import {
 } from "../contracts/SwapManager";
 import { config } from "process";
 import { store } from "./store";
+import { fetchPiteasQuoteClient } from "../utils/piteasQuote";
 
 interface SwapState {
   allChains: TokenType[];
@@ -378,7 +379,16 @@ export const getPulseXQuote = createAsyncThunk(
 );
 
 // Get piteams quote (slower but more accurate API)
-export const getPiteamsQuote = createAsyncThunk(
+export const getPiteamsQuote = createAsyncThunk<
+  QuoteType,
+  {
+    tokenInAddress: string;
+    tokenOutAddress: string;
+    amount: number;
+    allowedSlippage: number;
+    fromDecimal: number;
+  }
+>(
   "swap/getPiteamsQuote",
   async ({
     tokenInAddress,
@@ -386,26 +396,32 @@ export const getPiteamsQuote = createAsyncThunk(
     amount,
     allowedSlippage,
     fromDecimal,
-  }: {
+  }) => {
+    const amountInWei = ethers
+      .parseUnits(amount.toString(), fromDecimal)
+      .toString();
+
+    return fetchPiteasQuoteClient({
+      tokenInAddress,
+      tokenOutAddress,
+      amount: amountInWei,
+      allowedSlippage,
+    });
+  }
+);
+
+// Main quote function that handles dual API calls
+export const getQuote = createAsyncThunk<
+  QuoteType,
+  {
     tokenInAddress: string;
     tokenOutAddress: string;
     amount: number;
     allowedSlippage: number;
     fromDecimal: number;
-  }) => {
-    const response = await fetch(
-      `${BackendURL}quote?tokenInAddress=${tokenInAddress}&tokenOutAddress=${tokenOutAddress}&amount=${ethers.parseUnits(
-        amount.toString(),
-        fromDecimal
-      )}&allowedSlippage=${allowedSlippage}&fromDecimal=${fromDecimal}`
-    );
-    const data = await response.json();
-    return data;
-  }
-);
-
-// Main quote function that handles dual API calls
-export const getQuote = createAsyncThunk(
+  },
+  { state: { swap: SwapState } }
+>(
   "swap/getQuote",
   async ({
     tokenInAddress,
@@ -413,14 +429,8 @@ export const getQuote = createAsyncThunk(
     amount,
     allowedSlippage,
     fromDecimal,
-  }: {
-    tokenInAddress: string;
-    tokenOutAddress: string;
-    amount: number;
-    allowedSlippage: number;
-    fromDecimal: number;
   }, { dispatch, getState }) => {
-    const state = getState() as { swap: SwapState };
+    const state = getState();
     const lastPulseXParams = state.swap.lastPulseXParams;
     
     // Check if this is a new quote request (different parameters)
@@ -455,7 +465,7 @@ export const getQuote = createAsyncThunk(
         }));
 
         // If PulseX succeeds, return it immediately and start piteams in background
-        if (!pulseXResult.error) {
+        if (!(pulseXResult as any)?.error) {
           // Start piteams API call in background
           dispatch(getPiteamsQuote({
             tokenInAddress,
@@ -464,7 +474,7 @@ export const getQuote = createAsyncThunk(
             allowedSlippage,
             fromDecimal,
           })).then((piteamsResult) => {
-            if (piteamsResult.type === 'swap/getPiteamsQuote/fulfilled' && !piteamsResult.payload.error) {
+            if (piteamsResult.type === 'swap/getPiteamsQuote/fulfilled' && piteamsResult.payload) {
               // Compare output amounts and update if piteams is better
               const pulseXOutput = pulseXResult.outputAmount;
               const piteamsOutput = piteamsResult.payload.outputAmount;
@@ -497,10 +507,8 @@ export const getQuote = createAsyncThunk(
           fromDecimal,
         })).unwrap();
 
-        if (!piteamsResult.error) {
-          dispatch(setShowBetterRouterMessage(false));
-          return piteamsResult;
-        }
+        dispatch(setShowBetterRouterMessage(false));
+        return piteamsResult;
       } catch (error) {
         console.error('Piteams quote failed:', error);
       }
@@ -521,9 +529,7 @@ export const getQuote = createAsyncThunk(
           fromDecimal,
         })).unwrap();
 
-        if (!piteamsResult.error) {
-          return piteamsResult;
-        }
+        return piteamsResult;
       } catch (error) {
         console.error('Piteams quote failed:', error);
       }
@@ -662,27 +668,25 @@ export const swapSlice = createSlice({
         // Loading states are managed in the thunk itself
       })
       .addCase(getQuote.fulfilled, (state, action) => {
-        if (!action.payload.error) {
-          const isFromTokenValid =
-            state.fromToken?.address.toLowerCase() ===
-              action.meta.arg.tokenInAddress.toLowerCase() ||
-            (state.fromToken?.address === ZeroAddress &&
-              action.meta.arg.tokenInAddress === "PLS");
+        const isFromTokenValid =
+          state.fromToken?.address.toLowerCase() ===
+            action.meta.arg.tokenInAddress.toLowerCase() ||
+          (state.fromToken?.address === ZeroAddress &&
+            action.meta.arg.tokenInAddress === "PLS");
 
-          const isToTokenValid =
-            state.toToken?.address.toLowerCase() ===
-              action.meta.arg.tokenOutAddress.toLowerCase() ||
-            (state.toToken?.address === ZeroAddress &&
-              action.meta.arg.tokenOutAddress === "PLS");
+        const isToTokenValid =
+          state.toToken?.address.toLowerCase() ===
+            action.meta.arg.tokenOutAddress.toLowerCase() ||
+          (state.toToken?.address === ZeroAddress &&
+            action.meta.arg.tokenOutAddress === "PLS");
 
-          const otherValidation =
-            state.fromToken?.decimals === action.meta.arg.fromDecimal &&
-            state.slippage === action.meta.arg.allowedSlippage &&
-            Number(state.fromAmount) === action.meta.arg.amount;
+        const otherValidation =
+          state.fromToken?.decimals === action.meta.arg.fromDecimal &&
+          state.slippage === action.meta.arg.allowedSlippage &&
+          Number(state.fromAmount) === action.meta.arg.amount;
 
-          if (isFromTokenValid && isToTokenValid && otherValidation) {
-            state.quote = action.payload;
-          }
+        if (isFromTokenValid && isToTokenValid && otherValidation) {
+          state.quote = action.payload;
         }
         // Reset loading states
         state.isPulseXLoading = false;
