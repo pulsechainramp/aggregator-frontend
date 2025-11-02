@@ -10,7 +10,7 @@ Non-custodial web app for bridging, swapping, and on-ramping assets into PulseCh
 git clone https://github.com/pulsechainramp/aggregator-frontend.git && cd aggregator-frontend
 
 # 2) Configure
-cp .env.example .env   # edit SMTP settings for contact emails
+cp .env.example .env   # edit SMTP settings + set VITE_PITEAS_API_BASE_URL
 
 # 3) Run
 npm run dev
@@ -92,7 +92,7 @@ aggregator-frontend/
 - **React + Vite + TypeScript** drive a single-page app with Tailwind utility styling.
 - **Redux Toolkit slices** (`swapSlice`, `bridgeSlice`, `referralSlice`) coordinate async flows, balances, and contract state.
 - **Web3 Onboard + ethers/web3** manage wallet sessions, allowance checks, approvals, and swap/bridge execution.
-- **Backend integrations** hit `BackendURL` for bridge token lists, quotes, geo lookup, and referral metadata.
+- **Backend integrations** hit `BackendURL` for bridge token lists, PulseX quotes, geo lookup, and referral metadata, while `VITE_PITEAS_API_BASE_URL` is invoked from the browser for Piteas swap routes (debounced + rate limited).
 - **Contact serverless function** (`api/contact.ts`) runs on Vercel and mirrors locally via a Vite dev middleware.
 - **Security headers** enforced through `vercel.json` (CSP, COOP, frame/permission policies).
 

@@ -18,8 +18,9 @@ export interface QuoteType {
   calldata: string;
   tokenInAddress: string;
   tokenOutAddress: string;
-  outputAmount: number;
+  outputAmount: string;
   gasUSDEstimated: number;
+  gasAmountEstimated?: number;
   route: RouteType[];
 }
 
