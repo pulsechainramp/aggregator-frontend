@@ -29,12 +29,16 @@ import { SwapHeader, SwapCard, ApprovalStatus, SwapButton } from "./components";
 import { ethers } from "ethers";
 import * as toastify from "react-toastify";
 import useWallet from "../../hooks/useWallet";
+import {
+  fetchReferralPromo,
+  fetchPromoConstants,
+} from "../../store/referralSlice";
 
 const { toast } = toastify;
 
 const Swap: React.FC = () => {
   const dispatch = useAppDispatch();
-  const { account } = useWallet();
+  const { account } = useWallet(); // ensure promotional data is fetched for other components
 
   const [isTokenPopupOpen, setIsTokenPopupOpen] = useState(false);
   const [isSlippagePopupOpen, setIsSlippagePopupOpen] = useState(false);
@@ -61,6 +65,7 @@ const Swap: React.FC = () => {
     isPiteamsLoading,
     showBetterRouterMessage,
   } = useAppSelector((state) => state.swap);
+  const { tailBps, maxPromoBps } = useAppSelector((state) => state.referral);
 
   const outputAmount =
     quote?.outputAmount && toToken?.decimals
@@ -180,6 +185,18 @@ const Swap: React.FC = () => {
   useEffect(() => {
     dispatch(getAllChains());
   }, [dispatch]);
+
+  useEffect(() => {
+    if (!tailBps || !maxPromoBps) {
+      dispatch(fetchPromoConstants());
+    }
+  }, [dispatch, tailBps, maxPromoBps]);
+
+  useEffect(() => {
+    if (account) {
+      dispatch(fetchReferralPromo(account));
+    }
+  }, [dispatch, account]);
 
   useEffect(() => {
     if (chain) {
@@ -516,3 +533,5 @@ const Swap: React.FC = () => {
 };
 
 export default Swap;
+
+

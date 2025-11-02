@@ -10,8 +10,8 @@ import {
   needsApproval,
   createSwapManager,
 } from "../contracts/SwapManager";
-import { config } from "process";
-import { store } from "./store";
+import { RootState } from "./store";
+import { fetchReferralPromo } from "./referralSlice";
 import { fetchPiteasQuoteClient } from "../utils/piteasQuote";
 
 interface SwapState {
@@ -198,54 +198,74 @@ export const approveTokenAction = createAsyncThunk(
 // Execute swap
 export const executeSwapAction = createAsyncThunk(
   "swap/executeSwapAction",
-  async ({
-    quote,
-    value,
-    account,
-    fromToken,
-  }: {
-    quote: QuoteType;
-    value: string;
-    account: string;
-    fromToken: TokenType;
-  }) => {
-    // Get referral address from Redux store
-    const state = store.getState();
-    let referralAddress = state.referral.referralAddress?.address; // changed to let for fallback hydration
-    // Fallback: resolve from localStorage at swap time if Redux not hydrated yet
+  async (
+    {
+      quote,
+      value,
+      account,
+      fromToken,
+    }: {
+      quote: QuoteType;
+      value: string;
+      account: string;
+      fromToken: TokenType;
+    },
+    thunkAPI
+  ) => {
+    const state = thunkAPI.getState() as RootState;
+
+    let referralAddress = state.referral.referralAddress?.address;
+
     if (!referralAddress) {
       const code = getStoredReferralCode();
       if (code) {
         try {
-          const resp = await fetch(`${BackendURL}referral/address?referralCode=${encodeURIComponent(code)}`);
+          const resp = await fetch(
+            `${BackendURL}referral/address?referralCode=${encodeURIComponent(code)}`
+          );
           if (resp.ok) {
             const data = await resp.json();
-            referralAddress = (data?.address || data?.referralAddress || undefined) as string | undefined;
+            referralAddress = (data?.address ||
+              data?.referralAddress ||
+              undefined) as string | undefined;
           }
         } catch {
-          // no-op: proceed without a referrer
+          // Ignore lookup failures and continue without a referrer
         }
       }
     }
-    
-    // Only use referral address if it's not a self-referral
-    const referrerAddress = referralAddress && account && 
-      !isSelfReferral(account, referralAddress)
-      ? referralAddress 
-      : undefined;
 
-    // Log if self-referral is detected
+    let candidateReferrer =
+      referralAddress &&
+      account &&
+      !isSelfReferral(account, referralAddress)
+        ? referralAddress
+        : undefined;
+
+    const promo = state.referral.promo;
+    const hasBoundReferrer =
+      promo.firstReferrer &&
+      promo.firstReferrer.toLowerCase() !== ZeroAddress.toLowerCase();
+
+    if (hasBoundReferrer) {
+      candidateReferrer = undefined;
+    }
+
     if (referralAddress && account && isSelfReferral(account, referralAddress)) {
       console.log("Self-referral detected, skipping referral address in swap");
     }
 
     const transaction = await executeSwap({
       quote,
-      value: value,
+      value,
       account,
       fromToken,
-      referrerAddress,
+      referrerAddress: candidateReferrer,
     });
+
+    if (account) {
+      thunkAPI.dispatch(fetchReferralPromo(account));
+    }
 
     return {
       transactionHash: transaction.transactionHash,

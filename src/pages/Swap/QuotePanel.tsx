@@ -4,11 +4,13 @@ import { useAppSelector } from "../../store/hooks";
 import { ethers } from "ethers";
 import RouteDetailsPopup from "./RouteDetailPopup";
 import { motion } from "framer-motion";
+import { useReferralFeeState } from "../../hooks/useReferralFeeState";
 
 const QuotePanel = () => {
   const { fromToken, toToken, quote, slippage, fromAmount } = useAppSelector(
     (state) => state.swap
   );
+  const referralFeeState = useReferralFeeState();
 
   const [showRoute, setShowRoute] = useState(false);
   const apiVersion = "2.3";
@@ -28,6 +30,15 @@ const QuotePanel = () => {
           ((Number(fromAmount) * fromToken?.usdPrice) / toToken?.usdPrice)) *
         100
       : 0;
+
+  const formatBps = (bps: number) => `${(bps / 100).toFixed(2)}%`;
+  const activeReferralBps = referralFeeState.hasReferral
+    ? referralFeeState.activeBps
+    : 0;
+  const referralFeeDisplay =
+    activeReferralBps > 0
+      ? `-${formatBps(activeReferralBps)}`
+      : formatBps(0);
 
   return (
     <div className="mt-2 w-full rounded-xl border border-border bg-bg-surface p-4 text-text shadow-sm sm:p-5">
@@ -72,6 +83,12 @@ const QuotePanel = () => {
           <div className="flex justify-between">
             <span className="text-text-muted">Slippage tolerance</span>
             <span className="font-medium text-text">{slippage}%</span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-text-muted">Referral</span>
+            <span className="font-medium text-text">
+              {referralFeeDisplay}
+            </span>
           </div>
           <div className="flex justify-between">
             <span className="text-text-muted">Minimum output</span>
