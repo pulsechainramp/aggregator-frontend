@@ -120,14 +120,13 @@ export const combineRoute = (route: Route): RouteType[] =>
     percent: swap.percent / 1000,
     subroutes: swap.subswaps.map((subswap, subswapIdx) => ({
       percent: subswap.percent / 1000,
-      paths: subswap.paths.map((path, pathIdx) => {
-        const tokens: RouteTokenType[] =
-          route.paths[swapIdx]?.[subswapIdx]
-            ? [
-                route.paths[swapIdx][subswapIdx],
-                route.paths[swapIdx][subswapIdx + 1],
-              ].filter(Boolean) as RouteTokenType[]
-            : [];
+      paths: subswap.paths.map((path) => {
+        const pathTokens = route.paths[swapIdx] ?? [];
+        const tokenStart = pathTokens[subswapIdx];
+        const tokenEnd = pathTokens[subswapIdx + 1];
+        const tokens: RouteTokenType[] = [];
+        if (tokenStart) tokens.push(tokenStart);
+        if (tokenEnd) tokens.push(tokenEnd);
 
         const { address, percent, ...rest } = path;
 

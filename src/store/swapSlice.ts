@@ -352,7 +352,16 @@ export const getTokenPrice = createAsyncThunk(
 );
 
 // Get PulseX quote (fast API)
-export const getPulseXQuote = createAsyncThunk(
+export const getPulseXQuote = createAsyncThunk<
+  QuoteType | { error: unknown },
+  {
+    tokenInAddress: string;
+    tokenOutAddress: string;
+    amount: number;
+    allowedSlippage: number;
+    fromDecimal: number;
+  }
+>(
   "swap/getPulseXQuote",
   async ({
     tokenInAddress,
@@ -360,12 +369,6 @@ export const getPulseXQuote = createAsyncThunk(
     amount,
     allowedSlippage,
     fromDecimal,
-  }: {
-    tokenInAddress: string;
-    tokenOutAddress: string;
-    amount: number;
-    allowedSlippage: number;
-    fromDecimal: number;
   }) => {
     const response = await fetch(
       `${BackendURL}quote/pulsex?tokenInAddress=${tokenInAddress}&tokenOutAddress=${tokenOutAddress}&amount=${ethers.parseUnits(
@@ -373,8 +376,21 @@ export const getPulseXQuote = createAsyncThunk(
         fromDecimal
       )}&allowedSlippage=${allowedSlippage}&fromDecimal=${fromDecimal}`
     );
-    const data = await response.json();
-    return data;
+    const payload = await response.json();
+
+    if (
+      payload &&
+      typeof payload === "object" &&
+      "outputAmount" in payload &&
+      payload.outputAmount != null
+    ) {
+      return {
+        ...payload,
+        outputAmount: payload.outputAmount.toString(),
+      } as QuoteType;
+    }
+
+    return payload as { error: unknown };
   }
 );
 
@@ -465,7 +481,7 @@ export const getQuote = createAsyncThunk<
         }));
 
         // If PulseX succeeds, return it immediately and start piteams in background
-        if (!(pulseXResult as any)?.error) {
+        if (!("error" in pulseXResult)) {
           // Start piteams API call in background
           dispatch(getPiteamsQuote({
             tokenInAddress,

@@ -13,6 +13,23 @@ import {
   toCorrectDexName,
 } from "./routeEncoding";
 
+type StablePoolContract = ethers.Contract & {
+  N_COINS?: () => Promise<bigint>;
+  n_coins?: () => Promise<bigint>;
+  nCoins?: () => Promise<bigint>;
+  coins: (index: number) => Promise<string>;
+};
+
+declare global {
+  interface Navigator {
+    locks?: LockManager;
+  }
+}
+
+const hasNavigatorLocks = (
+  nav: Navigator
+): nav is Navigator & { locks: LockManager } => Boolean(nav.locks);
+
 const RATE_LIMIT_MAX_REQUESTS = 9;
 const RATE_LIMIT_WINDOW_MS = 60_000;
 const RATE_LIMIT_STORAGE_KEY =
@@ -31,13 +48,13 @@ const pulsexV2Factory = new ethers.Contract(
   provider
 );
 
-const stablePoolContracts = new Map<string, ethers.Contract>();
+const stablePoolContracts = new Map<string, StablePoolContract>();
 
-const getStablePoolContract = (address: string): ethers.Contract => {
+const getStablePoolContract = (address: string): StablePoolContract => {
   if (!stablePoolContracts.has(address)) {
     stablePoolContracts.set(
       address,
-      new ethers.Contract(address, PulseXStableSwapPoolAbi, provider)
+      new ethers.Contract(address, PulseXStableSwapPoolAbi, provider) as StablePoolContract
     );
   }
   return stablePoolContracts.get(address)!;
@@ -115,8 +132,8 @@ const tryAcquireRateLimitSlot = async (): Promise<{
     return { acquired: true, wait: 0 };
   };
 
-  if (typeof navigator !== "undefined" && (navigator as any).locks?.request) {
-    const acquired = await (navigator as any).locks.request(
+  if (typeof navigator !== "undefined" && hasNavigatorLocks(navigator)) {
+    const acquired = await navigator.locks.request(
       "pulsechainramp-piteas-rate-limit",
       { mode: "exclusive" },
       () => attempt()
@@ -268,7 +285,16 @@ const transformQuoteData = async (
     for (const [subswapIndex, subswap] of swap.subswaps.entries()) {
       const groupId = currentGroupId++;
 
+      const pathTokens = piteasRoute.paths[swapIndex] ?? [];
+
       for (const [pathIndex, path] of subswap.paths.entries()) {
+        const fromToken = pathTokens[subswapIndex];
+        const toToken = pathTokens[subswapIndex + 1];
+
+        if (!fromToken || !toToken) {
+          continue;
+        }
+
         let userData = "0x";
 
         if (path.exchange === "PulseX Stable") {
@@ -278,7 +304,7 @@ const transformQuoteData = async (
 
           let numCoins = 3;
           try {
-            const coinsFn = (stablePool as any).N_COINS ?? (stablePool as any).n_coins ?? (stablePool as any).nCoins;
+            const coinsFn = stablePool.N_COINS ?? stablePool.n_coins ?? stablePool.nCoins;
             if (coinsFn) {
               const result = await coinsFn();
               const parsed = Number(result);
@@ -297,19 +323,15 @@ const transformQuoteData = async (
             } catch {
               break;
             }
+
             if (!token) {
               continue;
             }
 
-            if (
-              token.toLowerCase() ===
-              piteasRoute.paths[swapIndex][subswapIndex].address.toLowerCase()
-            ) {
+            const normalized = token.toLowerCase();
+            if (normalized === fromToken.address.toLowerCase()) {
               index1 = i;
-            } else if (
-              token.toLowerCase() ===
-              piteasRoute.paths[swapIndex][subswapIndex + 1].address.toLowerCase()
-            ) {
+            } else if (normalized === toToken.address.toLowerCase()) {
               index2 = i;
             }
           }
@@ -322,10 +344,7 @@ const transformQuoteData = async (
 
         let step: SwapStep = {
           dex: toCorrectDexName(path.exchange),
-          path: [
-            piteasRoute.paths[swapIndex][subswapIndex].address,
-            piteasRoute.paths[swapIndex][subswapIndex + 1].address,
-          ],
+          path: [fromToken.address, toToken.address],
           percent: path.percent,
           pool: path.address,
           userData,
