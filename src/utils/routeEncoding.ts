@@ -1,4 +1,4 @@
-import { AbiCoder, ParamType, ethers } from "ethers";
+import { AbiCoder, ParamType } from "ethers";
 import { RouteType, RouteTokenType } from "../types/Swap";
 
 export const toCorrectDexName = (dex: string): string => {

@@ -248,7 +248,7 @@ const transformQuoteData = async (
 
   const swapRoute: SwapRoute = {
     steps: [],
-    deadline: Math.floor(Date.now() / 1000 + 1000 * 10),
+    deadline: Math.floor(Date.now() / 1000 + 10 * 60),
     amountIn: response.srcAmount,
     amountOutMin: ethers.getBigInt(destAmount).toString(),
     parentGroups: [],
@@ -276,8 +276,31 @@ const transformQuoteData = async (
           let index2 = -1;
           const stablePool = getStablePoolContract(path.address);
 
-          for (let i = 0; i <= 2; i++) {
-            const token = await stablePool.coins(i);
+          let numCoins = 3;
+          try {
+            const coinsFn = (stablePool as any).N_COINS ?? (stablePool as any).n_coins ?? (stablePool as any).nCoins;
+            if (coinsFn) {
+              const result = await coinsFn();
+              const parsed = Number(result);
+              if (Number.isFinite(parsed) && parsed > 0) {
+                numCoins = parsed;
+              }
+            }
+          } catch {
+            // default to 3 for legacy pools without N_COINS
+          }
+
+          for (let i = 0; i < numCoins; i++) {
+            let token: string | undefined;
+            try {
+              token = await stablePool.coins(i);
+            } catch {
+              break;
+            }
+            if (!token) {
+              continue;
+            }
+
             if (
               token.toLowerCase() ===
               piteasRoute.paths[swapIndex][subswapIndex].address.toLowerCase()
