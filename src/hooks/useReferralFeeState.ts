@@ -8,14 +8,21 @@ interface ReferralFeeState {
   promoBps: number | null;
   tailBps: number;
   activeBps: number;
-  phase: "none" | "promo" | "tail";
+  phase: "none" | "promo" | "tail" | "default";
   hasReferral: boolean;
+  hasDefaultReferrer: boolean;
   promoLoading: boolean;
 }
 
 export const useReferralFeeState = (): ReferralFeeState => {
   const promo = useAppSelector((state) => state.referral.promo);
   const tailBps = useAppSelector((state) => state.referral.tailBps);
+  const defaultReferrer = useAppSelector(
+    (state) => state.referral.defaultReferrer
+  );
+  const defaultReferrerBps = useAppSelector(
+    (state) => state.referral.defaultReferrerBps
+  );
   const promoLoading = useAppSelector((state) => state.referral.promoLoading);
 
   return useMemo(() => {
@@ -23,12 +30,18 @@ export const useReferralFeeState = (): ReferralFeeState => {
       !!promo.firstReferrer &&
       promo.firstReferrer.toLowerCase() !== ZeroAddress.toLowerCase();
 
+    const hasDefaultReferrer =
+      !!defaultReferrer &&
+      defaultReferrer.toLowerCase() !== ZeroAddress.toLowerCase();
+
     const promoRemaining = promo.promoRemaining ?? 0;
-    const promoBps = promo.promoBps ?? null;
+    const promoBps = promo.promoBps;
     const tail = tailBps ?? 10;
+    const defaultBps =
+      typeof defaultReferrerBps === "number" ? defaultReferrerBps : tail;
 
     let activeBps = 0;
-    let phase: "none" | "promo" | "tail" = "none";
+    let phase: "none" | "promo" | "tail" | "default" = "none";
 
     if (hasReferral) {
       if (promoRemaining > 0 && promoBps !== null) {
@@ -38,6 +51,9 @@ export const useReferralFeeState = (): ReferralFeeState => {
         activeBps = tail;
         phase = "tail";
       }
+    } else if (hasDefaultReferrer) {
+      activeBps = defaultBps;
+      phase = "default";
     }
 
     return {
@@ -48,7 +64,15 @@ export const useReferralFeeState = (): ReferralFeeState => {
       activeBps,
       phase,
       hasReferral,
+      hasDefaultReferrer,
       promoLoading,
     };
-  }, [promo, tailBps, promoLoading]);
+  }, [
+    promo,
+    tailBps,
+    defaultReferrer,
+    defaultReferrerBps,
+    promoLoading,
+  ]);
 };
+

@@ -47,6 +47,8 @@ export interface ReferralPromoData {
 export interface ReferralConstants {
   maxPromoBps: number;
   tailBps: number;
+  defaultReferrer: string | null;
+  defaultReferrerBps: number | null;
 }
 
 export const getWeb3 = () =>
@@ -355,9 +357,9 @@ export const getReferralPromo = async (
 
     return {
       firstReferrer,
-      boundAt: BigInt(promo.boundAt || 0),
-      promoBps: Number(promo.promoBps || 0),
-      promoRemaining: Number(promo.promoRemaining || 0),
+      boundAt: BigInt(promo.boundAt ?? 0),
+      promoBps: Number(promo.promoBps ?? 0),
+      promoRemaining: Number(promo.promoRemaining ?? 0),
     };
   } catch (error) {
     console.error("Failed to fetch referral promo:", error);
@@ -373,14 +375,22 @@ export const getPromoConstants = async (): Promise<ReferralConstants> => {
       AffiliateRouterAddress
     );
 
-    const [maxPromo, tail] = await Promise.all([
+    const [maxPromo, tail, defaultReferrer, defaultReferrerBps] = await Promise.all([
       swapManagerContract.methods.MAX_PROMO_BPS().call(),
       swapManagerContract.methods.TAIL_BPS().call(),
+      swapManagerContract.methods.defaultReferrer().call(),
+      swapManagerContract.methods.defaultReferrerBasisPoints().call(),
     ]);
 
     return {
       maxPromoBps: Number(maxPromo),
       tailBps: Number(tail),
+      defaultReferrer:
+        defaultReferrer &&
+        defaultReferrer.toLowerCase() !== ethers.ZeroAddress.toLowerCase()
+          ? defaultReferrer
+          : null,
+      defaultReferrerBps: Number(defaultReferrerBps ?? 0),
     };
   } catch (error) {
     console.error("Failed to fetch promo constants:", error);

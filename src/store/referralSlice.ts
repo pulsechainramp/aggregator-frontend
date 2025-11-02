@@ -57,6 +57,8 @@ interface ReferralState {
   promoLoading: boolean;
   maxPromoBps: number | null;
   tailBps: number | null;
+  defaultReferrer: string | null;
+  defaultReferrerBps: number | null;
 }
 
 const initialState: ReferralState = {
@@ -79,6 +81,8 @@ const initialState: ReferralState = {
   promoLoading: false,
   maxPromoBps: null,
   tailBps: null,
+  defaultReferrer: null,
+  defaultReferrerBps: null,
 };
 
 // Async thunk for fetching referral code
@@ -134,7 +138,7 @@ export const fetchReferralPromo = createAsyncThunk(
     return {
       firstReferrer: promo.firstReferrer,
       boundAt: promo.boundAt > 0n ? promo.boundAt.toString() : null,
-      promoBps: promo.promoBps || null,
+      promoBps: promo.promoBps ?? null,
       promoRemaining: promo.promoRemaining ?? null,
     };
   }
@@ -361,6 +365,8 @@ const referralSlice = createSlice({
       .addCase(fetchPromoConstants.fulfilled, (state, action) => {
         state.maxPromoBps = action.payload.maxPromoBps;
         state.tailBps = action.payload.tailBps;
+        state.defaultReferrer = action.payload.defaultReferrer;
+        state.defaultReferrerBps = action.payload.defaultReferrerBps;
         state.error = null;
       })
       .addCase(fetchPromoConstants.rejected, (state, action) => {

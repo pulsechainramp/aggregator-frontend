@@ -14,6 +14,8 @@ import { RootState } from "./store";
 import { fetchReferralPromo } from "./referralSlice";
 import { fetchPiteasQuoteClient } from "../utils/piteasQuote";
 
+const ZERO_ADDRESS_LOWER = ZeroAddress.toLowerCase();
+
 interface SwapState {
   allChains: TokenType[];
   availableTokens: TokenType[];
@@ -245,7 +247,7 @@ export const executeSwapAction = createAsyncThunk(
     const promo = state.referral.promo;
     const hasBoundReferrer =
       promo.firstReferrer &&
-      promo.firstReferrer.toLowerCase() !== ZeroAddress.toLowerCase();
+      promo.firstReferrer.toLowerCase() !== ZERO_ADDRESS_LOWER;
 
     if (hasBoundReferrer) {
       candidateReferrer = undefined;

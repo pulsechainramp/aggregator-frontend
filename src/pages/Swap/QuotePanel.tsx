@@ -32,9 +32,7 @@ const QuotePanel = () => {
       : 0;
 
   const formatBps = (bps: number) => `${(bps / 100).toFixed(2)}%`;
-  const activeReferralBps = referralFeeState.hasReferral
-    ? referralFeeState.activeBps
-    : 0;
+  const activeReferralBps = referralFeeState.activeBps;
   const referralFeeDisplay =
     activeReferralBps > 0
       ? `-${formatBps(activeReferralBps)}`
