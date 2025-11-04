@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 import { useAppSelector } from "../store/hooks";
 import { ZeroAddress } from "../const/swap";
+import useWallet from "./useWallet";
 
 interface ReferralFeeState {
   firstReferrer: string | null;
@@ -8,9 +9,10 @@ interface ReferralFeeState {
   promoBps: number | null;
   tailBps: number;
   activeBps: number;
-  phase: "none" | "promo" | "tail" | "default";
+  phase: "none" | "promo" | "tail" | "default" | "pending";
   hasReferral: boolean;
   hasDefaultReferrer: boolean;
+  hasPendingReferral: boolean;
   promoLoading: boolean;
 }
 
@@ -28,15 +30,27 @@ export const useReferralFeeState = (): ReferralFeeState => {
   );
   const maxPromoBps = useAppSelector((state) => state.referral.maxPromoBps);
   const promoLoading = useAppSelector((state) => state.referral.promoLoading);
+  const referralAddress = useAppSelector(
+    (state) => state.referral.referralAddress?.address
+  );
+  const { account } = useWallet();
 
   return useMemo(() => {
+    const zeroLower = ZeroAddress.toLowerCase();
+    const normalizedAccount = account ? account.toLowerCase() : null;
+
+    const normalizedDefaultReferrer = defaultReferrer
+      ? defaultReferrer.toLowerCase()
+      : null;
+    const normalizedReferralAddress = referralAddress
+      ? referralAddress.toLowerCase()
+      : null;
+
     const hasReferral =
-      !!promo.firstReferrer &&
-      promo.firstReferrer.toLowerCase() !== ZeroAddress.toLowerCase();
+      !!promo.firstReferrer && promo.firstReferrer.toLowerCase() !== zeroLower;
 
     const hasDefaultReferrer =
-      !!defaultReferrer &&
-      defaultReferrer.toLowerCase() !== ZeroAddress.toLowerCase();
+      !!normalizedDefaultReferrer && normalizedDefaultReferrer !== zeroLower;
 
     const promoRemaining = promo.promoRemaining ?? 0;
     const tailCap = tailBps ?? 30;
@@ -45,6 +59,20 @@ export const useReferralFeeState = (): ReferralFeeState => {
       referrerFeeBasisPoints !== null && referrerFeeBasisPoints !== undefined
         ? Number(referrerFeeBasisPoints)
         : undefined;
+
+    const isReferralCandidate =
+      !!normalizedReferralAddress && normalizedReferralAddress !== zeroLower;
+
+    const isSelfReferralCandidate =
+      normalizedReferralAddress && normalizedAccount
+        ? normalizedReferralAddress === normalizedAccount
+        : false;
+
+    const candidateDiffersFromDefault =
+      !isSelfReferralCandidate &&
+      isReferralCandidate &&
+      (!normalizedDefaultReferrer ||
+        normalizedReferralAddress !== normalizedDefaultReferrer);
 
     const referrerBaseBps = Number.isFinite(parsedReferrerBps)
       ? (parsedReferrerBps as number)
@@ -56,7 +84,13 @@ export const useReferralFeeState = (): ReferralFeeState => {
     const promoLimit = typeof maxPromoBps === "number" ? maxPromoBps : 300;
 
     let activeBps = 0;
-    let phase: "none" | "promo" | "tail" | "default" = "none";
+    let phase: "none" | "promo" | "tail" | "default" | "pending" = "none";
+
+    const hasPendingReferral =
+      !hasReferral &&
+      candidateDiffersFromDefault &&
+      Number.isFinite(parsedReferrerBps) &&
+      (parsedReferrerBps as number) > 0;
 
     if (hasReferral) {
       if (promoRemaining > 0) {
@@ -66,6 +100,9 @@ export const useReferralFeeState = (): ReferralFeeState => {
         activeBps = Math.min(referrerBaseBps, tailCap);
         phase = "tail";
       }
+    } else if (hasPendingReferral) {
+      activeBps = Math.min(referrerBaseBps, promoLimit);
+      phase = "pending";
     } else if (hasDefaultReferrer) {
       activeBps = defaultTail;
       phase = "default";
@@ -80,6 +117,7 @@ export const useReferralFeeState = (): ReferralFeeState => {
       phase,
       hasReferral,
       hasDefaultReferrer,
+      hasPendingReferral,
       promoLoading,
     };
   }, [
@@ -89,6 +127,13 @@ export const useReferralFeeState = (): ReferralFeeState => {
     defaultReferrerBps,
     referrerFeeBasisPoints,
     maxPromoBps,
+    referralAddress,
+    account,
     promoLoading,
   ]);
 };
+
+
+
+
+

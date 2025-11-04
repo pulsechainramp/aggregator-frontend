@@ -1,21 +1,26 @@
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import { ChevronDownIcon, ChevronUpIcon } from "@heroicons/react/24/solid";
 import { useAppSelector } from "../../store/hooks";
 import { ethers } from "ethers";
 import RouteDetailsPopup from "./RouteDetailPopup";
 import { motion } from "framer-motion";
 import { useReferralFeeState } from "../../hooks/useReferralFeeState";
+import useWallet from "../../hooks/useWallet";
 
 const QuotePanel = () => {
   const { fromToken, toToken, quote, slippage, fromAmount } = useAppSelector(
     (state) => state.swap
   );
   const referralFeeState = useReferralFeeState();
+  const referralAddress = useAppSelector(
+    (state) => state.referral.referralAddress?.address
+  );
+  const { account } = useWallet();
 
   const [showRoute, setShowRoute] = useState(false);
   const apiVersion = "2.3";
 
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(true);
   const toTokenAmount =
     quote?.outputAmount && toToken?.decimals
       ? Number(ethers.formatUnits(quote?.outputAmount, toToken?.decimals))
@@ -32,7 +37,46 @@ const QuotePanel = () => {
       : 0;
 
   const formatBps = (bps: number) => `${(bps / 100).toFixed(2)}%`;
-  const activeReferralBps = referralFeeState.activeBps;
+
+  const effectiveReferralBps = useMemo(() => {
+    const normalizedAccount = account ? account.toLowerCase() : null;
+    const normalizedReferral = referralAddress
+      ? referralAddress.toLowerCase()
+      : null;
+    const isSelfReferral =
+      normalizedAccount && normalizedReferral
+        ? normalizedAccount === normalizedReferral
+        : false;
+
+    if (isSelfReferral) {
+      return referralFeeState.tailBps;
+    }
+
+    if (
+      referralFeeState.phase === "default" ||
+      referralFeeState.phase === "tail"
+    ) {
+      return referralFeeState.activeBps;
+    }
+
+    if (referralFeeState.phase === "pending") {
+      return referralFeeState.activeBps;
+    }
+
+    return referralFeeState.activeBps;
+  }, [
+    account,
+    referralAddress,
+    referralFeeState.activeBps,
+    referralFeeState.phase,
+    referralFeeState.tailBps,
+  ]);
+
+  const activeReferralBps = effectiveReferralBps;
+  const referralMultiplier =
+    activeReferralBps > 0 ? 1 - activeReferralBps / 10000 : 1;
+  const netToTokenAmount = toTokenAmount * referralMultiplier;
+  const netMinOutput = minOutput * referralMultiplier;
   const referralFeeDisplay =
     activeReferralBps > 0
       ? `-${formatBps(activeReferralBps)}`
@@ -91,13 +135,13 @@ const QuotePanel = () => {
           <div className="flex justify-between">
             <span className="text-text-muted">Minimum output</span>
             <span className="font-mono font-medium text-text">
-              {Number(minOutput.toFixed(10))} {toToken?.symbol}
+              {Number(netMinOutput.toFixed(10))} {toToken?.symbol}
             </span>
           </div>
           <div className="flex justify-between">
             <span className="text-text-muted">Expected output</span>
             <span className="font-mono font-medium text-text">
-              {Number(toTokenAmount.toFixed(10))} {toToken?.symbol}
+              {Number(netToTokenAmount.toFixed(10))} {toToken?.symbol}
             </span>
           </div>
           <div className="mt-2 flex items-center justify-between border-t border-border pt-2">

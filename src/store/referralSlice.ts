@@ -252,9 +252,13 @@ const referralSlice = createSlice({
     },
     clearReferralAddress: (state) => {
       state.referralAddress = null;
+      state.referralFeeBasisPoints = null;
+      state.referrerFeeBasisPoints = null;
     },
     setReferralAddress: (state, action: PayloadAction<ReferralAddress>) => {
       state.referralAddress = action.payload;
+      state.referralFeeBasisPoints = null;
+      state.referrerFeeBasisPoints = null;
     },
     setError: (state, action: PayloadAction<string>) => {
       state.error = action.payload;
@@ -283,6 +287,8 @@ const referralSlice = createSlice({
       .addCase(fetchReferralAddress.fulfilled, (state, action) => {
         state.loading = false;
         state.referralAddress = action.payload;
+        state.referralFeeBasisPoints = null;
+        state.referrerFeeBasisPoints = null;
         state.error = null;
       })
       .addCase(fetchReferralAddress.rejected, (state, action) => {

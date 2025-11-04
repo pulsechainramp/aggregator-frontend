@@ -93,20 +93,23 @@ const Header = () => {
     };
   }, [account, dispatch]);
 
-  useEffect(() => {
-    if (
-      referralAddressData &&
-      !referralFeeBasisPoints
-    ) {
-      dispatch(fetchReferralFeeBasisPoints(referralAddressData.address));
-    }
-  }, [dispatch, referralAddressData, referralFeeBasisPoints]);
+  const lastReferrerLookup = useRef<string | null>(null);
 
   useEffect(() => {
-    if (referralAddressData && !referrerFeeBasisPoints) {
-      dispatch(fetchReferrerFeeBasisPoints(referralAddressData.address));
+    if (!referralAddressData?.address) {
+      lastReferrerLookup.current = null;
+      return;
     }
-  }, [dispatch, referralAddressData, referrerFeeBasisPoints]);
+
+    const normalized = referralAddressData.address.toLowerCase();
+    if (lastReferrerLookup.current === normalized) {
+      return;
+    }
+
+    lastReferrerLookup.current = normalized;
+    dispatch(fetchReferralFeeBasisPoints(referralAddressData.address));
+    dispatch(fetchReferrerFeeBasisPoints(referralAddressData.address));
+  }, [dispatch, referralAddressData]);
 
   useEffect(() => {
     if (!showDropdown) {
