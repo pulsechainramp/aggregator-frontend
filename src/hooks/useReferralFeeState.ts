@@ -132,8 +132,3 @@ export const useReferralFeeState = (): ReferralFeeState => {
     promoLoading,
   ]);
 };
-
-
-
-
-

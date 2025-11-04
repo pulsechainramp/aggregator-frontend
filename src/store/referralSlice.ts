@@ -403,13 +403,3 @@ export const {
   setError,
 } = referralSlice.actions;
 export default referralSlice.reducer;
-
-
-
-
-
-
-
-
-
-

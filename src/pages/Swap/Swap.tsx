@@ -38,7 +38,7 @@ const { toast } = toastify;
 
 const Swap: React.FC = () => {
   const dispatch = useAppDispatch();
-  const { account } = useWallet(); // ensure promotional data is fetched for other components
+  const { account } = useWallet();
 
   const [isTokenPopupOpen, setIsTokenPopupOpen] = useState(false);
   const [isSlippagePopupOpen, setIsSlippagePopupOpen] = useState(false);
@@ -533,5 +533,3 @@ const Swap: React.FC = () => {
 };
 
 export default Swap;
-
-

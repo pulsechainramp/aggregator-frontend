@@ -588,6 +588,3 @@ export const createSwapManager = () => {
     getSwapManagerContract: () => instance.swapManagerContract,
   };
 };
-
-
-
