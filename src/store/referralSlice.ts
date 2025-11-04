@@ -6,8 +6,11 @@ import {
   updateFeeBasisPoints,
   getReferrerEarnings,
   getTokenDecimals,
+  getReferralPromo,
+  getPromoConstants,
 } from "../contracts/SwapManager";
 import { ethers } from "ethers";
+import { lockReferralBinding } from "../utils/referralUtils";
 
 interface ReferralCode {
   id: string;
@@ -32,6 +35,13 @@ export interface ReferralFee {
   createdAt: string;
 }
 
+interface ReferralPromoState {
+  firstReferrer: string | null;
+  boundAt: string | null;
+  promoBps: number | null;
+  promoRemaining: number | null;
+}
+
 interface ReferralState {
   referralCode: ReferralCode | null;
   referralAddress: ReferralAddress | null;
@@ -43,6 +53,12 @@ interface ReferralState {
   updatingFeeBasisPoints: boolean;
   error: string | null;
   claiming: boolean;
+  promo: ReferralPromoState;
+  promoLoading: boolean;
+  maxPromoBps: number | null;
+  tailBps: number | null;
+  defaultReferrer: string | null;
+  defaultReferrerBps: number | null;
 }
 
 const initialState: ReferralState = {
@@ -56,6 +72,17 @@ const initialState: ReferralState = {
   updatingFeeBasisPoints: false,
   error: null,
   claiming: false,
+  promo: {
+    firstReferrer: null,
+    boundAt: null,
+    promoBps: null,
+    promoRemaining: null,
+  },
+  promoLoading: false,
+  maxPromoBps: null,
+  tailBps: null,
+  defaultReferrer: null,
+  defaultReferrerBps: null,
 };
 
 // Async thunk for fetching referral code
@@ -77,14 +104,50 @@ export const fetchReferralCode = createAsyncThunk(
 export const fetchReferralAddress = createAsyncThunk(
   "referral/fetchReferralAddress",
   async (referralCode: string) => {
-    const response = await fetch(
-      `${BackendURL}referral/address?referralCode=${referralCode}`
-    );
-    if (!response.ok) {
-      throw new Error("Failed to fetch referral address");
+    try {
+      const response = await fetch(
+        `${BackendURL}referral/address?referralCode=${referralCode}`
+      );
+
+      if (response.status === 404) {
+        return null;
+      }
+
+      if (!response.ok) {
+        throw new Error("Failed to fetch referral address");
+      }
+
+      const data = await response.json();
+      return data as ReferralAddress;
+    } catch (error) {
+      console.error("Failed to fetch referral address:", error);
+      return null;
     }
-    const data = await response.json();
-    return data as ReferralAddress;
+  }
+);
+
+export const fetchReferralPromo = createAsyncThunk(
+  "referral/fetchReferralPromo",
+  async (userAddress: string) => {
+    const promo = await getReferralPromo(userAddress);
+
+    if (promo.firstReferrer) {
+      lockReferralBinding();
+    }
+
+    return {
+      firstReferrer: promo.firstReferrer,
+      boundAt: promo.boundAt > 0n ? promo.boundAt.toString() : null,
+      promoBps: promo.promoBps ?? null,
+      promoRemaining: promo.promoRemaining ?? null,
+    };
+  }
+);
+
+export const fetchPromoConstants = createAsyncThunk(
+  "referral/fetchPromoConstants",
+  async () => {
+    return await getPromoConstants();
   }
 );
 
@@ -189,9 +252,13 @@ const referralSlice = createSlice({
     },
     clearReferralAddress: (state) => {
       state.referralAddress = null;
+      state.referralFeeBasisPoints = null;
+      state.referrerFeeBasisPoints = null;
     },
     setReferralAddress: (state, action: PayloadAction<ReferralAddress>) => {
       state.referralAddress = action.payload;
+      state.referralFeeBasisPoints = null;
+      state.referrerFeeBasisPoints = null;
     },
     setError: (state, action: PayloadAction<string>) => {
       state.error = action.payload;
@@ -220,6 +287,8 @@ const referralSlice = createSlice({
       .addCase(fetchReferralAddress.fulfilled, (state, action) => {
         state.loading = false;
         state.referralAddress = action.payload;
+        state.referralFeeBasisPoints = null;
+        state.referrerFeeBasisPoints = null;
         state.error = null;
       })
       .addCase(fetchReferralAddress.rejected, (state, action) => {
@@ -280,6 +349,35 @@ const referralSlice = createSlice({
         state.updatingFeeBasisPoints = false;
         state.error =
           action.error.message || "Failed to update referral fee basis points";
+      })
+      .addCase(fetchReferralPromo.pending, (state) => {
+        state.promoLoading = true;
+        state.error = null;
+      })
+      .addCase(fetchReferralPromo.fulfilled, (state, action) => {
+        state.promoLoading = false;
+        state.promo = {
+          firstReferrer: action.payload.firstReferrer,
+          boundAt: action.payload.boundAt,
+          promoBps: action.payload.promoBps,
+          promoRemaining: action.payload.promoRemaining,
+        };
+      })
+      .addCase(fetchReferralPromo.rejected, (state, action) => {
+        state.promoLoading = false;
+        state.error =
+          action.error.message || "Failed to fetch referral status";
+      })
+      .addCase(fetchPromoConstants.fulfilled, (state, action) => {
+        state.maxPromoBps = action.payload.maxPromoBps;
+        state.tailBps = action.payload.tailBps;
+        state.defaultReferrer = action.payload.defaultReferrer;
+        state.defaultReferrerBps = action.payload.defaultReferrerBps;
+        state.error = null;
+      })
+      .addCase(fetchPromoConstants.rejected, (state, action) => {
+        state.error =
+          action.error.message || "Failed to fetch referral constants";
       })
       .addCase(fetchReferrerFeeBasisPoints.pending, (state) => {
         state.feeBasisPointsLoading = true;

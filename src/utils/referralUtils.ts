@@ -17,6 +17,24 @@ export const formatFeeBasisPoints = (feeBasisPoints: string): string => {
 // Utility functions for handling referral codes
 
 export const REFERRAL_CODE_KEY = 'pulsechain_referral_code';
+export const REFERRAL_LOCK_KEY = 'pulsechain_referral_locked';
+
+export const lockReferralBinding = (): void => {
+  try {
+    localStorage.setItem(REFERRAL_LOCK_KEY, '1');
+  } catch (error) {
+    console.error('Error locking referral binding:', error);
+  }
+};
+
+export const isReferralLocked = (): boolean => {
+  try {
+    return localStorage.getItem(REFERRAL_LOCK_KEY) === '1';
+  } catch (error) {
+    console.error('Error checking referral lock:', error);
+    return false;
+  }
+};
 
 /**
  * Extract referral code from URL parameters and save to localStorage
@@ -28,16 +46,21 @@ export const extractAndSaveReferralCode = (): string | null => {
     const referralCode = urlParams.get('ref') || urlParams.get('code');
     
     if (referralCode) {
-      // Check if this is a different referral code than what's already stored
+      if (isReferralLocked()) {
+        urlParams.delete('code');
+        urlParams.delete('ref');
+        const lockedUrl = window.location.pathname + (urlParams.toString() ? `?${urlParams.toString()}` : '');
+        window.history.replaceState({}, '', lockedUrl);
+        return getStoredReferralCode();
+      }
+
       const existingCode = getStoredReferralCode();
       
       if (existingCode !== referralCode) {
-        // Update localStorage with new referral code
         localStorage.setItem(REFERRAL_CODE_KEY, referralCode);
-        console.log(`Referral code updated: ${existingCode} → ${referralCode}`);
+        console.log(`Referral code updated from ${existingCode ?? 'none'} to ${referralCode}`);
       }
       
-      // Remove the code parameter from URL without page reload
       urlParams.delete('code');
       urlParams.delete('ref');
       const newUrl = window.location.pathname + (urlParams.toString() ? `?${urlParams.toString()}` : '');
@@ -123,4 +146,4 @@ export const getReferralCodeInfo = () => {
     hasCode,
     isNew: false // This will be set by the component when processing new codes
   };
-}; 
+};

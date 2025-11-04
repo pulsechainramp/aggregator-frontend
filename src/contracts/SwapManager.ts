@@ -1,11 +1,15 @@
 import Web3 from "web3";
 import { AbiItem } from "web3-utils";
-import SwapManagerABI from "../abis/SwapManager.json";
+import AffiliateRouterArtifact from "../abis/SwapManager.json";
 import ERC20ABI from "../abis/ERC20.json";
 import { QuoteType, TokenType } from "../types/Swap";
 import { PulseChainConfig } from "../config/chainConfig";
 import { AffiliateRouterAddress } from "../const/swap";
 import { BigNumberish, ethers, ZeroAddress } from "ethers";
+
+const AffiliateRouterABI =
+  (AffiliateRouterArtifact as { abi: AbiItem[] }).abi ||
+  (AffiliateRouterArtifact as unknown as AbiItem[]);
 
 export interface ApprovalParams {
   tokenAddress: string;
@@ -31,6 +35,20 @@ export interface ReferralClaimParams {
 export interface UpdateFeeBasisPointsParams {
   newFeeBasisPoints: string;
   account: string;
+}
+
+export interface ReferralPromoData {
+  firstReferrer: string | null;
+  boundAt: bigint;
+  promoBps: number;
+  promoRemaining: number;
+}
+
+export interface ReferralConstants {
+  maxPromoBps: number;
+  tailBps: number;
+  defaultReferrer: string | null;
+  defaultReferrerBps: number | null;
 }
 
 export const getWeb3 = () =>
@@ -71,7 +89,7 @@ export const initializeSwapManager = () => {
   try {
     const web3 = getProvider();
     const swapManagerContract = new web3.eth.Contract(
-      SwapManagerABI as unknown as AbiItem[],
+      AffiliateRouterABI as unknown as AbiItem[],
       AffiliateRouterAddress
     );
 
@@ -231,7 +249,7 @@ export const executeSwap = async (params: SwapParams): Promise<any> => {
     const { quote, value, account, fromToken, referrerAddress } = params;
     const web3 = getProvider(); // Use wallet provider for transactions
     const swapManagerContract = new web3.eth.Contract(
-      SwapManagerABI as unknown as AbiItem[],
+      AffiliateRouterABI as unknown as AbiItem[],
       AffiliateRouterAddress
     );
 
@@ -248,8 +266,6 @@ export const executeSwap = async (params: SwapParams): Promise<any> => {
     if (isNativeToken(fromToken.address) && value && value !== "0") {
       txParams.value = value;
     }
-
-    console.log("referrerCode", referrerCode);
 
     // Execute swap transaction with referral code
     const transaction = await swapManagerContract.methods
@@ -275,7 +291,7 @@ export const updateFeeBasisPoints = async (
     const { newFeeBasisPoints, account } = params;
     const web3 = getProvider(); // Use wallet provider for transactions
     const swapManagerContract = new web3.eth.Contract(
-      SwapManagerABI as unknown as AbiItem[],
+      AffiliateRouterABI as unknown as AbiItem[],
       AffiliateRouterAddress
     );
     console.log(newFeeBasisPoints, account);
@@ -303,7 +319,7 @@ export const getFeeBasisPoints = async (
   try {
     const web3 = getWeb3(); // Use public RPC for read operations
     const swapManagerContract = new web3.eth.Contract(
-      SwapManagerABI as unknown as AbiItem[],
+      AffiliateRouterABI as unknown as AbiItem[],
       AffiliateRouterAddress
     );
 
@@ -318,6 +334,70 @@ export const getFeeBasisPoints = async (
   }
 };
 
+export const getReferralPromo = async (
+  userAddress: string
+): Promise<ReferralPromoData> => {
+  try {
+    const web3 = getWeb3();
+    const swapManagerContract = new web3.eth.Contract(
+      AffiliateRouterABI as unknown as AbiItem[],
+      AffiliateRouterAddress
+    );
+
+    const promo = await swapManagerContract.methods
+      .referral(userAddress)
+      .call();
+
+    const rawFirstReferrer = promo.firstReferrer as string;
+    const firstReferrer =
+      rawFirstReferrer &&
+      rawFirstReferrer.toLowerCase() !== ethers.ZeroAddress.toLowerCase()
+        ? rawFirstReferrer
+        : null;
+
+    return {
+      firstReferrer,
+      boundAt: BigInt(promo.boundAt ?? 0),
+      promoBps: Number(promo.promoBps ?? 0),
+      promoRemaining: Number(promo.promoRemaining ?? 0),
+    };
+  } catch (error) {
+    console.error("Failed to fetch referral promo:", error);
+    throw new Error("Failed to fetch referral promo");
+  }
+};
+
+export const getPromoConstants = async (): Promise<ReferralConstants> => {
+  try {
+    const web3 = getWeb3();
+    const swapManagerContract = new web3.eth.Contract(
+      AffiliateRouterABI as unknown as AbiItem[],
+      AffiliateRouterAddress
+    );
+
+    const [maxPromo, tail, defaultReferrer, defaultReferrerBps] = await Promise.all([
+      swapManagerContract.methods.MAX_PROMO_BPS().call(),
+      swapManagerContract.methods.TAIL_BPS().call(),
+      swapManagerContract.methods.defaultReferrer().call(),
+      swapManagerContract.methods.defaultReferrerBasisPoints().call(),
+    ]);
+
+    return {
+      maxPromoBps: Number(maxPromo),
+      tailBps: Number(tail),
+      defaultReferrer:
+        defaultReferrer &&
+        defaultReferrer.toLowerCase() !== ethers.ZeroAddress.toLowerCase()
+          ? defaultReferrer
+          : null,
+      defaultReferrerBps: Number(defaultReferrerBps ?? 0),
+    };
+  } catch (error) {
+    console.error("Failed to fetch promo constants:", error);
+    throw new Error("Failed to fetch promo constants");
+  }
+};
+
 /**
  * Get referrer earnings for multiple tokens
  */
@@ -328,7 +408,7 @@ export const getReferrerEarnings = async (
   try {
     const web3 = getWeb3(); // Use public RPC for read operations
     const swapManagerContract = new web3.eth.Contract(
-      SwapManagerABI as unknown as AbiItem[],
+      AffiliateRouterABI as unknown as AbiItem[],
       AffiliateRouterAddress
     );
 
@@ -379,7 +459,7 @@ export const withdrawReferralEarnings = async (
     const { tokens, account } = params;
     const web3 = getProvider(); // Use wallet provider for transactions
     const swapManagerContract = new web3.eth.Contract(
-      SwapManagerABI as unknown as AbiItem[],
+      AffiliateRouterABI as unknown as AbiItem[],
       AffiliateRouterAddress
     );
 
@@ -487,6 +567,10 @@ export const createSwapManager = () => {
 
     updateFeeBasisPoints: (params: UpdateFeeBasisPointsParams) =>
       updateFeeBasisPoints(params),
+
+    getReferralPromo: (userAddress: string) => getReferralPromo(userAddress),
+
+    getPromoConstants: () => getPromoConstants(),
 
     getReferrerEarnings: (referrerAddress: string, tokens: string[]) =>
       getReferrerEarnings(referrerAddress, tokens),

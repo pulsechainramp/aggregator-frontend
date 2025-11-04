@@ -10,7 +10,6 @@ import {
   useReferralAddress,
   useReferralCode,
   useReferralFeeBasisPoints,
-  useReferralFeeBasisPointsLoading,
   useReferralLoading,
   useReferrerFeeBasisPoints,
 } from "../store/hooks";
@@ -23,10 +22,8 @@ import {
 } from "../store/referralSlice";
 import {
   extractAndSaveReferralCode,
-  formatFeeBasisPoints,
   getStoredReferralCode,
   hasReferralCodeInUrl,
-  isSelfReferral,
 } from "../utils/referralUtils";
 import { useTheme } from "../theme/ThemeProvider";
 
@@ -49,7 +46,6 @@ const Header = () => {
   const referralLoading = useReferralLoading();
   const referralAddressData = useReferralAddress();
   const referralFeeBasisPoints = useReferralFeeBasisPoints();
-  const referralFeeBasisPointsLoading = useReferralFeeBasisPointsLoading();
   const referrerFeeBasisPoints = useReferrerFeeBasisPoints();
   const { theme, toggleTheme } = useTheme();
 
@@ -62,46 +58,58 @@ const Header = () => {
     location.pathname === path ||
     (path === "/bridge" && location.pathname === "/");
 
+  const lastFetchedReferralCode = useRef<string | null>(null);
+
   useEffect(() => {
+    let nextCode: string | null = null;
+
     if (hasReferralCodeInUrl()) {
-      const extractedCode = extractAndSaveReferralCode();
-      if (extractedCode) {
-        dispatch(fetchReferralAddress(extractedCode));
-      }
+      nextCode = extractAndSaveReferralCode();
     } else {
-      const storedCode = getStoredReferralCode();
-      if (storedCode && !referralAddressData) {
-        dispatch(fetchReferralAddress(storedCode));
-      }
+      nextCode = getStoredReferralCode();
     }
-  }, [dispatch, referralAddressData]);
+
+    if (nextCode && lastFetchedReferralCode.current !== nextCode) {
+      lastFetchedReferralCode.current = nextCode;
+      dispatch(fetchReferralAddress(nextCode));
+    }
+
+    if (!nextCode) {
+      lastFetchedReferralCode.current = null;
+    }
+  }, [dispatch, location.search]);
 
   useEffect(() => {
     if (account) {
       dispatch(fetchReferralCode(account));
     } else {
       dispatch(clearReferralCode());
+      lastFetchedReferralCode.current = null;
     }
 
     return () => {
       dispatch(clearReferralCode());
+      lastFetchedReferralCode.current = null;
     };
   }, [account, dispatch]);
 
-  useEffect(() => {
-    if (
-      referralAddressData &&
-      !referralFeeBasisPoints
-    ) {
-      dispatch(fetchReferralFeeBasisPoints(referralAddressData.address));
-    }
-  }, [dispatch, referralAddressData, referralFeeBasisPoints]);
+  const lastReferrerLookup = useRef<string | null>(null);
 
   useEffect(() => {
-    if (referralAddressData && !referrerFeeBasisPoints) {
-      dispatch(fetchReferrerFeeBasisPoints(referralAddressData.address));
+    if (!referralAddressData?.address) {
+      lastReferrerLookup.current = null;
+      return;
     }
-  }, [dispatch, referralAddressData, referrerFeeBasisPoints]);
+
+    const normalized = referralAddressData.address.toLowerCase();
+    if (lastReferrerLookup.current === normalized) {
+      return;
+    }
+
+    lastReferrerLookup.current = normalized;
+    dispatch(fetchReferralFeeBasisPoints(referralAddressData.address));
+    dispatch(fetchReferrerFeeBasisPoints(referralAddressData.address));
+  }, [dispatch, referralAddressData]);
 
   useEffect(() => {
     if (!showDropdown) {
@@ -271,33 +279,6 @@ const Header = () => {
                               : "No referral code available"}
                           </span>
                         </button>
-
-                        {referralAddressData &&
-                          account &&
-                          !isSelfReferral(account, referralAddressData.address) && (
-                            <div className="rounded-lg border border-border bg-primary-050/60 px-4 py-3">
-                              <p className="text-xs font-semibold text-primary">
-                                Referred by
-                              </p>
-                              <p className="mt-1 font-mono text-sm text-text">
-                                {referralAddressData.address.slice(0, 6)}...
-                                {referralAddressData.address.slice(-4)}
-                              </p>
-                              <p className="text-xs text-text-muted">
-                                Code: {referralAddressData.referralCode}
-                              </p>
-                              {referralFeeBasisPointsLoading ? (
-                                <p className="mt-1 text-xs text-text-muted">
-                                  Loading fee...
-                                </p>
-                              ) : referrerFeeBasisPoints ? (
-                                <p className="mt-1 text-xs font-medium text-text">
-                                  Fee:{" "}
-                                  {formatFeeBasisPoints(referrerFeeBasisPoints)}
-                                </p>
-                              ) : null}
-                            </div>
-                          )}
 
                         <Link
                           to="/referrals"
