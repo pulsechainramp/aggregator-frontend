@@ -392,11 +392,17 @@ export const getPulseXQuote = createAsyncThunk<
     allowedSlippage,
     fromDecimal,
   }) => {
+    const params = new URLSearchParams({
+      tokenInAddress,
+      tokenOutAddress,
+      amount: ethers
+        .parseUnits(amount.toString(), fromDecimal)
+        .toString(),
+      allowedSlippage: allowedSlippage.toString(),
+      fromDecimal: fromDecimal.toString(),
+    });
     const response = await fetch(
-      `${BackendURL}quote/pulsex?tokenInAddress=${tokenInAddress}&tokenOutAddress=${tokenOutAddress}&amount=${ethers.parseUnits(
-        amount.toString(),
-        fromDecimal
-      )}&allowedSlippage=${allowedSlippage}&fromDecimal=${fromDecimal}`
+      `${BackendURL}quote/pulsex?${params.toString()}`
     );
     const payload = await response.json();
 

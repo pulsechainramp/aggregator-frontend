@@ -239,8 +239,12 @@ export const fetchTokens = createAsyncThunk(
     verified?: boolean;
   }) => {
     try {
+      const params = new URLSearchParams({
+        chainId: chainId.toString(),
+        verified: verified ? "true" : "false",
+      });
       const response = await fetch(
-        `${BackendURL}exchange/omnibridge/currencies?chainId=${chainId}&verified=${verified}`
+        `${BackendURL}exchange/omnibridge/currencies?${params.toString()}`
       );
 
       if (!response.ok) {
@@ -388,8 +392,13 @@ export const fetchBridgeEstimate = createAsyncThunk(
     amount: string;
   }) => {
     try {
+      const params = new URLSearchParams({
+        tokenAddress,
+        networkId: networkId.toString(),
+        amount,
+      });
       const response = await fetch(
-        `${BackendURL}exchange/omnibridge/estimate?tokenAddress=${tokenAddress}&networkId=${networkId}&amount=${amount}`
+        `${BackendURL}exchange/omnibridge/estimate?${params.toString()}`
       );
 
       if (!response.ok) {
@@ -476,7 +485,7 @@ export const pollBridgeTransactionStatus = createAsyncThunk(
   async (messageId: string) => {
     try {
       const response = await fetch(
-        `${BackendURL}exchange/omnibridge/transaction/${messageId}`
+        `${BackendURL}exchange/omnibridge/transaction/${encodeURIComponent(messageId)}`
       );
 
       if (!response.ok) {

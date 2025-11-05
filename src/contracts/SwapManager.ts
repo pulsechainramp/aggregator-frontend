@@ -234,7 +234,11 @@ export const approveToken = async (params: ApprovalParams): Promise<any> => {
 
     await waitForTransaction(transaction.transactionHash, 1);
 
-    return transaction;
+    return {
+      transactionHash: transaction.transactionHash,
+      blockNumber: Number(transaction.blockNumber ?? 0),
+      newFeeBasisPoints,
+    };
   } catch (error) {
     console.error("Approval failed:", error);
     throw new Error("Token approval failed");
@@ -294,16 +298,16 @@ export const updateFeeBasisPoints = async (
       AffiliateRouterABI as unknown as AbiItem[],
       AffiliateRouterAddress
     );
-    console.log(newFeeBasisPoints, account);
-
     // Execute fee basis points update transaction
     const transaction = await swapManagerContract.methods
       .updateFeeBasisPoints(newFeeBasisPoints)
       .send({ from: account });
 
-    await waitForTransaction(transaction.transactionHash, 1);
-
-    return transaction;
+    return {
+      transactionHash: transaction.transactionHash,
+      blockNumber: Number(transaction.blockNumber ?? 0),
+      newFeeBasisPoints,
+    };
   } catch (error) {
     console.error("Fee basis points update failed:", error);
     throw new Error("Fee basis points update failed");
@@ -420,6 +424,67 @@ export const getReferrerEarnings = async (
   } catch (error) {
     console.error("Failed to get referrer earnings:", error);
     throw new Error("Failed to fetch referrer earnings");
+  }
+};
+
+export const getReferralCreationFee = async (): Promise<string> => {
+  try {
+    const web3 = getWeb3();
+    const swapManagerContract = new web3.eth.Contract(
+      AffiliateRouterABI as unknown as AbiItem[],
+      AffiliateRouterAddress
+    );
+
+    const fee: string = await swapManagerContract.methods
+      .referralCreationFee()
+      .call();
+
+    return fee.toString();
+  } catch (error) {
+    console.error("Failed to fetch referral creation fee:", error);
+    throw new Error("Failed to fetch referral creation fee");
+  }
+};
+
+export const hasPaidReferralCreationFee = async (
+  address: string
+): Promise<boolean> => {
+  try {
+    const web3 = getWeb3();
+    const swapManagerContract = new web3.eth.Contract(
+      AffiliateRouterABI as unknown as AbiItem[],
+      AffiliateRouterAddress
+    );
+
+    const result: boolean = await swapManagerContract.methods
+      .hasPaidReferralCreationFee(address)
+      .call();
+
+    return Boolean(result);
+  } catch (error) {
+    console.error("Failed to check referral creation fee status:", error);
+    throw new Error("Failed to check referral creation fee status");
+  }
+};
+
+export const payReferralCreationFee = async (params: {
+  account: string;
+  value: string;
+}) => {
+  try {
+    const { swapManagerContract } = initializeSwapManager();
+
+    const transaction = await swapManagerContract.methods
+      .payReferralCreationFee()
+      .send({ from: params.account, value: params.value });
+
+    return {
+      transactionHash: transaction.transactionHash,
+      blockNumber: Number(transaction.blockNumber ?? 0),
+    };
+  } catch (error) {
+    console.error("Referral creation fee payment failed:", error);
+    throw new Error("Referral creation fee payment failed");
   }
 };
 
@@ -576,6 +641,11 @@ export const createSwapManager = () => {
       getReferrerEarnings(referrerAddress, tokens),
 
     getTokenDecimals: (tokenAddress: string) => getTokenDecimals(tokenAddress),
+
+    getReferralCreationFee: () => getReferralCreationFee(),
+    hasPaidReferralCreationFee: (address: string) => hasPaidReferralCreationFee(address),
+    payReferralCreationFee: (params: { account: string; value: string }) =>
+      payReferralCreationFee(params),
 
     // Utility functions
     getTransactionReceipt: (txHash: string) => getTransactionReceipt(txHash),

@@ -70,8 +70,13 @@ export const fetchUserTransactions = createAsyncThunk(
   "activity/fetchUserTransactions",
   async (userAddress: string) => {
     try {
+      const params = new URLSearchParams({
+        userAddress,
+        limit: "50",
+        offset: "0",
+      });
       const response = await fetch(
-        `${BackendURL}exchange/omnibridge/transactions?userAddress=${userAddress}&limit=50&offset=0`
+        `${BackendURL}exchange/omnibridge/transactions?${params.toString()}`
       );
 
       if (!response.ok) {
@@ -117,7 +122,7 @@ export const fetchTransactionStatus = createAsyncThunk(
   async (messageId: string) => {
     try {
       const response = await fetch(
-        `${BackendURL}exchange/omnibridge/transaction/${messageId}`
+        `${BackendURL}exchange/omnibridge/transaction/${encodeURIComponent(messageId)}`
       );
 
       if (!response.ok) {

@@ -10,11 +10,20 @@ import {
   useReferralClaiming,
   useReferralFeeBasisPoints,
   useReferralFeeBasisPointsLoading,
+  useReferralState,
 } from "../../store/hooks";
 import {
   fetchReferralFees,
   claimReferralEarnings,
   ReferralFee,
+  fetchReferralCode,
+  fetchReferralFeeBasisPoints,
+  fetchReferralCreationFeeInfo,
+  checkReferralCreationFeePaid,
+  requestSiweChallenge,
+  verifySiweSignature,
+  createReferralCodeSecure,
+  submitReferralCreationFeePayment,
 } from "../../store/referralSlice";
 import { getAvailableTokensFromChain } from "../../store/swapSlice";
 import { toast } from "react-toastify";
@@ -22,15 +31,12 @@ import { TokenType } from "../../types/Swap";
 import AddToWalletButton from "../../components/AddToWalletButton";
 import CustomConnectButton from "../../components/CustomConnectButton";
 import ReferralFeePopup from "../Swap/ReferralFeePopup";
-import {
-  fetchReferralCode,
-  fetchReferralFeeBasisPoints,
-} from "../../store/referralSlice";
 import { formatFeeBasisPoints } from "../../utils/referralUtils";
 import { BackendURL } from "../../const/swap";
+import { BrowserProvider, formatEther } from "ethers";
 
 const Referrals: React.FC = () => {
-  const { account } = useWallet();
+  const { account, wallet } = useWallet();
   const dispatch = useAppDispatch();
   const referralCode = useReferralCode();
   const referralFees = useReferralFees();
@@ -42,6 +48,18 @@ const Referrals: React.FC = () => {
   const [isFeePopupOpen, setIsFeePopupOpen] = useState(false);
   const referralFeeBasisPoints = useReferralFeeBasisPoints();
   const feeBasisPointsLoading = useReferralFeeBasisPointsLoading();
+  const {
+    creationFeeInfo,
+    creationFeeLoading,
+    hasPaidCreationFee,
+    checkingCreationFee,
+    payingCreationFee,
+    authToken,
+    siweLoading,
+    authenticating,
+    creatingReferralCode,
+    paymentRequired,
+  } = useReferralState();
 
   useLayoutEffect(() => {
     if (typeof window === "undefined") return;
@@ -64,12 +82,31 @@ const Referrals: React.FC = () => {
     };
   }, []);
 
+  useEffect(() => {
+    dispatch(fetchReferralCreationFeeInfo());
+  }, [dispatch]);
+
   // Check if referral code is available
   useEffect(() => {
     if (account && !referralCode) {
       dispatch(fetchReferralCode(account));
     }
   }, [account, referralCode, dispatch]);
+
+  useEffect(() => {
+    if (!account || !creationFeeInfo?.fee) {
+      return;
+    }
+
+    try {
+      const feeValue = BigInt(creationFeeInfo.fee);
+      if (feeValue > 0n) {
+        dispatch(checkReferralCreationFeePaid(account));
+      }
+    } catch (feeError) {
+      console.error("Failed to parse referral creation fee:", feeError);
+    }
+  }, [account, creationFeeInfo, dispatch]);
 
   // Calculate total earnings from Redux state
   const totalEarnings = useMemo(() => {
@@ -122,6 +159,91 @@ const Referrals: React.FC = () => {
     };
   }, [error]);
 
+  const signSiweMessage = async (message: string) => {
+    if (!wallet?.provider) {
+      throw new Error("Wallet provider not available");
+    }
+
+    const provider = new BrowserProvider(wallet.provider as any);
+    const signer = await provider.getSigner();
+    return await signer.signMessage(message);
+  };
+
+  const handlePayCreationFee = async () => {
+    if (!account) {
+      toast.error("Please connect your wallet");
+      return;
+    }
+
+    try {
+      await dispatch(submitReferralCreationFeePayment({ account })).unwrap();
+      await dispatch(checkReferralCreationFeePaid(account));
+      toast.success("Referral creation fee paid");
+    } catch (err: any) {
+      const message =
+        typeof err === "string"
+          ? err
+          : err?.message || "Failed to pay referral creation fee";
+      toast.error(message);
+    }
+  };
+
+  const handleGenerateReferralCode = async () => {
+    if (!account) {
+      toast.error("Please connect your wallet");
+      return;
+    }
+
+    try {
+      let feeInfo = creationFeeInfo;
+      if (!feeInfo) {
+        feeInfo = await dispatch(fetchReferralCreationFeeInfo()).unwrap();
+      }
+
+      if (feeInfo && BigInt(feeInfo.fee) > 0n && !hasPaidCreationFee) {
+        toast.error("Please pay the referral creation fee before continuing");
+        return;
+      }
+
+      let token = authToken;
+
+      if (!token) {
+        const challenge = await dispatch(requestSiweChallenge(account)).unwrap();
+        const signature = await signSiweMessage(challenge.message);
+        const verification = await dispatch(
+          verifySiweSignature({ message: challenge.message, signature })
+        ).unwrap();
+        token = verification.token;
+      }
+
+      if (!token) {
+        throw new Error("Authentication failed");
+      }
+
+      await dispatch(
+        createReferralCodeSecure({ address: account.toLowerCase(), token })
+      ).unwrap();
+
+      toast.success("Referral code created");
+      dispatch(fetchReferralCode(account));
+    } catch (err: any) {
+      if (err?.type === "PAYMENT_REQUIRED") {
+        try {
+          const feeDisplay = formatEther(BigInt(err.fee));
+          toast.error(`Pay ${feeDisplay} PLS to unlock referrals`);
+        } catch (parseError) {
+          toast.error("Referral creation fee payment required");
+        }
+        return;
+      }
+
+      const message =
+        typeof err === "string"
+          ? err
+          : err?.message || "Failed to create referral code";
+      toast.error(message);
+    }
+  };
   const handleClaim = async (fee: ReferralFee) => {
     try {
       if (!account) {
@@ -241,6 +363,38 @@ const Referrals: React.FC = () => {
     return backend || origin;
   }, []);
 
+  const creationFee = useMemo(() => {
+    if (!creationFeeInfo?.fee) {
+      return null;
+    }
+
+    try {
+      const value = BigInt(creationFeeInfo.fee);
+      return {
+        value,
+        formatted: formatEther(value),
+      };
+    } catch (err) {
+      console.error("Failed to parse creation fee:", err);
+      return null;
+    }
+  }, [creationFeeInfo]);
+
+  const requiresPayment = creationFee ? creationFee.value > 0n : false;
+  const paymentRequiredDisplay = useMemo(() => {
+    if (!paymentRequired?.fee) {
+      return null;
+    }
+
+    try {
+      return formatEther(BigInt(paymentRequired.fee));
+    } catch (err) {
+      console.error("Failed to parse payment required fee:", err);
+      return paymentRequired.fee;
+    }
+  }, [paymentRequired]);
+
+
   const filteredReferralFees = referralFees.filter(
     (fee) => Number(fee.amount) > 0
   );
@@ -295,7 +449,11 @@ const Referrals: React.FC = () => {
         <section className="mb-6 rounded-2xl border border-border bg-bg-surface p-4">
           <h2 className="text-text font-semibold mb-2">Your referral link</h2>
 
-          {account ? (
+          {!account ? (
+            <p className="text-text-muted text-sm">
+              Connect your wallet to get your referral link.
+            </p>
+          ) : referralCode ? (
             <div className="flex flex-col gap-2">
               <div className="flex gap-2">
                 <input
@@ -330,9 +488,69 @@ const Referrals: React.FC = () => {
               </div>
             </div>
           ) : (
-            <p className="text-text-muted text-sm">
-              Connect your wallet to get your referral link.
-            </p>
+            <div className="space-y-4">
+              <p className="text-sm text-text-muted">
+                {creationFeeLoading
+                  ? "Checking one-time creation fee..."
+                  : creationFee
+                  ? requiresPayment
+                    ? `A one-time fee of ${creationFee.formatted} PLS is required to generate your referral code.`
+                    : "Sign in to generate your referral code."
+                  : "Unable to determine the referral creation fee. Please try again."}
+              </p>
+              {paymentRequired && (
+                <div className="rounded-lg border border-border bg-bg-raised px-4 py-3 text-sm text-text">
+                  Wallet payment required. Pay {paymentRequiredDisplay ?? paymentRequired.fee} PLS to {paymentRequired.contractAddress} and try again.
+                </div>
+              )}
+              <div className="flex flex-col gap-3 sm:flex-row">
+                {requiresPayment && (
+                  <button
+                    onClick={handlePayCreationFee}
+                    disabled={
+                      payingCreationFee ||
+                      checkingCreationFee ||
+                      hasPaidCreationFee === true
+                    }
+                    className="rounded-lg border border-primary bg-primary px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-primary-600 disabled:cursor-not-allowed disabled:border-border disabled:bg-border disabled:text-text-muted"
+                  >
+                    {payingCreationFee
+                      ? "Paying..."
+                      : hasPaidCreationFee === true
+                      ? "Paid"
+                      : `Pay ${creationFee?.formatted ?? ""} PLS`}
+                  </button>
+                )}
+                <button
+                  onClick={handleGenerateReferralCode}
+                  disabled={
+                    creatingReferralCode ||
+                    siweLoading ||
+                    authenticating ||
+                    (requiresPayment && hasPaidCreationFee !== true)
+                  }
+                  className="rounded-lg border border-success bg-success px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-success/80 disabled:cursor-not-allowed disabled:border-border disabled:bg-border disabled:text-text-muted"
+                >
+                  {creatingReferralCode || siweLoading || authenticating
+                    ? "Processing..."
+                    : requiresPayment
+                    ? hasPaidCreationFee
+                      ? "Authenticate & Create"
+                      : "Pay fee to continue"
+                    : "Authenticate & Create"}
+                </button>
+              </div>
+              {checkingCreationFee && (
+                <p className="text-xs text-text-muted">
+                  Confirming fee payment on-chain...
+                </p>
+              )}
+              {requiresPayment && hasPaidCreationFee && (
+                <p className="text-xs text-success">
+                  Payment detected. You can sign to generate your referral code.
+                </p>
+              )}
+            </div>
           )}
         </section>
 
@@ -504,6 +722,9 @@ const Referrals: React.FC = () => {
 };
 
 export default Referrals;
+
+
+
 
 
 

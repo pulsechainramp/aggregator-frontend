@@ -8,6 +8,9 @@ import {
   getTokenDecimals,
   getReferralPromo,
   getPromoConstants,
+  getReferralCreationFee,
+  hasPaidReferralCreationFee,
+  payReferralCreationFee,
 } from "../contracts/SwapManager";
 import { ethers } from "ethers";
 import { lockReferralBinding } from "../utils/referralUtils";
@@ -25,6 +28,21 @@ interface ReferralAddress {
   referralCode: string;
   createdAt: string;
 }
+
+interface ReferralCreationFeeInfo {
+  fee: string;
+  contractAddress: string;
+}
+
+interface SiweChallenge {
+  message: string;
+  nonce: string;
+}
+
+type CreateReferralCodeError =
+  | ({ type: "PAYMENT_REQUIRED" } & ReferralCreationFeeInfo)
+  | { type: "UNAUTHORIZED"; message: string }
+  | { type: "UNKNOWN"; message: string };
 
 export interface ReferralFee {
   id: string;
@@ -59,6 +77,17 @@ interface ReferralState {
   tailBps: number | null;
   defaultReferrer: string | null;
   defaultReferrerBps: number | null;
+  authToken: string | null;
+  siweChallenge: SiweChallenge | null;
+  siweLoading: boolean;
+  authenticating: boolean;
+  creationFeeInfo: ReferralCreationFeeInfo | null;
+  creationFeeLoading: boolean;
+  hasPaidCreationFee: boolean | null;
+  checkingCreationFee: boolean;
+  payingCreationFee: boolean;
+  creatingReferralCode: boolean;
+  paymentRequired: ReferralCreationFeeInfo | null;
 }
 
 const initialState: ReferralState = {
@@ -83,30 +112,47 @@ const initialState: ReferralState = {
   tailBps: null,
   defaultReferrer: null,
   defaultReferrerBps: null,
+  authToken: null,
+  siweChallenge: null,
+  siweLoading: false,
+  authenticating: false,
+  creationFeeInfo: null,
+  creationFeeLoading: false,
+  hasPaidCreationFee: null,
+  checkingCreationFee: false,
+  payingCreationFee: false,
+  creatingReferralCode: false,
+  paymentRequired: null,
 };
 
 // Async thunk for fetching referral code
-export const fetchReferralCode = createAsyncThunk(
-  "referral/fetchReferralCode",
-  async (address: string) => {
-    const response = await fetch(
-      `${BackendURL}referral/code?address=${address}`
-    );
-    if (!response.ok) {
-      throw new Error("Failed to fetch referral code");
-    }
-    const data = await response.json();
-    return data as ReferralCode;
+export const fetchReferralCode = createAsyncThunk<
+  ReferralCode | null,
+  string
+>("referral/fetchReferralCode", async (address: string) => {
+  const params = new URLSearchParams({ address });
+  const response = await fetch(`${BackendURL}referral/code?${params.toString()}`);
+
+  if (response.status === 404) {
+    return null;
   }
-);
+
+  if (!response.ok) {
+    throw new Error("Failed to fetch referral code");
+  }
+
+  const data = await response.json();
+  return data as ReferralCode;
+});
 
 // Async thunk for fetching referral address data
 export const fetchReferralAddress = createAsyncThunk(
   "referral/fetchReferralAddress",
   async (referralCode: string) => {
     try {
+      const params = new URLSearchParams({ referralCode });
       const response = await fetch(
-        `${BackendURL}referral/address?referralCode=${referralCode}`
+        `${BackendURL}referral/address?${params.toString()}`
       );
 
       if (response.status === 404) {
@@ -125,6 +171,123 @@ export const fetchReferralAddress = createAsyncThunk(
     }
   }
 );
+
+export const fetchReferralCreationFeeInfo = createAsyncThunk(
+  "referral/fetchReferralCreationFeeInfo",
+  async () => {
+    const response = await fetch(`${BackendURL}referral/creation-fee`);
+    if (!response.ok) {
+      throw new Error("Failed to fetch referral creation fee");
+    }
+    const data = await response.json();
+    return data as ReferralCreationFeeInfo;
+  }
+);
+
+export const checkReferralCreationFeePaid = createAsyncThunk<
+  boolean,
+  string
+>("referral/checkReferralCreationFeePaid", async (address: string) => {
+  return await hasPaidReferralCreationFee(address);
+});
+
+export const submitReferralCreationFeePayment = createAsyncThunk<
+  void,
+  { account: string },
+  { rejectValue: string }
+>("referral/submitReferralCreationFeePayment", async ({ account }, thunkAPI) => {
+  try {
+    const fee = await getReferralCreationFee();
+    if (fee === "0") {
+      return;
+    }
+    await payReferralCreationFee({ account, value: fee });
+  } catch (error: any) {
+    const message =
+      error?.message ?? "Failed to pay referral creation fee";
+    return thunkAPI.rejectWithValue(message);
+  }
+});
+
+export const requestSiweChallenge = createAsyncThunk<
+  SiweChallenge,
+  string
+>("referral/requestSiweChallenge", async (address: string) => {
+  const params = new URLSearchParams({ address });
+  const response = await fetch(`${BackendURL}auth/challenge?${params.toString()}`);
+  if (!response.ok) {
+    throw new Error("Failed to request SIWE challenge");
+  }
+  const data = await response.json();
+  return data as SiweChallenge;
+});
+
+export const verifySiweSignature = createAsyncThunk<
+  { token: string; address: string },
+  { message: string; signature: string }
+>("referral/verifySiweSignature", async ({ message, signature }) => {
+  const response = await fetch(`${BackendURL}auth/verify`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ message, signature }),
+  });
+
+  if (!response.ok) {
+    throw new Error("Failed to verify SIWE signature");
+  }
+
+  const data = await response.json();
+  return data as { token: string; address: string };
+});
+
+export const createReferralCodeSecure = createAsyncThunk<
+  ReferralCode,
+  { address: string; token: string },
+  { rejectValue: CreateReferralCodeError }
+>("referral/createReferralCodeSecure", async ({ address, token }, thunkAPI) => {
+  const idempotencyKey =
+    typeof crypto !== "undefined" && crypto.randomUUID
+      ? crypto.randomUUID()
+      : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+
+  const response = await fetch(`${BackendURL}referral/code`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+      "X-Idempotency-Key": idempotencyKey,
+    },
+    body: JSON.stringify({ address }),
+  });
+
+  if (response.status === 402) {
+    const data = await response.json();
+    return thunkAPI.rejectWithValue({
+      type: "PAYMENT_REQUIRED",
+      fee: data.fee,
+      contractAddress: data.contractAddress,
+    });
+  }
+
+  if (response.status === 401) {
+    return thunkAPI.rejectWithValue({
+      type: "UNAUTHORIZED",
+      message: "Unauthorized",
+    });
+  }
+
+  if (!response.ok) {
+    return thunkAPI.rejectWithValue({
+      type: "UNKNOWN",
+      message: "Failed to create referral code",
+    });
+  }
+
+  const data = await response.json();
+  return data as ReferralCode;
+});
 
 export const fetchReferralPromo = createAsyncThunk(
   "referral/fetchReferralPromo",
@@ -155,8 +318,9 @@ export const fetchPromoConstants = createAsyncThunk(
 export const fetchReferralFees = createAsyncThunk(
   "referral/fetchReferralFees",
   async (referrerAddress: string) => {
+    const encodedReferrer = encodeURIComponent(referrerAddress);
     const response = await fetch(
-      `${BackendURL}referral-fees/referrer/${referrerAddress}`
+      `${BackendURL}referral-fees/referrer/${encodedReferrer}`
     );
     if (!response.ok) {
       throw new Error("Failed to fetch referral fees");
@@ -171,7 +335,6 @@ export const fetchReferralFees = createAsyncThunk(
     const tokens = fees.map((fee: ReferralFee) => fee.token);
 
     const earnings = await getReferrerEarnings(referrerAddress, tokens);
-    console.log("earnings", earnings);
 
     const formattedFees = await Promise.all(
       fees.map(async (fee: ReferralFee, index: number) => {
@@ -270,11 +433,15 @@ const referralSlice = createSlice({
       .addCase(fetchReferralCode.pending, (state) => {
         state.loading = true;
         state.error = null;
+        state.paymentRequired = null;
       })
       .addCase(fetchReferralCode.fulfilled, (state, action) => {
         state.loading = false;
         state.referralCode = action.payload;
         state.error = null;
+        if (action.payload) {
+          state.paymentRequired = null;
+        }
       })
       .addCase(fetchReferralCode.rejected, (state, action) => {
         state.loading = false;
@@ -308,6 +475,105 @@ const referralSlice = createSlice({
       .addCase(fetchReferralFees.rejected, (state, action) => {
         state.loading = false;
         state.error = action.error.message || "Failed to fetch referral fees";
+      })
+      .addCase(fetchReferralCreationFeeInfo.pending, (state) => {
+        state.creationFeeLoading = true;
+        state.error = null;
+      })
+      .addCase(fetchReferralCreationFeeInfo.fulfilled, (state, action) => {
+        state.creationFeeLoading = false;
+        state.creationFeeInfo = action.payload;
+      })
+      .addCase(fetchReferralCreationFeeInfo.rejected, (state, action) => {
+        state.creationFeeLoading = false;
+        state.error =
+          action.error.message || "Failed to fetch referral creation fee";
+      })
+      .addCase(checkReferralCreationFeePaid.pending, (state) => {
+        state.checkingCreationFee = true;
+      })
+      .addCase(checkReferralCreationFeePaid.fulfilled, (state, action) => {
+        state.checkingCreationFee = false;
+        state.hasPaidCreationFee = action.payload;
+        if (action.payload) {
+          state.paymentRequired = null;
+        }
+      })
+      .addCase(checkReferralCreationFeePaid.rejected, (state, action) => {
+        state.checkingCreationFee = false;
+        state.error =
+          action.error.message || "Failed to check referral creation fee";
+      })
+      .addCase(submitReferralCreationFeePayment.pending, (state) => {
+        state.payingCreationFee = true;
+        state.error = null;
+      })
+      .addCase(submitReferralCreationFeePayment.fulfilled, (state) => {
+        state.payingCreationFee = false;
+        state.hasPaidCreationFee = true;
+        state.paymentRequired = null;
+      })
+      .addCase(submitReferralCreationFeePayment.rejected, (state, action) => {
+        state.payingCreationFee = false;
+        state.error = action.payload || action.error.message || "Failed to pay referral creation fee";
+      })
+      .addCase(requestSiweChallenge.pending, (state) => {
+        state.siweLoading = true;
+        state.error = null;
+      })
+      .addCase(requestSiweChallenge.fulfilled, (state, action) => {
+        state.siweLoading = false;
+        state.siweChallenge = action.payload;
+      })
+      .addCase(requestSiweChallenge.rejected, (state, action) => {
+        state.siweLoading = false;
+        state.siweChallenge = null;
+        state.error =
+          action.error.message || "Failed to request SIWE challenge";
+      })
+      .addCase(verifySiweSignature.pending, (state) => {
+        state.authenticating = true;
+        state.error = null;
+      })
+      .addCase(verifySiweSignature.fulfilled, (state, action) => {
+        state.authenticating = false;
+        state.authToken = action.payload.token;
+        state.paymentRequired = null;
+      })
+      .addCase(verifySiweSignature.rejected, (state, action) => {
+        state.authenticating = false;
+        state.authToken = null;
+        state.error =
+          action.error.message || "Failed to verify SIWE signature";
+      })
+      .addCase(createReferralCodeSecure.pending, (state) => {
+        state.creatingReferralCode = true;
+        state.error = null;
+      })
+      .addCase(createReferralCodeSecure.fulfilled, (state, action) => {
+        state.creatingReferralCode = false;
+        state.referralCode = action.payload;
+        state.paymentRequired = null;
+      })
+      .addCase(createReferralCodeSecure.rejected, (state, action) => {
+        state.creatingReferralCode = false;
+        if (action.payload && action.payload.type === "PAYMENT_REQUIRED") {
+          state.paymentRequired = {
+            fee: action.payload.fee,
+            contractAddress: action.payload.contractAddress,
+          };
+          state.hasPaidCreationFee = false;
+        } else if (action.payload && action.payload.type === "UNAUTHORIZED") {
+          state.error = action.payload.message;
+          state.authToken = null;
+        } else {
+          state.error =
+            (action.payload && action.payload.type === "UNKNOWN"
+              ? action.payload.message
+              : null) ||
+            action.error.message ||
+            "Failed to create referral code";
+        }
       })
       .addCase(claimReferralEarnings.pending, (state) => {
         state.claiming = true;

@@ -58,7 +58,7 @@ npm run dev
 ### UI
 - Open `http://localhost:5173`.
 - Click **Connect Wallet** to load Web3 Onboard (Rabby, MetaMask, WalletConnect, Coinbase Wallet).
-- Use **Bridge** to move assets, **Swap** for PulseChain DEX routing, **On-Ramp** to pick fiat providers, **Refer & Earn** to claim rewards.
+- Use **Bridge** to move assets, **Swap** for PulseChain DEX routing, **On-Ramp** to pick fiat providers, **Refer & Earn** to pay the one-time on-chain fee (when required), complete SIWE auth, claim rewards, and manage referral earnings.
 
 ---
 

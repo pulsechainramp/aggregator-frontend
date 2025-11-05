@@ -127,7 +127,7 @@ const QuotePanel = () => {
             <span className="font-medium text-text">{slippage}%</span>
           </div>
           <div className="flex justify-between">
-            <span className="text-text-muted">Referral</span>
+            <span className="text-text-muted">Referral fee</span>
             <span className="font-medium text-text">
               {referralFeeDisplay}
             </span>
