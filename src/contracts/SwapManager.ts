@@ -1,6 +1,6 @@
 import Web3 from "web3";
 import { AbiItem } from "web3-utils";
-import AffiliateRouterArtifact from "../abis/SwapManager.json";
+import AffiliateRouterArtifact from "../abis/AffiliateRouter.json";
 import ERC20ABI from "../abis/ERC20.json";
 import { QuoteType, TokenType } from "../types/Swap";
 import { PulseChainConfig } from "../config/chainConfig";
