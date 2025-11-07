@@ -286,7 +286,7 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
     }
 
     if (explorerUrl) {
-      window.open(explorerUrl, "_blank");
+      window.open(explorerUrl, "_blank", "noopener,noreferrer");
     }
   };
 
