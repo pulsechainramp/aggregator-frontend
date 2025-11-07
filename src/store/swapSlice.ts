@@ -1,4 +1,4 @@
-import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
+import { createAsyncThunk, createSlice, PayloadAction } from "@reduxjs/toolkit";
 import { QuoteType, TokenType } from "../types/Swap";
 import { ethers } from "ethers";
 import { isSelfReferral, getStoredReferralCode } from "../utils/referralUtils";
@@ -48,6 +48,14 @@ interface SwapState {
   } | null;
 }
 
+type QuoteRequestSnapshot = {
+  tokenInAddress: string;
+  tokenOutAddress: string;
+  amount: number;
+  allowedSlippage: number;
+  fromDecimal: number;
+};
+
 const initialState: SwapState = {
   allChains: [],
   availableTokens: [],
@@ -73,6 +81,51 @@ const initialState: SwapState = {
   hasCalledPulseXOnce: false,
   // Parameter tracking for PulseX calls
   lastPulseXParams: null,
+};
+
+const isNativeAddress = (address: string) =>
+  address === ZERO_ADDRESS_LOWER || address === "pls";
+
+const normalizeAddress = (address?: string | null) =>
+  address ? address.toLowerCase() : "";
+
+const matchesRequestedAddress = (
+  tokenAddress: string | null | undefined,
+  requestedAddress: string
+) => {
+  if (!tokenAddress) return false;
+  const normalizedToken = normalizeAddress(tokenAddress);
+  const normalizedRequested = normalizeAddress(requestedAddress);
+
+  if (!normalizedToken || !normalizedRequested) return false;
+  if (normalizedToken === normalizedRequested) return true;
+
+  return (
+    isNativeAddress(normalizedToken) && isNativeAddress(normalizedRequested)
+  );
+};
+
+const doesQuoteMatchSnapshot = (
+  state: SwapState,
+  snapshot: QuoteRequestSnapshot
+) => {
+  const fromMatches = matchesRequestedAddress(
+    state.fromToken?.address,
+    snapshot.tokenInAddress
+  );
+  const toMatches = matchesRequestedAddress(
+    state.toToken?.address,
+    snapshot.tokenOutAddress
+  );
+
+  if (!fromMatches || !toMatches) return false;
+  if (state.fromToken?.decimals !== snapshot.fromDecimal) return false;
+  if (state.slippage !== snapshot.allowedSlippage) return false;
+
+  const currentAmount = Number(state.fromAmount);
+  if (!Number.isFinite(currentAmount)) return false;
+
+  return currentAmount === snapshot.amount;
 };
 
 // Get token balance
@@ -474,6 +527,13 @@ export const getQuote = createAsyncThunk<
     allowedSlippage,
     fromDecimal,
   }, { dispatch, getState }) => {
+    const requestSnapshot: QuoteRequestSnapshot = {
+      tokenInAddress,
+      tokenOutAddress,
+      amount,
+      allowedSlippage,
+      fromDecimal,
+    };
     const state = getState();
     const lastPulseXParams = state.swap.lastPulseXParams;
     
@@ -524,8 +584,11 @@ export const getQuote = createAsyncThunk<
               const piteamsOutput = piteamsResult.payload.outputAmount;
               
               if (piteamsOutput && pulseXOutput && BigInt(piteamsOutput) > BigInt(pulseXOutput)) {
-                // Update with better quote from piteams
-                dispatch(setQuote(piteamsResult.payload));
+                // Update with better quote from piteams if still relevant
+                dispatch(applyQuoteIfCurrent({
+                  quote: piteamsResult.payload,
+                  params: requestSnapshot,
+                }));
               }
               // Hide the better router message once piteams completes
               dispatch(setShowBetterRouterMessage(false));
@@ -608,6 +671,14 @@ export const swapSlice = createSlice({
     },
     setQuote: (state, action) => {
       state.quote = action.payload;
+    },
+    applyQuoteIfCurrent: (
+      state,
+      action: PayloadAction<{ quote: QuoteType; params: QuoteRequestSnapshot }>
+    ) => {
+      if (doesQuoteMatchSnapshot(state, action.payload.params)) {
+        state.quote = action.payload.quote;
+      }
     },
     setSlippage: (state, action) => {
       state.slippage = action.payload;
@@ -712,24 +783,7 @@ export const swapSlice = createSlice({
         // Loading states are managed in the thunk itself
       })
       .addCase(getQuote.fulfilled, (state, action) => {
-        const isFromTokenValid =
-          state.fromToken?.address.toLowerCase() ===
-            action.meta.arg.tokenInAddress.toLowerCase() ||
-          (state.fromToken?.address === ZeroAddress &&
-            action.meta.arg.tokenInAddress === "PLS");
-
-        const isToTokenValid =
-          state.toToken?.address.toLowerCase() ===
-            action.meta.arg.tokenOutAddress.toLowerCase() ||
-          (state.toToken?.address === ZeroAddress &&
-            action.meta.arg.tokenOutAddress === "PLS");
-
-        const otherValidation =
-          state.fromToken?.decimals === action.meta.arg.fromDecimal &&
-          state.slippage === action.meta.arg.allowedSlippage &&
-          Number(state.fromAmount) === action.meta.arg.amount;
-
-        if (isFromTokenValid && isToTokenValid && otherValidation) {
+        if (doesQuoteMatchSnapshot(state, action.meta.arg)) {
           state.quote = action.payload;
         }
         // Reset loading states
@@ -836,6 +890,7 @@ export const {
   setToToken,
   setFromAmount,
   setQuote,
+  applyQuoteIfCurrent,
   setSlippage,
   setFromTokenBalance,
   setToTokenBalance,
