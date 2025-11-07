@@ -4,6 +4,7 @@ import { motion } from "framer-motion";
 import CountrySelect from "../../components/onramp/CountrySelect";
 import { COUNTRY_OPTIONS } from "../../data/countries";
 import { fetchGeo, fetchProviders, Provider } from "../../api/onramps";
+import { resolveProviderLink } from "../../utils/onrampLinks";
 
 const FALLBACK_COUNTRY = "ZZ"; // Not Listed fallback
 const COUNTRY_DEFAULT = "US"; // used only for fiat fallback
@@ -13,11 +14,8 @@ const getFiatFor = (code?: string) =>
   COUNTRY_OPTIONS.find((c) => c.code === code)?.fiat ?? "USD";
 
 function ProviderCard({ p }: { p: Provider }) {
-  const href =
-    p.deeplink ||
-    (p as any).coverage_url ||
-    (p as any).regulator_links?.[0] ||
-    "#";
+  const { href, blocked } = resolveProviderLink(p);
+  const isDisabled = !href;
 
   return (
     <li
@@ -33,17 +31,33 @@ function ProviderCard({ p }: { p: Provider }) {
         </div>
         <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center sm:justify-end">
           <a
-            href={href}
+            href={href ?? "#"}
             target="_blank"
             rel="noopener noreferrer"
-            className="touch-target inline-flex w-full items-center justify-center gap-2 rounded-lg border border-primary bg-primary px-4 py-3 text-base font-semibold text-white shadow-sm transition-transform transition-colors duration-150 hover:-translate-y-0.5 hover:bg-primary-600 hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus active:translate-y-0 sm:w-auto sm:min-w-[9rem]"
+            aria-disabled={isDisabled}
+            className={`touch-target inline-flex w-full items-center justify-center gap-2 rounded-lg border border-primary bg-primary px-4 py-3 text-base font-semibold text-white shadow-sm transition-transform transition-colors duration-150 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus active:translate-y-0 sm:w-auto sm:min-w-[9rem] ${
+              isDisabled
+                ? "pointer-events-none cursor-not-allowed opacity-60"
+                : "hover:-translate-y-0.5 hover:bg-primary-600"
+            }`}
+            onClick={(event) => {
+              if (isDisabled) {
+                event.preventDefault();
+                event.stopPropagation();
+              }
+            }}
           >
-            <span>Visit site</span>
+            <span>{isDisabled ? "Link unavailable" : "Visit site"}</span>
             <span aria-hidden="true" className="text-lg">
               &rarr;
             </span>
           </a>
         </div>
+        {blocked && (
+          <p className="text-xs text-danger">
+            Provider link was blocked because it used an invalid or unsafe URL scheme.
+          </p>
+        )}
       </div>
     </li>
   );
