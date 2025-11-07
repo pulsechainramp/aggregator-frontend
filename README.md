@@ -119,6 +119,7 @@ aggregator-frontend/
 - **Validation:** Client-side checks for bridge/swap inputs.
 - **Quote attestation:** The swap page fetches Piteas quotes directly but requires `/quote/attest` signatures from the backend before allowing wallet execution. Calldata is decoded locally and previewed to the user.
 - **Headers:** Vercel deploy sets CSP, Referrer-Policy, COOP, and Permission-Policy defaults.
+- **CSP telemetry:** Inline styles are removed so CSP can block DOM injection. Violations are reported to `/api/csp-report`, and the endpoint simply logs events for future alerting.
 
 ---
 

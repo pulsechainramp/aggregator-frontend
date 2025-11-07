@@ -86,6 +86,11 @@ const BridgeTransactionProgress: React.FC<BridgeTransactionProgressProps> = ({
   };
 
   const currentStep = getProgressStep();
+  const blockProgress = getBlockProgress();
+  const progressPercent = Math.min(
+    Math.max(blockProgress.progress * 100, 0),
+    100
+  );
 
   const steps = [
     { name: "Waiting", key: "waiting" },
@@ -241,11 +246,10 @@ const BridgeTransactionProgress: React.FC<BridgeTransactionProgressProps> = ({
           </div>
           <div className="text-right">
             <div className="text-sm font-medium text-text">
-              {getBlockProgress().blocksElapsed} /{" "}
-              {getBlockProgress().totalBlocks} blocks
+              {blockProgress.blocksElapsed} / {blockProgress.totalBlocks} blocks
             </div>
             <div className="text-text-subtle text-xs">
-              {getBlockProgress().isBlockProgressComplete
+              {blockProgress.isBlockProgressComplete
                 ? "Block time completed"
                 : "Processing blocks..."}
             </div>
@@ -253,78 +257,95 @@ const BridgeTransactionProgress: React.FC<BridgeTransactionProgressProps> = ({
         </div>
 
         {/* Block Progress Bar */}
-        <div className="relative h-2 w-full rounded-full bg-border">
-          <div
-            className={`h-2 rounded-full transition-all duration-500 ${
-              getBlockProgress().isBlockProgressComplete
-                ? "bg-success"
-                : "bg-primary"
-            }`}
-            style={{ width: `${getBlockProgress().progress * 100}%` }}
-          />
-
-          {/* Current Block Indicator */}
-          {!getBlockProgress().isBlockProgressComplete && (
-            <div
-              className="absolute top-0 h-2 w-1 -translate-x-1/2 rounded-full bg-primary shadow-sm"
-              style={{
-                left: `${getBlockProgress().progress * 100}%`,
-              }}
+        <div className="relative h-2 w-full">
+          <svg
+            className="h-2 w-full"
+            viewBox="0 0 100 4"
+            role="img"
+            aria-label={`Block progress ${blockProgress.blocksElapsed} of ${blockProgress.totalBlocks}`}
+            preserveAspectRatio="none"
+          >
+            <rect
+              x="0"
+              y="0"
+              width="100"
+              height="4"
+              rx="2"
+              className="fill-current text-border"
             />
-          )}
+            <rect
+              x="0"
+              y="0"
+              width={progressPercent}
+              height="4"
+              rx="2"
+              className={`fill-current ${
+                blockProgress.isBlockProgressComplete
+                  ? "text-success"
+                  : "text-primary"
+              }`}
+            />
+            {!blockProgress.isBlockProgressComplete && (
+              <circle
+                cx={progressPercent}
+                cy="2"
+                r="1"
+                className="fill-current text-primary"
+              />
+            )}
+          </svg>
         </div>
 
         {/* Block Status Message */}
         <div className="mt-2 text-center">
           {bridgeTransaction.status === "executed" &&
-          getBlockProgress().isBlockProgressComplete ? (
+          blockProgress.isBlockProgressComplete ? (
             <div className="text-green-400 text-sm">
-              ✅ Bridge completed after {getBlockProgress().totalBlocks} blocks
+              ✅ Bridge completed after {blockProgress.totalBlocks} blocks
             </div>
           ) : bridgeTransaction.status === "executed" &&
-            !getBlockProgress().isBlockProgressComplete ? (
+            !blockProgress.isBlockProgressComplete ? (
             <div className="text-green-400 text-sm">
               ✅ Bridge completed before block time finished
             </div>
           ) : bridgeTransaction.status === "pending" &&
-            getBlockProgress().isBlockProgressComplete ? (
+            blockProgress.isBlockProgressComplete ? (
             <div className="text-yellow-400 text-sm">
               ⏳ Block time completed, waiting for final confirmation
             </div>
           ) : (
             <div className="text-blue-400 text-sm">
-              🔄 Processing block {getBlockProgress().blocksElapsed} of{" "}
-              {getBlockProgress().totalBlocks}
+              🔄 Processing block {blockProgress.blocksElapsed} of{" "}
+              {blockProgress.totalBlocks}
             </div>
           )}
         </div>
 
         {/* Time Remaining */}
         {bridgeTransaction.status === "pending" &&
-          !getBlockProgress().isBlockProgressComplete && (
+          !blockProgress.isBlockProgressComplete && (
             <div className="mt-2 text-center">
               <div className="text-text-subtle text-xs">
                 Estimated time remaining:{" "}
-                {Math.ceil(getBlockProgress().timeRemaining / 60000)} minutes
+                {Math.ceil(blockProgress.timeRemaining / 60000)} minutes
               </div>
             </div>
           )}
 
         {/* Block Details */}
         <div className="mt-3 grid grid-cols-2 gap-4 text-xs">
-          <div className="text-center">
-            <div className="text-text-subtle">Blocks Processed</div>
-            <div className="font-medium text-text">
-              {getBlockProgress().blocksElapsed}
+            <div className="text-center">
+              <div className="text-text-subtle">Blocks Processed</div>
+              <div className="font-medium text-text">
+                {blockProgress.blocksElapsed}
+              </div>
             </div>
-          </div>
-          <div className="text-center">
-            <div className="text-text-subtle">Blocks Remaining</div>
-            <div className="font-medium text-text">
-              {getBlockProgress().totalBlocks -
-                getBlockProgress().blocksElapsed}
+            <div className="text-center">
+              <div className="text-text-subtle">Blocks Remaining</div>
+              <div className="font-medium text-text">
+                {blockProgress.totalBlocks - blockProgress.blocksElapsed}
+              </div>
             </div>
-          </div>
         </div>
       </div>
 
