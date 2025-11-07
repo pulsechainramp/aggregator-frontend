@@ -1,6 +1,6 @@
 import { motion } from "framer-motion";
 import React, { useEffect, useState, useRef } from "react";
-import { ZeroAddress } from "../../const/swap";
+import { AffiliateRouterAddress, ZeroAddress } from "../../const/swap";
 import { useAppDispatch, useAppSelector } from "../../store/hooks";
 import {
   getAllChains,
@@ -21,7 +21,6 @@ import {
   setNativeBalance,
   refreshBalancesAfterSwap,
 } from "../../store/swapSlice";
-import { TokenType } from "../../types/Swap";
 import TokenPopup from "./TokenPopup";
 import QuotePanel from "./QuotePanel";
 import SlippagePopup from "./SlippagePopup";
@@ -33,8 +32,23 @@ import {
   fetchReferralPromo,
   fetchPromoConstants,
 } from "../../store/referralSlice";
+import SwapPreviewModal from "./components/SwapPreviewModal";
+import {
+  validateQuoteIntegrity,
+  QuoteValidationResult,
+} from "../../utils/quoteValidation";
+import { QuoteType, TokenType } from "../../types/Swap";
 
 const { toast } = toastify;
+
+type PendingSwap = {
+  quote: QuoteType;
+  value: string;
+  fromToken: TokenType;
+  toToken: TokenType;
+  account: string;
+  validation: QuoteValidationResult;
+};
 
 const Swap: React.FC = () => {
   const dispatch = useAppDispatch();
@@ -47,6 +61,8 @@ const Swap: React.FC = () => {
   const [searchChain, setSearchChain] = useState<string>("");
   const [searchToken, setSearchToken] = useState<string>("");
   const [isRefreshingBalances, setIsRefreshingBalances] = useState(false);
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+  const [pendingSwap, setPendingSwap] = useState<PendingSwap | null>(null);
 
   const {
     allChains,
@@ -71,6 +87,16 @@ const Swap: React.FC = () => {
     quote?.outputAmount && toToken?.decimals
       ? Number(ethers.formatUnits(quote.outputAmount, toToken.decimals))
       : 0;
+
+  const openPreview = (swapRequest: PendingSwap) => {
+    setPendingSwap(swapRequest);
+    setIsPreviewOpen(true);
+  };
+
+  const closePreview = () => {
+    setPendingSwap(null);
+    setIsPreviewOpen(false);
+  };
 
   // Check if user has sufficient balance
   const hasSufficientBalance = () => {
@@ -137,10 +163,6 @@ const Swap: React.FC = () => {
             );
           });
       } else {
-        // Execute swap
-        toast.info("Executing swap...");
-
-        // For native tokens, convert amount to wei; for ERC20 tokens, use "0"
         const value =
           fromToken.address === ZeroAddress
             ? ethers
@@ -148,36 +170,90 @@ const Swap: React.FC = () => {
                 .toString()
             : "0";
 
-        await dispatch(
-          executeSwapAction({
-            quote: quote,
-            value: value,
+        try {
+          const validation = validateQuoteIntegrity(quote, {
+            fromToken,
+            toToken,
+            fromAmount,
+            slippage,
+          });
+
+          openPreview({
+            quote,
+            value,
+            fromToken,
+            toToken,
             account: account || "",
-            fromToken: fromToken,
-          })
-        ).unwrap();
-        toast.success("Swap executed successfully!");
-        
-        // Refresh balances after successful swap
-        if (account) {
-          setIsRefreshingBalances(true);
-          // Add a small delay to ensure blockchain state is updated
-          setTimeout(() => {
-            dispatch(
-              refreshBalancesAfterSwap({
-                fromToken,
-                toToken,
-                account,
-              })
-            ).catch(() => {
-              handleBalanceRefreshError();
-            });
-          }, 2000); // Wait 2 seconds for blockchain state to update
+            validation,
+          });
+        } catch (validationError) {
+          console.error("Quote validation failed before swap:", validationError);
+          toast.error(
+            validationError instanceof Error
+              ? validationError.message
+              : "Quote validation failed"
+          );
         }
       }
     } catch (error) {
       console.error("Swap error:", error);
       toast.error("Transaction failed. Please try again.");
+    }
+  };
+
+  const executePendingSwap = async () => {
+    if (!pendingSwap) {
+      return;
+    }
+
+    const { quote: pendingQuote, value, fromToken: pendingFromToken, toToken: pendingToToken, account: swapAccount } =
+      pendingSwap;
+
+    try {
+      const validation = validateQuoteIntegrity(pendingQuote, {
+        fromToken: pendingFromToken,
+        toToken: pendingToToken,
+        fromAmount,
+        slippage,
+      });
+      setPendingSwap({ ...pendingSwap, validation });
+      setIsPreviewOpen(false);
+      toast.info("Executing swap...");
+
+      await dispatch(
+        executeSwapAction({
+          quote: pendingQuote,
+          value,
+          account: swapAccount,
+          fromToken: pendingFromToken,
+        })
+      ).unwrap();
+
+      toast.success("Swap executed successfully!");
+
+      if (swapAccount) {
+        setIsRefreshingBalances(true);
+        setTimeout(() => {
+          dispatch(
+            refreshBalancesAfterSwap({
+              fromToken: pendingFromToken,
+              toToken: pendingToToken,
+              account: swapAccount,
+            })
+          ).catch(() => {
+            handleBalanceRefreshError();
+          });
+        }, 2000);
+      }
+    } catch (error) {
+      console.error("Swap error:", error);
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "Transaction failed. Please try again."
+      );
+    } finally {
+      setPendingSwap(null);
     }
   };
 
@@ -353,6 +429,7 @@ const Swap: React.FC = () => {
             amount: fromAmount,
             allowedSlippage: slippage,
             fromDecimal: fromToken.decimals,
+            account,
           })
         );
 
@@ -370,6 +447,7 @@ const Swap: React.FC = () => {
               amount: fromAmount,
               allowedSlippage: slippage,
               fromDecimal: fromToken.decimals,
+              account,
             })
           );
         }, 10000);
@@ -435,6 +513,26 @@ const Swap: React.FC = () => {
       });
     }
   };
+
+  const previewData =
+    pendingSwap && pendingSwap.validation
+      ? {
+          router: AffiliateRouterAddress,
+          functionSignature: "executeSwap(bytes,address)",
+          tokenInSymbol: pendingSwap.fromToken.symbol,
+          tokenOutSymbol: pendingSwap.toToken.symbol,
+          amountIn: ethers.formatUnits(
+            pendingSwap.validation.decodedRoute.amountIn,
+            pendingSwap.fromToken.decimals
+          ),
+          minAmountOut: ethers.formatUnits(
+            pendingSwap.validation.decodedRoute.minAmountOut,
+            pendingSwap.toToken.decimals
+          ),
+          deadline: pendingSwap.validation.decodedRoute.deadline,
+          calldataHash: pendingSwap.quote.integrity.payload.calldataHash,
+        }
+      : null;
 
   return (
     <motion.div
@@ -527,6 +625,13 @@ const Swap: React.FC = () => {
       <SlippagePopup
         isOpen={isSlippagePopupOpen}
         onClose={() => setIsSlippagePopupOpen(false)}
+      />
+
+      <SwapPreviewModal
+        isOpen={isPreviewOpen && Boolean(previewData)}
+        data={previewData}
+        onCancel={closePreview}
+        onConfirm={executePendingSwap}
       />
     </motion.div>
   );

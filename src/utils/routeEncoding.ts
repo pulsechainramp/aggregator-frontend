@@ -1,5 +1,5 @@
 import { AbiCoder, ParamType } from "ethers";
-import { RouteType, RouteTokenType } from "../types/Swap";
+import { QuoteRouteSummary, RouteType, RouteTokenType } from "../types/Swap";
 
 export const toCorrectDexName = (dex: string): string => {
   if (dex === "PulseX V1") return "pulsexV1";
@@ -110,9 +110,37 @@ const SWAP_ROUTE_ABI = [
   }),
 ];
 
-export const encodeSwapRoute = (route: SwapRoute): string => {
-  const abiCoder = new AbiCoder();
-  return abiCoder.encode(SWAP_ROUTE_ABI, [route]);
+const abiCoder = new AbiCoder();
+
+export const encodeSwapRoute = (route: SwapRoute): string =>
+  abiCoder.encode(SWAP_ROUTE_ABI, [route]);
+
+export const decodeSwapRouteSummary = (calldata: string): QuoteRouteSummary => {
+  if (!calldata || typeof calldata !== "string") {
+    throw new Error("Cannot decode empty calldata");
+  }
+
+  const [route] = abiCoder.decode(SWAP_ROUTE_ABI, calldata) as [
+    {
+      tokenIn: string;
+      tokenOut: string;
+      amountIn: bigint;
+      amountOutMin: bigint;
+      deadline: bigint;
+      destination: string;
+      isETHOut: boolean;
+    }
+  ];
+
+  return {
+    tokenIn: route.tokenIn,
+    tokenOut: route.tokenOut,
+    amountIn: route.amountIn.toString(),
+    minAmountOut: route.amountOutMin.toString(),
+    deadline: Number(route.deadline),
+    destination: route.destination,
+    isETHOut: Boolean(route.isETHOut),
+  };
 };
 
 export const combineRoute = (route: Route): RouteType[] =>

@@ -26,7 +26,10 @@ const QuotePanel = () => {
       ? Number(ethers.formatUnits(quote?.outputAmount, toToken?.decimals))
       : 0;
 
-  const minOutput = toTokenAmount * (1 - slippage / 100);
+  const minOutput =
+    quote?.uiMinAmountOut && toToken?.decimals
+      ? Number(ethers.formatUnits(quote.uiMinAmountOut, toToken.decimals))
+      : toTokenAmount * (1 - slippage / 100);
 
   const impact =
     fromToken && toToken

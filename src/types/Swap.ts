@@ -14,15 +14,53 @@ export interface TokenType {
   price: number;
 }
 
+export interface QuoteIntegrityPayload {
+  version: number;
+  router: string;
+  tokenIn: string;
+  tokenOut: string;
+  amountIn: string;
+  minAmountOut: string;
+  deadline: number;
+  calldataHash: string;
+  issuedAt: number;
+  slippageBps: number;
+}
+
+export interface QuoteIntegrity {
+  payload: QuoteIntegrityPayload;
+  signature: string;
+  signer: string;
+}
+
+export interface QuoteRouteSummary {
+  tokenIn: string;
+  tokenOut: string;
+  amountIn: string;
+  minAmountOut: string;
+  deadline: number;
+  destination: string;
+  isETHOut: boolean;
+}
+
 export interface QuoteType {
   calldata: string;
   tokenInAddress: string;
   tokenOutAddress: string;
+  amountIn: string;
+  minAmountOut: string;
   outputAmount: string;
+  deadline: number;
   gasUSDEstimated: number;
   gasAmountEstimated?: number;
   route: RouteType[];
+  integrity: QuoteIntegrity;
+  decodedRoute?: QuoteRouteSummary;
+  verifiedAt?: number;
+  uiMinAmountOut?: string;
 }
+
+export type UnsignedQuoteType = Omit<QuoteType, "integrity" | "decodedRoute" | "verifiedAt" | "uiMinAmountOut">;
 
 export interface RouteType {
   percent: number;

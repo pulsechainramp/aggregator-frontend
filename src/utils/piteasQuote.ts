@@ -2,7 +2,7 @@ import { ethers } from "ethers";
 import PulseXStableSwapPoolAbi from "../abis/PulseXStableSwapPool.json";
 import PulsexFactoryAbi from "../abis/PulsexFactory.json";
 import { PulsexConfig } from "../config/pulsex";
-import { QuoteType } from "../types/Swap";
+import { UnsignedQuoteType } from "../types/Swap";
 import { ZeroAddress } from "../const/swap";
 import {
   Route,
@@ -370,7 +370,10 @@ const transformQuoteData = async (
     calldata: encodeSwapRoute(swapRoute),
     tokenInAddress: srcToken.address,
     tokenOutAddress: destToken.address,
+    amountIn: swapRoute.amountIn,
+    minAmountOut: swapRoute.amountOutMin,
     outputAmount: ethers.getBigInt(destAmount).toString(),
+    deadline: swapRoute.deadline,
     gasAmountEstimated: gasUseEstimate,
     gasUSDEstimated: Number(gasUseEstimateUSD ?? 0),
     route: combinedRoute,
@@ -379,7 +382,7 @@ const transformQuoteData = async (
 
 export const fetchPiteasQuoteClient = async (
   params: PiteasQuoteParams
-): Promise<QuoteType> => {
+): Promise<UnsignedQuoteType> => {
   const baseUrl = import.meta.env.VITE_PITEAS_API_BASE_URL ?? "";
 
   const url = buildRequestUrl(baseUrl, params);

@@ -1,5 +1,5 @@
 import { createAsyncThunk, createSlice, PayloadAction } from "@reduxjs/toolkit";
-import { QuoteType, TokenType } from "../types/Swap";
+import { QuoteType, TokenType, UnsignedQuoteType } from "../types/Swap";
 import { ethers } from "ethers";
 import { isSelfReferral, getStoredReferralCode } from "../utils/referralUtils";
 import { ZeroAddress, AffiliateRouterAddress, BackendURL } from "../const/swap";
@@ -13,9 +13,25 @@ import {
 import { RootState } from "./store";
 import { fetchReferralPromo } from "./referralSlice";
 import { fetchPiteasQuoteClient } from "../utils/piteasQuote";
+import { requestQuoteAttestation } from "../utils/quoteAttestation";
+import { validateQuoteIntegrity } from "../utils/quoteValidation";
+import { decodeSwapRouteSummary } from "../utils/routeEncoding";
 import { normalizeAmountInput, areAmountsEqual } from "../utils/amount";
 
 const ZERO_ADDRESS_LOWER = ZeroAddress.toLowerCase();
+const BPS_DENOMINATOR = 10_000n;
+
+const clampSlippageBps = (slippage: number): number => {
+  if (!Number.isFinite(slippage)) return 0;
+  const bps = Math.round(slippage * 100);
+  return Math.max(0, Math.min(10_000, bps));
+};
+
+const applySlippageToAmount = (amount: string, slippageBps: number): string => {
+  const amountBig = BigInt(amount);
+  const safeBps = BigInt(Math.max(0, Math.min(10_000, slippageBps)));
+  return ((amountBig * (BPS_DENOMINATOR - safeBps)) / BPS_DENOMINATOR).toString();
+};
 
 interface SwapState {
   allChains: TokenType[];
@@ -481,25 +497,90 @@ export const getPiteamsQuote = createAsyncThunk<
     amount: string;
     allowedSlippage: number;
     fromDecimal: number;
-  }
+    account?: string | null;
+  },
+  { state: RootState }
 >(
   "swap/getPiteamsQuote",
-  async ({
-    tokenInAddress,
-    tokenOutAddress,
-    amount,
-    allowedSlippage,
-    fromDecimal,
-  }) => {
-    const normalizedAmount = normalizeAmountInput(amount);
-    const amountInWei = ethers.parseUnits(normalizedAmount, fromDecimal).toString();
+  async (
+    {
+      tokenInAddress,
+      tokenOutAddress,
+      amount,
+      allowedSlippage,
+      fromDecimal,
+      account,
+    },
+    { getState }
+  ) => {
+    const { swap, referral } = getState();
+    const { fromToken, toToken } = swap;
 
-    return fetchPiteasQuoteClient({
+    if (!fromToken || !toToken) {
+      throw new Error("Select tokens before requesting a quote.");
+    }
+
+    const normalizedAmount = normalizeAmountInput(amount);
+    const amountInWei = ethers
+      .parseUnits(normalizedAmount, fromDecimal)
+      .toString();
+
+    const rawQuote = await fetchPiteasQuoteClient({
       tokenInAddress,
       tokenOutAddress,
       amount: amountInWei,
       allowedSlippage,
+      account: account ?? undefined,
     });
+
+    const decodedRoute = decodeSwapRouteSummary(rawQuote.calldata);
+
+    const fromMatches = matchesRequestedAddress(
+      decodedRoute.tokenIn,
+      tokenInAddress
+    );
+    const toMatches = matchesRequestedAddress(
+      decodedRoute.tokenOut,
+      tokenOutAddress
+    );
+
+    if (!fromMatches || !toMatches) {
+      throw new Error("Quote tokens do not match the requested pair.");
+    }
+
+    if (decodedRoute.amountIn !== amountInWei) {
+      throw new Error("Quote amount does not match the requested value.");
+    }
+
+    const slippageBps = clampSlippageBps(allowedSlippage);
+    const uiMinAmountOut = applySlippageToAmount(
+      rawQuote.outputAmount,
+      slippageBps
+    );
+
+    if (BigInt(decodedRoute.minAmountOut) < BigInt(uiMinAmountOut)) {
+      throw new Error("Quote minimum output violates slippage tolerance.");
+    }
+
+    const integrity = await requestQuoteAttestation({
+      quote: rawQuote,
+      context: {
+        tokenInAddress: fromToken.address,
+        tokenOutAddress: toToken.address,
+        amountInWei,
+        minAmountOutWei: uiMinAmountOut,
+        slippageBps,
+        recipient: account ?? ZeroAddress,
+        routerAddress: AffiliateRouterAddress,
+        chainId: fromToken.chainId ?? 369,
+        referrerAddress: referral.referralAddress?.address,
+      },
+    });
+
+    return {
+      ...rawQuote,
+      integrity,
+    };
   }
 );
 
@@ -512,8 +593,9 @@ export const getQuote = createAsyncThunk<
     amount: string;
     allowedSlippage: number;
     fromDecimal: number;
+    account?: string | null;
   },
-  { state: { swap: SwapState } }
+  { state: RootState }
 >(
   "swap/getQuote",
   async ({
@@ -522,6 +604,7 @@ export const getQuote = createAsyncThunk<
     amount,
     allowedSlippage,
     fromDecimal,
+    account,
   }, { dispatch, getState }) => {
     let normalizedAmount: string;
     try {
@@ -539,6 +622,27 @@ export const getQuote = createAsyncThunk<
     };
     const state = getState();
     const lastPulseXParams = state.swap.lastPulseXParams;
+    const validationContext = {
+      fromToken: state.swap.fromToken,
+      toToken: state.swap.toToken,
+      fromAmount: normalizedAmount,
+      slippage: allowedSlippage,
+    };
+
+    const ensureValidQuote = (quote: QuoteType) => {
+      try {
+        const validation = validateQuoteIntegrity(quote, validationContext);
+        return {
+          ...quote,
+          decodedRoute: validation.decodedRoute,
+          uiMinAmountOut: validation.uiMinAmountOut,
+          verifiedAt: validation.checkedAt,
+        };
+      } catch (error) {
+        dispatch(setQuote(null));
+        throw error;
+      }
+    };
     
     // Check if this is a new quote request (different parameters)
     const isNewQuoteRequest = !lastPulseXParams || 
@@ -572,27 +676,32 @@ export const getQuote = createAsyncThunk<
         }));
 
         // If PulseX succeeds, return it immediately and start piteams in background
-        if (!("error" in pulseXResult)) {
-          // Start piteams API call in background
-          dispatch(getPiteamsQuote({
+         if (!("error" in pulseXResult)) {
+           // Start piteams API call in background
+           dispatch(getPiteamsQuote({
             tokenInAddress,
             tokenOutAddress,
             amount: normalizedAmount,
             allowedSlippage,
             fromDecimal,
+            account,
           })).then((piteamsResult) => {
             if (piteamsResult.type === 'swap/getPiteamsQuote/fulfilled' && piteamsResult.payload) {
               // Compare output amounts and update if piteams is better
               const pulseXOutput = pulseXResult.outputAmount;
               const piteamsOutput = piteamsResult.payload.outputAmount;
               
-              if (piteamsOutput && pulseXOutput && BigInt(piteamsOutput) > BigInt(pulseXOutput)) {
-                // Update with better quote from piteams if still relevant
-                dispatch(applyQuoteIfCurrent({
-                  quote: piteamsResult.payload,
-                  params: requestSnapshot,
-                }));
-              }
+               if (piteamsOutput && pulseXOutput && BigInt(piteamsOutput) > BigInt(pulseXOutput)) {
+                 try {
+                   const verifiedQuote = ensureValidQuote(piteamsResult.payload);
+                   dispatch(applyQuoteIfCurrent({
+                     quote: verifiedQuote,
+                     params: requestSnapshot,
+                   }));
+                 } catch (validationError) {
+                   console.error("Rejected tampered Piteas quote:", validationError);
+                 }
+               }
               // Hide the better router message once piteams completes
               dispatch(setShowBetterRouterMessage(false));
             }
@@ -601,7 +710,7 @@ export const getQuote = createAsyncThunk<
             dispatch(setShowBetterRouterMessage(false));
           });
           
-          return pulseXResult;
+           return ensureValidQuote(pulseXResult);
         }
       } catch (error) {
         console.error('PulseX quote failed:', error);
@@ -609,16 +718,17 @@ export const getQuote = createAsyncThunk<
 
       // If PulseX fails, wait for piteams
       try {
-        const piteamsResult = await dispatch(getPiteamsQuote({
-          tokenInAddress,
-          tokenOutAddress,
+         const piteamsResult = await dispatch(getPiteamsQuote({
+           tokenInAddress,
+           tokenOutAddress,
           amount: normalizedAmount,
           allowedSlippage,
           fromDecimal,
+          account,
         })).unwrap();
 
         dispatch(setShowBetterRouterMessage(false));
-        return piteamsResult;
+        return ensureValidQuote(piteamsResult);
       } catch (error) {
         console.error('Piteams quote failed:', error);
       }
@@ -637,9 +747,10 @@ export const getQuote = createAsyncThunk<
           amount: normalizedAmount,
           allowedSlippage,
           fromDecimal,
+          account,
         })).unwrap();
 
-        return piteamsResult;
+        return ensureValidQuote(piteamsResult);
       } catch (error) {
         console.error('Piteams quote failed:', error);
       }

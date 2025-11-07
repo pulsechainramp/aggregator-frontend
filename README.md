@@ -10,7 +10,7 @@ Non-custodial web app for bridging, swapping, and on-ramping assets into PulseCh
 git clone https://github.com/pulsechainramp/aggregator-frontend.git && cd aggregator-frontend
 
 # 2) Configure
-cp .env.example .env   # edit SMTP settings + set VITE_BACKEND_URL / VITE_PITEAS_API_BASE_URL
+cp .env.example .env   # edit SMTP settings + set VITE_BACKEND_URL / VITE_PITEAS_API_BASE_URL / VITE_QUOTE_SIGNER_ADDRESS
 
 # 3) Run
 npm run dev
@@ -50,6 +50,13 @@ npm run dev
 ### Configuration (ENV)
 
 > Optional: set `VITE_SOURCEMAP=true` before `npm run build` to ship source maps. Backend REST calls use `VITE_BACKEND_URL` (HTTPS enforced for production builds); override it in `.env` for local APIs such as `http://localhost:3000/`.
+
+| Key | Example | Required | Description |
+|---|---|:--:|---|
+| `VITE_BACKEND_URL` | `https://api.pulsechainramp.com/` | yes | Base URL for routing API (`/quote`, `/referral`, etc.). Must be HTTPS in production. |
+| `VITE_PITEAS_API_BASE_URL` | `https://sdk.piteas.io` | yes | Direct browser endpoint for Piteas quotes. Each client uses its own IP quota. |
+| `VITE_QUOTE_SIGNER_ADDRESS` | `0xf39F...` | yes | Address of the backend attestation signer. Used to verify `/quote/attest` signatures before enabling swaps. |
+| `CONTACT_SMTP_*` | Gmail/SMTP creds | optional | Needed only when deploying the contact form API. |
 
 ---
 
@@ -109,6 +116,7 @@ aggregator-frontend/
 - **Secrets:** Loaded via `.env` into serverless functions; never committed.
 - **Auth:** Wallet-based; no custodial accounts or passwords.
 - **Validation:** Client-side checks for bridge/swap inputs.
+- **Quote attestation:** The swap page fetches Piteas quotes directly but requires `/quote/attest` signatures from the backend before allowing wallet execution. Calldata is decoded locally and previewed to the user.
 - **Headers:** Vercel deploy sets CSP, Referrer-Policy, COOP, and Permission-Policy defaults.
 
 ---
