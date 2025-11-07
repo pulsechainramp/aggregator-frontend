@@ -33,7 +33,8 @@ import CustomConnectButton from "../../components/CustomConnectButton";
 import ReferralFeePopup from "../Swap/ReferralFeePopup";
 import { formatFeeBasisPoints } from "../../utils/referralUtils";
 import { BackendURL } from "../../const/swap";
-import { BrowserProvider, formatEther } from "ethers";
+import { formatEther } from "ethers";
+import { signSiweMessage } from "../../utils/siwe";
 
 const Referrals: React.FC = () => {
   const { account, wallet } = useWallet();
@@ -159,16 +160,6 @@ const Referrals: React.FC = () => {
     };
   }, [error]);
 
-  const signSiweMessage = async (message: string) => {
-    if (!wallet?.provider) {
-      throw new Error("Wallet provider not available");
-    }
-
-    const provider = new BrowserProvider(wallet.provider as any);
-    const signer = await provider.getSigner();
-    return await signer.signMessage(message);
-  };
-
   const handlePayCreationFee = async () => {
     if (!account) {
       toast.error("Please connect your wallet");
@@ -209,7 +200,10 @@ const Referrals: React.FC = () => {
 
       if (!token) {
         const challenge = await dispatch(requestSiweChallenge(account)).unwrap();
-        const signature = await signSiweMessage(challenge.message);
+        const signature = await signSiweMessage(
+          challenge.message,
+          wallet?.provider
+        );
         const verification = await dispatch(
           verifySiweSignature({ message: challenge.message, signature })
         ).unwrap();

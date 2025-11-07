@@ -14,6 +14,7 @@ import {
 } from "../contracts/SwapManager";
 import { ethers } from "ethers";
 import { lockReferralBinding } from "../utils/referralUtils";
+import { signSiweMessage } from "../utils/siwe";
 
 interface ReferralCode {
   id: string;
@@ -242,6 +243,37 @@ export const verifySiweSignature = createAsyncThunk<
   return data as { token: string; address: string };
 });
 
+export const ensureSiweSession = async (
+  address: string,
+  thunkAPI: any
+): Promise<string> => {
+  if (!address) {
+    throw new Error("Connect your wallet to continue");
+  }
+
+  const state = thunkAPI.getState ? thunkAPI.getState() : undefined;
+  const existingToken: string | null = state?.referral?.authToken ?? null;
+
+  if (existingToken) {
+    return existingToken;
+  }
+
+  const challenge = await thunkAPI
+    .dispatch(requestSiweChallenge(address))
+    .unwrap();
+  const signature = await signSiweMessage(challenge.message);
+  const verification = await thunkAPI
+    .dispatch(
+      verifySiweSignature({
+        message: challenge.message,
+        signature,
+      })
+    )
+    .unwrap();
+
+  return verification.token;
+};
+
 export const createReferralCodeSecure = createAsyncThunk<
   ReferralCode,
   { address: string; token: string },
@@ -317,10 +349,20 @@ export const fetchPromoConstants = createAsyncThunk(
 // Async thunk for fetching referral fees
 export const fetchReferralFees = createAsyncThunk(
   "referral/fetchReferralFees",
-  async (referrerAddress: string) => {
+  async (referrerAddress: string, thunkAPI) => {
+    if (!referrerAddress) {
+      throw new Error("Referrer address is required");
+    }
+
+    const token = await ensureSiweSession(referrerAddress, thunkAPI);
     const encodedReferrer = encodeURIComponent(referrerAddress);
     const response = await fetch(
-      `${BackendURL}referral-fees/referrer/${encodedReferrer}`
+      `${BackendURL}referral-fees/referrer/${encodedReferrer}`,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
     );
     if (!response.ok) {
       throw new Error("Failed to fetch referral fees");

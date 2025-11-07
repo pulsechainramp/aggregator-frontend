@@ -11,6 +11,7 @@ import {
   initializeBridgeManager,
 } from "../contracts/BridgeContract";
 import { BackendURL } from "../const/swap";
+import { ensureSiweSession } from "./referralSlice";
 import { ethers } from "ethers";
 
 export interface BridgeToken {
@@ -444,14 +445,20 @@ export const submitBridgeTransaction = createAsyncThunk(
     txHash: string;
     networkId: number;
     userAddress: string;
-  }) => {
+  }, thunkAPI) => {
     try {
+      if (!userAddress) {
+        throw new Error("Wallet address is required");
+      }
+
+      const token = await ensureSiweSession(userAddress, thunkAPI);
       const response = await fetch(
         `${BackendURL}exchange/omnibridge/transaction`,
         {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
           },
           body: JSON.stringify({
             txHash,
