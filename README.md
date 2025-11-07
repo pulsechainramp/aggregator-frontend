@@ -10,7 +10,7 @@ Non-custodial web app for bridging, swapping, and on-ramping assets into PulseCh
 git clone https://github.com/pulsechainramp/aggregator-frontend.git && cd aggregator-frontend
 
 # 2) Configure
-cp .env.example .env   # edit SMTP settings + set VITE_PITEAS_API_BASE_URL
+cp .env.example .env   # edit SMTP settings + set VITE_BACKEND_URL / VITE_PITEAS_API_BASE_URL
 
 # 3) Run
 npm run dev
@@ -49,7 +49,7 @@ npm run dev
 
 ### Configuration (ENV)
 
-> Optional: set `VITE_SOURCEMAP=true` before `npm run build` to ship source maps. Backend REST calls default to `https://pulsechainramp.com/`; adjust `src/const/swap.ts` for local APIs.
+> Optional: set `VITE_SOURCEMAP=true` before `npm run build` to ship source maps. Backend REST calls use `VITE_BACKEND_URL` (HTTPS enforced for production builds); override it in `.env` for local APIs such as `http://localhost:3000/`.
 
 ---
 
@@ -121,7 +121,7 @@ aggregator-frontend/
 ## Deployment
 - **Platform:** Vercel (configured by `vercel.json` for build/run commands and SPA rewrites).
 - **Artifacts:** Static build in `build/` served via Vercel’s CDN; serverless API auto-deployed alongside.
-- **Environments:** Point staging/production projects at the desired PulseChain backend URL via `src/const/swap.ts` (and matching `.env` secrets).
+- **Environments:** Point staging/production projects at the desired PulseChain backend URL via `VITE_BACKEND_URL` (set per-environment in `.env`/Vercel project settings).
 
 ---
 

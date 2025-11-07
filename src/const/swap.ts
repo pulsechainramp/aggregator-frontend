@@ -6,5 +6,52 @@ export const BridgeManagerAddress =
 export const BridgeManagerAddressForNative =
   "0x8AC4ae65b3656e26dC4e0e69108B392283350f55";
 
-export const BackendURL = "https://pulsechainramp.com/";
-//export const BackendURL = "http://localhost:3000/";
+const DEV_BACKEND_FALLBACK = "http://localhost:3000/";
+
+const ensureTrailingSlash = (value: string) =>
+  value.endsWith("/") ? value : `${value}/`;
+
+export const normalizeBackendURL = (
+  candidate: string,
+  { requireHttps = false }: { requireHttps?: boolean } = {}
+) => {
+  const trimmed = candidate.trim();
+  if (!trimmed) {
+    throw new Error("Backend URL cannot be empty");
+  }
+
+  let parsed: URL;
+  try {
+    parsed = new URL(trimmed);
+  } catch {
+    throw new Error("Backend URL must be an absolute URL");
+  }
+
+  if (parsed.search || parsed.hash) {
+    throw new Error("Backend URL must not include query or hash segments");
+  }
+
+  if (requireHttps && parsed.protocol !== "https:") {
+    throw new Error("Backend URL must use HTTPS in production");
+  }
+
+  return `${parsed.origin}${ensureTrailingSlash(parsed.pathname)}`;
+};
+
+const envBackendUrl = import.meta.env.VITE_BACKEND_URL;
+const backendSource =
+  envBackendUrl && envBackendUrl.trim().length > 0
+    ? envBackendUrl
+    : import.meta.env.DEV
+    ? DEV_BACKEND_FALLBACK
+    : undefined;
+
+if (!backendSource) {
+  throw new Error(
+    "Missing VITE_BACKEND_URL. Set it to an HTTPS endpoint before building."
+  );
+}
+
+export const BackendURL = normalizeBackendURL(backendSource, {
+  requireHttps: import.meta.env.PROD,
+});
