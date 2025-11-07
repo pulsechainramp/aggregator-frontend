@@ -52,6 +52,9 @@ const Bridge: React.FC = () => {
     bridgeTransactionLoading,
     bridgeTransactionError,
   } = useAppSelector((state) => state.bridge);
+  const isSourceChainSupported = fromChainId === 1;
+  const unsupportedBridgeMessage =
+    "PulseBridge currently supports bridging from Ethereum to PulseChain only. Switch the source network to Ethereum to continue.";
 
   useEffect(() => {
     dispatch(fetchTokenPairs());
@@ -96,11 +99,24 @@ const Bridge: React.FC = () => {
 
   // Fetch estimate when token, network, or amount changes
   useEffect(() => {
-    if (selectedToken && amount && hasPositiveAmount(amount, selectedToken.decimals)) {
-      const amountInWei = convertToWei(amount, selectedToken.decimals);
-      debouncedFetchEstimate(selectedToken.address, fromChainId, amountInWei);
+    if (
+      !isSourceChainSupported ||
+      !selectedToken ||
+      !amount ||
+      !hasPositiveAmount(amount, selectedToken.decimals)
+    ) {
+      return;
     }
-  }, [selectedToken, fromChainId, amount, debouncedFetchEstimate]);
+
+    const amountInWei = convertToWei(amount, selectedToken.decimals);
+    debouncedFetchEstimate(selectedToken.address, fromChainId, amountInWei);
+  }, [
+    selectedToken,
+    fromChainId,
+    amount,
+    debouncedFetchEstimate,
+    isSourceChainSupported,
+  ]);
 
   // Fetch balance when token or chain changes
   useEffect(() => {
@@ -117,6 +133,11 @@ const Bridge: React.FC = () => {
   // Check if approval is needed when token or amount changes
   useEffect(() => {
     const checkApprovalStatus = async () => {
+      if (!isSourceChainSupported) {
+        dispatch(setNeedsApproval(false));
+        return;
+      }
+
       if (
         selectedToken &&
         amount &&
@@ -150,7 +171,14 @@ const Bridge: React.FC = () => {
     };
 
     checkApprovalStatus();
-  }, [selectedToken, amount, account, fromChainId, dispatch]);
+  }, [
+    selectedToken,
+    amount,
+    account,
+    fromChainId,
+    dispatch,
+    isSourceChainSupported,
+  ]);
 
   const handleNetworkSwap = () => {
     dispatch(swapChains());
@@ -174,6 +202,13 @@ const Bridge: React.FC = () => {
 
     if (!account) {
       console.error("No account connected");
+      return;
+    }
+
+    if (!isSourceChainSupported) {
+      console.error(
+        "Bridge direction not supported. Switch source to Ethereum."
+      );
       return;
     }
     
@@ -264,6 +299,10 @@ const Bridge: React.FC = () => {
                 bridgeTransaction={bridgeTransaction}
                 bridgeTransactionLoading={bridgeTransactionLoading}
                 bridgeTransactionError={bridgeTransactionError}
+                isSourceNetworkSupported={isSourceChainSupported}
+                unsupportedReason={
+                  isSourceChainSupported ? undefined : unsupportedBridgeMessage
+                }
               />
             </div>
 

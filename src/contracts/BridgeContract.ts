@@ -17,6 +17,16 @@ export interface BridgeParams {
   chainId: number;
 }
 
+const ETHEREUM_CHAIN_ID = 1;
+const ETHEREUM_ONLY_ERROR =
+  "PulseBridge currently supports bridging from Ethereum mainnet only. Switch your source network to Ethereum and try again.";
+
+export const assertEthereumSourceChain = (chainId: number) => {
+  if (chainId !== ETHEREUM_CHAIN_ID) {
+    throw new Error(ETHEREUM_ONLY_ERROR);
+  }
+};
+
 /**
  * Initialize BridgeManager contract
  */
@@ -25,13 +35,12 @@ export const initializeBridgeManager = (
   tokenAddress: string
 ) => {
   try {
+    assertEthereumSourceChain(chainId);
     const web3 = getWalletProvider();
     const bridgeManagerAddress =
-      chainId === 1
-        ? tokenAddress === "0x0000000000000000000000000000000000000000"
-          ? BridgeManagerAddressForNative
-          : BridgeManagerAddress
-        : BridgeManagerAddress; // For now, only ETH bridge is available
+      tokenAddress === "0x0000000000000000000000000000000000000000"
+        ? BridgeManagerAddressForNative
+        : BridgeManagerAddress;
 
     const bridgeManagerContract = new web3.eth.Contract(
       tokenAddress === "0x0000000000000000000000000000000000000000"
@@ -62,6 +71,7 @@ export const checkTokenApproval = async (
   userAddress: string
 ): Promise<boolean> => {
   try {
+    assertEthereumSourceChain(chainId);
     const web3 = getWeb3ForChain(chainId);
 
     const tokenContract = new web3.eth.Contract(
@@ -114,6 +124,7 @@ export const getGasEstimate = async (
   chainId: number
 ): Promise<number> => {
   try {
+    assertEthereumSourceChain(chainId);
     const web3 = getWalletProvider();
 
     const tokenContract = new web3.eth.Contract(
@@ -143,6 +154,7 @@ export const approveToken = async (
   userAddress: string
 ): Promise<string> => {
   try {
+    assertEthereumSourceChain(chainId);
     const web3 = getWalletProvider();
 
     const tokenContract = new web3.eth.Contract(
@@ -207,6 +219,7 @@ export const bridgeTokens = async (params: BridgeParams): Promise<string> => {
   const { tokenAddress, amount, receiver, chainId } = params;
 
   try {
+    assertEthereumSourceChain(chainId);
     const { web3, bridgeManagerContract } = initializeBridgeManager(
       chainId,
       tokenAddress
@@ -242,6 +255,7 @@ export const bridgeERC20Tokens = async (
   const { tokenAddress, amount, receiver, chainId } = params;
 
   try {
+    assertEthereumSourceChain(chainId);
     const { web3, bridgeManagerContract } = initializeBridgeManager(
       chainId,
       tokenAddress
@@ -280,6 +294,7 @@ export const handleTokenApproval = async (
   onApprovalError?: (error: any) => void
 ): Promise<boolean> => {
   try {
+    assertEthereumSourceChain(chainId);
     // Check if approval is needed
     const needsApproval = await checkTokenApproval(
       tokenAddress,

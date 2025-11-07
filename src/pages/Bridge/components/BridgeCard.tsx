@@ -54,9 +54,8 @@ interface BridgeCardProps {
   bridgeTransaction: BridgeTransaction | null;
   bridgeTransactionLoading: boolean;
   bridgeTransactionError: string | null;
-  onApprove: () => void;
-  onSwitchNetwork: () => void;
-  onClearTransaction: () => void;
+  isSourceNetworkSupported?: boolean;
+  unsupportedReason?: string;
 }
 
 const BridgeCard: React.FC<BridgeCardProps> = ({
@@ -88,9 +87,8 @@ const BridgeCard: React.FC<BridgeCardProps> = ({
   bridgeTransaction,
   bridgeTransactionLoading,
   bridgeTransactionError,
-  onApprove,
-  onSwitchNetwork,
-  onClearTransaction,
+  isSourceNetworkSupported = true,
+  unsupportedReason,
 }) => {
   const dispatch = useAppDispatch();
   const { account, connectWallet, switchToChain, wallet } = useWallet();
@@ -107,6 +105,10 @@ const BridgeCard: React.FC<BridgeCardProps> = ({
   const filteredTokens = tokens.filter(
     (token) => token.chainId === fromChainId
   );
+
+  const directionSupportMessage =
+    unsupportedReason ??
+    "PulseBridge currently supports bridging from Ethereum to PulseChain only.";
 
   const getNetworkName = (network: "ETH" | "PLS") => {
     return network === "ETH" ? "Ethereum" : "PulseChain";
@@ -252,13 +254,24 @@ const BridgeCard: React.FC<BridgeCardProps> = ({
     if (!account) {
       // If no account is connected, just connect wallet - no auto-switching
       connectWallet();
-    } else if (
+      return;
+    }
+
+    if (!isSourceNetworkSupported) {
+      toast.error(directionSupportMessage);
+      return;
+    }
+
+    if (
       currentBridgeTransaction &&
       currentBridgeTransaction.status === "executed"
     ) {
       // Reset the form when transaction is finished
       resetForm();
-    } else if (selectedTokenData && !isOnCorrectNetwork()) {
+      return;
+    }
+
+    if (selectedTokenData && !isOnCorrectNetwork()) {
       // If user is on wrong network, help them switch
       try {
         await switchToChain(fromChainId);
@@ -267,9 +280,10 @@ const BridgeCard: React.FC<BridgeCardProps> = ({
         // Show error message to user
         // You could add a toast notification here
       }
-    } else {
-      onBridge();
+      return;
     }
+
+    onBridge();
   };
 
   const resetForm = () => {
@@ -291,6 +305,7 @@ const BridgeCard: React.FC<BridgeCardProps> = ({
 
   const isButtonDisabled = () => {
     if (!account) return false;
+    if (!isSourceNetworkSupported) return true;
     if (!isOnCorrectNetwork()) return false;
     if (isBridging || isApproving) return true;
     if (!selectedTokenData || !hasPositiveAmount) return true;
@@ -379,6 +394,7 @@ const BridgeCard: React.FC<BridgeCardProps> = ({
     if (!account) return "Connect Wallet";
     if (isBridging) return "Bridging...";
     if (isApproving) return "Approving...";
+    if (!isSourceNetworkSupported) return "Direction Not Supported";
     if (estimate && !estimate.isSupported) return "Bridge Not Supported";
 
     // Check if user is on the correct source network
@@ -435,6 +451,11 @@ const BridgeCard: React.FC<BridgeCardProps> = ({
 
   return (
     <div className="relative flex flex-col gap-6 rounded-2xl border border-border bg-bg-surface p-6 shadow-floating sm:p-8">
+      {!isSourceNetworkSupported && (
+        <div className="rounded-lg border border-warning bg-warning/10 p-3 text-sm text-warning">
+          {directionSupportMessage}
+        </div>
+      )}
       {error && (
         <div className="rounded-lg border border-danger bg-danger/10 p-3 text-sm text-danger">
           {error}

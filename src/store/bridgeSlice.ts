@@ -9,6 +9,7 @@ import {
   BridgeParams,
   handleTokenApproval,
   initializeBridgeManager,
+  assertEthereumSourceChain,
 } from "../contracts/BridgeContract";
 import { BackendURL, ZeroAddress } from "../const/swap";
 import { ensureSiweSessionAction } from "./referralSlice";
@@ -287,6 +288,7 @@ export const bridgeTokens = createAsyncThunk(
     { dispatch }
   ) => {
     try {
+      assertEthereumSourceChain(fromChainId);
       const normalizedAmount = normalizeAmountInput(amount);
       // Convert amount to wei
       const amountInWei = ethers.parseUnits(
