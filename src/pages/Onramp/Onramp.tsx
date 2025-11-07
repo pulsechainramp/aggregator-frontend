@@ -14,8 +14,13 @@ const getFiatFor = (code?: string) =>
   COUNTRY_OPTIONS.find((c) => c.code === code)?.fiat ?? "USD";
 
 function ProviderCard({ p }: { p: Provider }) {
-  const { href, blocked } = resolveProviderLink(p);
+  const { href, blocked, host, reason } = resolveProviderLink(p);
   const isDisabled = !href;
+  const buttonLabel = isDisabled
+    ? "Link unavailable"
+    : host
+      ? `Visit ${host}`
+      : "Visit site";
 
   return (
     <li
@@ -47,15 +52,22 @@ function ProviderCard({ p }: { p: Provider }) {
               }
             }}
           >
-            <span>{isDisabled ? "Link unavailable" : "Visit site"}</span>
+            <span>{buttonLabel}</span>
             <span aria-hidden="true" className="text-lg">
               &rarr;
             </span>
           </a>
+          {!isDisabled && host && (
+            <span className="text-center text-xs text-text-muted sm:text-left">
+              Destination: {host}
+            </span>
+          )}
         </div>
         {blocked && (
           <p className="text-xs text-danger">
-            Provider link was blocked because it used an invalid or unsafe URL scheme.
+            {reason === "hostname_mismatch"
+              ? `Provider link blocked: ${host ?? "unknown host"} is not on the vetted domain list.`
+              : "Provider link was blocked because it used an invalid or unsafe URL scheme."}
           </p>
         )}
       </div>

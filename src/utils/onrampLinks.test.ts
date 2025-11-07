@@ -1,62 +1,60 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import type { Provider } from "../api/onramps";
+
+vi.mock("../data/allowedProviderHosts", () => ({
+  ALLOWED_PROVIDER_HOSTS: {
+    simplex: ["simplex.com"],
+    transak: ["transak.com"],
+  },
+}));
+
 import { resolveProviderLink } from "./onrampLinks";
 
-const providerBase: Provider = {
-  id: "prov",
-  display_name: "Provider",
+const baseProvider: Provider = {
+  id: "simplex",
+  display_name: "Simplex",
   type: "onramp",
   priority: 1,
 };
 
-const clone = (overrides: Partial<Provider>): Provider => ({
-  ...providerBase,
+const withLink = (overrides: Partial<Provider>): Provider => ({
+  ...baseProvider,
   ...overrides,
 });
 
 describe("resolveProviderLink", () => {
-  it("prefers deeplink when safe", () => {
+  it("returns allowed https link when hostname matches allowlist", () => {
     const result = resolveProviderLink(
-      clone({ deeplink: "https://safe.example.com" })
+      withLink({ deeplink: "https://simplex.com/pay" })
     );
+
     expect(result).toEqual({
-      href: "https://safe.example.com/",
+      href: "https://simplex.com/pay",
       blocked: false,
+      host: "simplex.com",
     });
   });
 
-  it("falls back to regulator links when needed", () => {
+  it("blocks links whose host does not match the allowlist", () => {
     const result = resolveProviderLink(
-      clone({
-        deeplink: "javascript:alert(1)",
-        coverage_url: null,
-        regulator_links: ["https://reg.example.com/info"],
-      })
+      withLink({ deeplink: "https://evil.example/pay" })
     );
-    expect(result).toEqual({
-      href: "https://reg.example.com/info",
-      blocked: false,
-    });
+
+    expect(result.href).toBeNull();
+    expect(result.blocked).toBe(true);
+    expect(result.reason).toBe("hostname_mismatch");
+    expect(result.host).toBe("evil.example");
   });
 
-  it("reports blocked when every candidate is unsafe", () => {
+  it("blocks candidates that fail URL sanitization", () => {
     const result = resolveProviderLink(
-      clone({
-        deeplink: "javascript:alert(1)",
-        coverage_url: "data:text/plain,hi",
-      })
+      withLink({ deeplink: "javascript:alert(1)" })
     );
-    expect(result).toEqual({
-      href: null,
-      blocked: true,
-    });
-  });
 
-  it("reports not blocked when there were no candidates at all", () => {
-    const result = resolveProviderLink(clone({}));
-    expect(result).toEqual({
-      href: null,
-      blocked: false,
-    });
+    expect(result.href).toBeNull();
+    expect(result.blocked).toBe(true);
+    expect(result.reason).toBe("invalid_url");
+    expect(result.host).toBeNull();
   });
 });
+

@@ -17,7 +17,9 @@ export type Provider = {
   priority: number;
   deeplink?: string | null;
   deeplink_available?: boolean;
+  deeplink_host?: string | null;
   link_blocked?: boolean;
+  link_blocked_reason?: string | null;
   coverage_url?: string | null;
   regulator_links?: string[] | null;
   supported_payment_methods?: string[] | null;

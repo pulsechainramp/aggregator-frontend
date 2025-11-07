@@ -129,8 +129,18 @@ aggregator-frontend/
 
 ## Deployment
 - **Platform:** Vercel (configured by `vercel.json` for build/run commands and SPA rewrites).
-- **Artifacts:** Static build in `build/` served via Vercel’s CDN; serverless API auto-deployed alongside.
+- **Artifacts:** Static build in `build/` served via Vercel's CDN; serverless API auto-deployed alongside.
 - **Environments:** Point staging/production projects at the desired PulseChain backend URL via `VITE_BACKEND_URL` (set per-environment in `.env`/Vercel project settings).
+
+### Onramp Allowlist Sync
+Onramp CTAs are pinned to a generated allowlist. Whenever `routing-api/src/data/onramps_providers.json` changes (new provider, updated domain, etc.), regenerate the allowlist before deploying:
+
+```bash
+cd ../routing-api
+node scripts/sync-onramp-allowlist.js
+```
+
+This writes both `routing-api/src/data/allowedProviderHosts.ts` and `aggregator-frontend/src/data/allowedProviderHosts.ts`. Commit the refreshed files in each repo so the backend and frontend enforce the same vetted hostnames.
 
 ---
 
