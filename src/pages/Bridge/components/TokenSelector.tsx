@@ -70,10 +70,10 @@ const TokenSelector: React.FC<TokenSelectorProps> = ({
   const getNetworkLogo = (token: BridgeToken): string | undefined => {
     // Use actual network logos for native tokens
     if (token.symbol === 'ETH' && token.address === '0x0000000000000000000000000000000000000000') {
-      return 'http://api-assets.rubic.exchange/assets/rubic/eth/0x0000000000000000000000000000000000000000/logo_9LYU9u5.png';
+      return 'https://api-assets.rubic.exchange/assets/rubic/eth/0x0000000000000000000000000000000000000000/logo_9LYU9u5.png';
     }
     if (token.symbol === 'PLS' && token.address === '0x0000000000000000000000000000000000000000') {
-      return 'http://api-assets.rubic.exchange/assets/coingecko/pulsechain/0x0000000000000000000000000000000000000000/logo.png';
+      return 'https://api-assets.rubic.exchange/assets/coingecko/pulsechain/0x0000000000000000000000000000000000000000/logo.png';
     }
     return token.logoURI;
   };

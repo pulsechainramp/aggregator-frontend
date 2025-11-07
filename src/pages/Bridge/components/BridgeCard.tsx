@@ -120,10 +120,10 @@ const BridgeCard: React.FC<BridgeCardProps> = ({
 
   const getNetworkLogo = (network: "ETH" | "PLS"): string | undefined => {
     if (network === "ETH") {
-      return "http://api-assets.rubic.exchange/assets/rubic/eth/0x0000000000000000000000000000000000000000/logo_9LYU9u5.png";
+      return "https://api-assets.rubic.exchange/assets/rubic/eth/0x0000000000000000000000000000000000000000/logo_9LYU9u5.png";
     }
     if (network === "PLS") {
-      return "http://api-assets.rubic.exchange/assets/coingecko/pulsechain/0x0000000000000000000000000000000000000000/logo.png";
+      return "https://api-assets.rubic.exchange/assets/coingecko/pulsechain/0x0000000000000000000000000000000000000000/logo.png";
     }
     return undefined;
   };
