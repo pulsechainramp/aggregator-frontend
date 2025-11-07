@@ -13,6 +13,7 @@ import {
 import { RootState } from "./store";
 import { fetchReferralPromo } from "./referralSlice";
 import { fetchPiteasQuoteClient } from "../utils/piteasQuote";
+import { normalizeAmountInput, areAmountsEqual } from "../utils/amount";
 
 const ZERO_ADDRESS_LOWER = ZeroAddress.toLowerCase();
 
@@ -43,7 +44,7 @@ interface SwapState {
   lastPulseXParams: {
     tokenInAddress: string;
     tokenOutAddress: string;
-    amount: number;
+    amount: string;
     allowedSlippage: number;
   } | null;
 }
@@ -51,7 +52,7 @@ interface SwapState {
 type QuoteRequestSnapshot = {
   tokenInAddress: string;
   tokenOutAddress: string;
-  amount: number;
+  amount: string;
   allowedSlippage: number;
   fromDecimal: number;
 };
@@ -122,10 +123,7 @@ const doesQuoteMatchSnapshot = (
   if (state.fromToken?.decimals !== snapshot.fromDecimal) return false;
   if (state.slippage !== snapshot.allowedSlippage) return false;
 
-  const currentAmount = Number(state.fromAmount);
-  if (!Number.isFinite(currentAmount)) return false;
-
-  return currentAmount === snapshot.amount;
+  return areAmountsEqual(state.fromAmount, snapshot.amount);
 };
 
 // Get token balance
@@ -432,7 +430,7 @@ export const getPulseXQuote = createAsyncThunk<
   {
     tokenInAddress: string;
     tokenOutAddress: string;
-    amount: number;
+    amount: string;
     allowedSlippage: number;
     fromDecimal: number;
   }
@@ -445,12 +443,11 @@ export const getPulseXQuote = createAsyncThunk<
     allowedSlippage,
     fromDecimal,
   }) => {
+    const normalizedAmount = normalizeAmountInput(amount);
     const params = new URLSearchParams({
       tokenInAddress,
       tokenOutAddress,
-      amount: ethers
-        .parseUnits(amount.toString(), fromDecimal)
-        .toString(),
+      amount: ethers.parseUnits(normalizedAmount, fromDecimal).toString(),
       allowedSlippage: allowedSlippage.toString(),
       fromDecimal: fromDecimal.toString(),
     });
@@ -481,7 +478,7 @@ export const getPiteamsQuote = createAsyncThunk<
   {
     tokenInAddress: string;
     tokenOutAddress: string;
-    amount: number;
+    amount: string;
     allowedSlippage: number;
     fromDecimal: number;
   }
@@ -494,9 +491,8 @@ export const getPiteamsQuote = createAsyncThunk<
     allowedSlippage,
     fromDecimal,
   }) => {
-    const amountInWei = ethers
-      .parseUnits(amount.toString(), fromDecimal)
-      .toString();
+    const normalizedAmount = normalizeAmountInput(amount);
+    const amountInWei = ethers.parseUnits(normalizedAmount, fromDecimal).toString();
 
     return fetchPiteasQuoteClient({
       tokenInAddress,
@@ -513,7 +509,7 @@ export const getQuote = createAsyncThunk<
   {
     tokenInAddress: string;
     tokenOutAddress: string;
-    amount: number;
+    amount: string;
     allowedSlippage: number;
     fromDecimal: number;
   },
@@ -527,10 +523,17 @@ export const getQuote = createAsyncThunk<
     allowedSlippage,
     fromDecimal,
   }, { dispatch, getState }) => {
+    let normalizedAmount: string;
+    try {
+      normalizedAmount = normalizeAmountInput(amount);
+    } catch (error) {
+      dispatch(setQuote(null));
+      throw error;
+    }
     const requestSnapshot: QuoteRequestSnapshot = {
       tokenInAddress,
       tokenOutAddress,
-      amount,
+      amount: normalizedAmount,
       allowedSlippage,
       fromDecimal,
     };
@@ -541,7 +544,7 @@ export const getQuote = createAsyncThunk<
     const isNewQuoteRequest = !lastPulseXParams || 
       lastPulseXParams.tokenInAddress.toLowerCase() !== tokenInAddress.toLowerCase() ||
       lastPulseXParams.tokenOutAddress.toLowerCase() !== tokenOutAddress.toLowerCase() ||
-      lastPulseXParams.amount !== amount ||
+      lastPulseXParams.amount !== normalizedAmount ||
       lastPulseXParams.allowedSlippage !== allowedSlippage;
 
     if (isNewQuoteRequest) {
@@ -564,7 +567,7 @@ export const getQuote = createAsyncThunk<
         dispatch(setLastPulseXParams({
           tokenInAddress,
           tokenOutAddress,
-          amount,
+          amount: normalizedAmount,
           allowedSlippage,
         }));
 
@@ -574,7 +577,7 @@ export const getQuote = createAsyncThunk<
           dispatch(getPiteamsQuote({
             tokenInAddress,
             tokenOutAddress,
-            amount,
+            amount: normalizedAmount,
             allowedSlippage,
             fromDecimal,
           })).then((piteamsResult) => {
@@ -609,7 +612,7 @@ export const getQuote = createAsyncThunk<
         const piteamsResult = await dispatch(getPiteamsQuote({
           tokenInAddress,
           tokenOutAddress,
-          amount,
+          amount: normalizedAmount,
           allowedSlippage,
           fromDecimal,
         })).unwrap();
@@ -631,7 +634,7 @@ export const getQuote = createAsyncThunk<
         const piteamsResult = await dispatch(getPiteamsQuote({
           tokenInAddress,
           tokenOutAddress,
-          amount,
+          amount: normalizedAmount,
           allowedSlippage,
           fromDecimal,
         })).unwrap();

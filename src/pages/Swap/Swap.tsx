@@ -350,7 +350,7 @@ const Swap: React.FC = () => {
               toToken.address.toLowerCase() === ZeroAddress
                 ? "PLS"
                 : toToken.address,
-            amount: Number(fromAmount),
+            amount: fromAmount,
             allowedSlippage: slippage,
             fromDecimal: fromToken.decimals,
           })
@@ -367,7 +367,7 @@ const Swap: React.FC = () => {
                 toToken.address.toLowerCase() === ZeroAddress
                   ? "PLS"
                   : toToken.address,
-              amount: Number(fromAmount),
+              amount: fromAmount,
               allowedSlippage: slippage,
               fromDecimal: fromToken.decimals,
             })
