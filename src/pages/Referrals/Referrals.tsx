@@ -20,10 +20,9 @@ import {
   fetchReferralFeeBasisPoints,
   fetchReferralCreationFeeInfo,
   checkReferralCreationFeePaid,
-  requestSiweChallenge,
-  verifySiweSignature,
   createReferralCodeSecure,
   submitReferralCreationFeePayment,
+  ensureSiweSessionAction,
 } from "../../store/referralSlice";
 import { getAvailableTokensFromChain } from "../../store/swapSlice";
 import { toast } from "react-toastify";
@@ -34,10 +33,9 @@ import ReferralFeePopup from "../Swap/ReferralFeePopup";
 import { formatFeeBasisPoints } from "../../utils/referralUtils";
 import { BackendURL } from "../../const/swap";
 import { formatEther } from "ethers";
-import { signSiweMessage } from "../../utils/siwe";
 
 const Referrals: React.FC = () => {
-  const { account, wallet } = useWallet();
+  const { account } = useWallet();
   const dispatch = useAppDispatch();
   const referralCode = useReferralCode();
   const referralFees = useReferralFees();
@@ -199,15 +197,7 @@ const Referrals: React.FC = () => {
       let token = authToken;
 
       if (!token) {
-        const challenge = await dispatch(requestSiweChallenge(account)).unwrap();
-        const signature = await signSiweMessage(
-          challenge.message,
-          wallet?.provider
-        );
-        const verification = await dispatch(
-          verifySiweSignature({ message: challenge.message, signature })
-        ).unwrap();
-        token = verification.token;
+        token = await dispatch(ensureSiweSessionAction(account)).unwrap();
       }
 
       if (!token) {

@@ -11,13 +11,15 @@ import AppFooter from "./components/AppFooter";
 import { useTheme } from "./theme/ThemeProvider";
 import ScrollToTop from "./components/ScrollToTop";
 import AlphaNoticeBanner from "./components/AlphaNoticeBanner";
+import SiwePreviewProvider from "./components/SiwePreviewProvider";
 
 function App() {
   const { theme } = useTheme();
 
   return (
     <Provider store={store}>
-      <Router>
+      <SiwePreviewProvider>
+        <Router>
         <ScrollToTop />
         <div className="flex min-h-screen flex-col bg-bg-page text-text transition-colors duration-200">
           <AlphaNoticeBanner />
@@ -44,7 +46,8 @@ function App() {
           {/* Footer at the bottom */}
           <AppFooter />
         </div>
-      </Router>
+        </Router>
+      </SiwePreviewProvider>
     </Provider>
   );
 }

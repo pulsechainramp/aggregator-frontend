@@ -14,7 +14,17 @@ import {
 } from "../contracts/SwapManager";
 import { ethers } from "ethers";
 import { lockReferralBinding } from "../utils/referralUtils";
-import { signSiweMessage } from "../utils/siwe";
+import {
+  confirmSiweChallenge,
+  getOrCreateSiweClientId,
+  rememberSiweNonce,
+  signSiweMessage,
+  validateSiweMessage,
+} from "../utils/siwe";
+type ReferralThunkAPI = {
+  dispatch: any;
+  getState: () => { referral: ReferralState };
+};
 
 interface ReferralCode {
   id: string;
@@ -212,10 +222,12 @@ export const submitReferralCreationFeePayment = createAsyncThunk<
 
 export const requestSiweChallenge = createAsyncThunk<
   SiweChallenge,
-  string
->("referral/requestSiweChallenge", async (address: string) => {
-  const params = new URLSearchParams({ address });
-  const response = await fetch(`${BackendURL}auth/challenge?${params.toString()}`);
+  { address: string; clientId: string }
+>("referral/requestSiweChallenge", async ({ address, clientId }) => {
+  const params = new URLSearchParams({ address, clientId });
+  const response = await fetch(
+    `${BackendURL}auth/challenge?${params.toString()}`
+  );
   if (!response.ok) {
     throw new Error("Failed to request SIWE challenge");
   }
@@ -225,14 +237,14 @@ export const requestSiweChallenge = createAsyncThunk<
 
 export const verifySiweSignature = createAsyncThunk<
   { token: string; address: string },
-  { message: string; signature: string }
->("referral/verifySiweSignature", async ({ message, signature }) => {
+  { message: string; signature: string; clientId: string }
+>("referral/verifySiweSignature", async ({ message, signature, clientId }) => {
   const response = await fetch(`${BackendURL}auth/verify`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
     },
-    body: JSON.stringify({ message, signature }),
+    body: JSON.stringify({ message, signature, clientId }),
   });
 
   if (!response.ok) {
@@ -243,36 +255,54 @@ export const verifySiweSignature = createAsyncThunk<
   return data as { token: string; address: string };
 });
 
-export const ensureSiweSession = async (
+const ensureSiweSessionInternal = async (
   address: string,
-  thunkAPI: any
+  thunkAPI: ReferralThunkAPI
 ): Promise<string> => {
   if (!address) {
     throw new Error("Connect your wallet to continue");
   }
 
-  const state = thunkAPI.getState ? thunkAPI.getState() : undefined;
+  const state = thunkAPI.getState?.();
   const existingToken: string | null = state?.referral?.authToken ?? null;
 
   if (existingToken) {
     return existingToken;
   }
 
+  const clientId = getOrCreateSiweClientId();
   const challenge = await thunkAPI
-    .dispatch(requestSiweChallenge(address))
+    .dispatch(requestSiweChallenge({ address, clientId }))
     .unwrap();
+
+  const { fields, preview } = validateSiweMessage(
+    challenge.message,
+    address.toLowerCase()
+  );
+  await confirmSiweChallenge(preview);
+
   const signature = await signSiweMessage(challenge.message);
   const verification = await thunkAPI
     .dispatch(
       verifySiweSignature({
         message: challenge.message,
         signature,
+        clientId,
       })
     )
     .unwrap();
 
+  rememberSiweNonce(fields.nonce);
   return verification.token;
 };
+
+export const ensureSiweSessionAction = createAsyncThunk<
+  string,
+  string,
+  { state: { referral: ReferralState } }
+>("referral/ensureSiweSessionAction", async (address, thunkAPI) =>
+  ensureSiweSessionInternal(address, thunkAPI)
+);
 
 export const createReferralCodeSecure = createAsyncThunk<
   ReferralCode,
@@ -354,7 +384,9 @@ export const fetchReferralFees = createAsyncThunk(
       throw new Error("Referrer address is required");
     }
 
-    const token = await ensureSiweSession(referrerAddress, thunkAPI);
+    const token = await thunkAPI
+      .dispatch(ensureSiweSessionAction(referrerAddress))
+      .unwrap();
     const encodedReferrer = encodeURIComponent(referrerAddress);
     const response = await fetch(
       `${BackendURL}referral-fees/referrer/${encodedReferrer}`,

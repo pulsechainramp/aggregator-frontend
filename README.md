@@ -56,6 +56,7 @@ npm run dev
 | `VITE_BACKEND_URL` | `https://api.pulsechainramp.com/` | yes | Base URL for routing API (`/quote`, `/referral`, etc.). Must be HTTPS in production. |
 | `VITE_PITEAS_API_BASE_URL` | `https://sdk.piteas.io` | yes | Direct browser endpoint for Piteas quotes. Each client uses its own IP quota. |
 | `VITE_QUOTE_SIGNER_ADDRESS` | `0xf39F...` | yes | Address of the backend attestation signer. Used to verify `/quote/attest` signatures before enabling swaps. |
+| `VITE_SIWE_CHAIN_IDS` | `369,943` |  | Comma-separated list of chain IDs that SIWE challenges must match (default PulseChain mainnet only). |
 | `CONTACT_SMTP_*` | Gmail/SMTP creds | optional | Needed only when deploying the contact form API. |
 
 ---

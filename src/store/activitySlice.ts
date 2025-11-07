@@ -1,7 +1,7 @@
 import { createSlice, createAsyncThunk, PayloadAction } from "@reduxjs/toolkit";
 import { BridgeTransaction } from "./bridgeSlice";
 import { BackendURL } from "../const/swap";
-import { ensureSiweSession } from "./referralSlice";
+import { ensureSiweSessionAction } from "./referralSlice";
 
 interface ActivityState {
   transactions: BridgeTransaction[];
@@ -26,7 +26,9 @@ export const fetchUserTransactions = createAsyncThunk(
         throw new Error("Connect your wallet to view activity");
       }
 
-      const token = await ensureSiweSession(userAddress, thunkAPI);
+      const token = await thunkAPI
+        .dispatch(ensureSiweSessionAction(userAddress))
+        .unwrap();
       const params = new URLSearchParams({
         userAddress,
         limit: "50",
