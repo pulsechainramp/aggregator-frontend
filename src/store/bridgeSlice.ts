@@ -10,9 +10,10 @@ import {
   handleTokenApproval,
   initializeBridgeManager,
 } from "../contracts/BridgeContract";
-import { BackendURL } from "../const/swap";
+import { BackendURL, ZeroAddress } from "../const/swap";
 import { ensureSiweSession } from "./referralSlice";
 import { ethers } from "ethers";
+import { normalizeAmountInput } from "../utils/amount";
 
 export interface BridgeToken {
   name: string;
@@ -286,9 +287,10 @@ export const bridgeTokens = createAsyncThunk(
     { dispatch }
   ) => {
     try {
+      const normalizedAmount = normalizeAmountInput(amount);
       // Convert amount to wei
       const amountInWei = ethers.parseUnits(
-        parseFloat(amount).toFixed(token.decimals),
+        normalizedAmount,
         token.decimals
       );
 
@@ -303,10 +305,7 @@ export const bridgeTokens = createAsyncThunk(
       let approvalTxHash: string | undefined;
 
       // Check if it's a native token (ETH/PLS)
-      if (
-        token.address.toLowerCase() ===
-        "0x0000000000000000000000000000000000000000"
-      ) {
+      if (token.address.toLowerCase() === ZeroAddress.toLowerCase()) {
         // Bridge native tokens
         transactionHash = await bridgeTokensContract(bridgeParams);
       } else {
@@ -316,10 +315,8 @@ export const bridgeTokens = createAsyncThunk(
           token.address
         );
 
-        const approveAmountInWei = ethers.parseUnits(
-          (Number(amount) * 1.01).toFixed(token.decimals),
-          token.decimals
-        );
+        const approveAmountInWei =
+          ((amountInWei * 101n) + 99n) / 100n;
 
         // Handle approval with state management
         const approvalPerformed = await handleTokenApproval(
@@ -565,15 +562,21 @@ const bridgeSlice = createSlice({
       // Swap the amount based on current estimate
       if (
         state.estimate &&
-        state.estimate.estimatedAmount &&
+        state.estimate.estimatedAmount != null &&
         state.selectedToken
       ) {
-        // Convert estimated amount from wei to human readable format
-        const estimatedAmountHuman = (
-          state.estimate.estimatedAmount /
-          Math.pow(10, state.selectedToken.decimals)
-        ).toFixed(6);
-        state.amount = estimatedAmountHuman;
+        const raw = state.estimate.estimatedAmount;
+        let estimatedWei: bigint;
+        if (typeof raw === "string") {
+          estimatedWei = BigInt(raw);
+        } else {
+          estimatedWei = BigInt(Math.trunc(raw));
+        }
+
+        state.amount = ethers.formatUnits(
+          estimatedWei,
+          state.selectedToken.decimals
+        );
       } else {
         // If no estimate available, clear the amount
         state.amount = "";

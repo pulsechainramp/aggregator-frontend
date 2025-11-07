@@ -18,6 +18,12 @@ import {
 import AddToWalletButton from "../../../components/AddToWalletButton";
 import { TokenInfo } from "../../../utils/walletUtils";
 import { toast } from "react-toastify";
+import { tryParseAmountToWei } from "../../../utils/amount";
+import { ZeroAddress } from "../../../const/swap";
+import {
+  MIN_NATIVE_ETH_AMOUNT_WEI,
+  MIN_NATIVE_ETH_AMOUNT_DISPLAY,
+} from "../constants";
 
 interface BridgeCardProps {
   fromNetwork: "ETH" | "PLS";
@@ -125,6 +131,22 @@ const BridgeCard: React.FC<BridgeCardProps> = ({
   const selectedTokenData = filteredTokens.find(
     (token) => token.symbol === selectedToken
   );
+
+  const tokenDecimals = selectedTokenData?.decimals ?? 18;
+  const amountWei = tryParseAmountToWei(amount, tokenDecimals);
+  const balanceWei = tryParseAmountToWei(balance, tokenDecimals);
+  const hasPositiveAmount = amountWei !== null && amountWei > 0n;
+  const insufficientBalance =
+    amountWei !== null &&
+    balanceWei !== null &&
+    amountWei > balanceWei;
+  const isEthNative =
+    selectedTokenData?.address === ZeroAddress && fromChainId === 1;
+  const isBelowMinimum =
+    isEthNative &&
+    amountWei !== null &&
+    amountWei > 0n &&
+    amountWei < MIN_NATIVE_ETH_AMOUNT_WEI;
 
   // Find the corresponding token using the new token pair structure
   const correspondingTokenData = tokens.find(
@@ -271,22 +293,19 @@ const BridgeCard: React.FC<BridgeCardProps> = ({
     if (!account) return false;
     if (!isOnCorrectNetwork()) return false;
     if (isBridging || isApproving) return true;
-    if (!selectedTokenData || !amount || parseFloat(amount) <= 0) return true;
+    if (!selectedTokenData || !hasPositiveAmount) return true;
     if (estimate && !estimate.isSupported) return true;
 
     // Don't disable button for wrong network - let user click to switch
     // if (selectedTokenData && !isOnCorrectNetwork()) return true;
 
     // Check for insufficient balance
-    if (balance && parseFloat(amount) > parseFloat(balance)) return true;
+    if (insufficientBalance) return true;
 
     // Check for Ethereum native token minimum amount (0.018 ETH)
     if (
       selectedTokenData &&
-      selectedTokenData.address ===
-        "0x0000000000000000000000000000000000000000" &&
-      fromChainId === 1 && // Ethereum chain
-      parseFloat(amount) <= 0.018
+      isBelowMinimum
     ) {
       return true;
     }
@@ -381,26 +400,19 @@ const BridgeCard: React.FC<BridgeCardProps> = ({
     if (transactionHash) return "Bridge Completed!";
 
     // Check for insufficient balance
-    if (balance && parseFloat(amount) > parseFloat(balance)) {
+    if (insufficientBalance) {
       return `Insufficient ${selectedTokenData?.symbol || "Balance"}`;
     }
 
     // Check for Ethereum native token minimum amount (0.018 ETH)
-    if (
-      selectedTokenData &&
-      selectedTokenData.address ===
-        "0x0000000000000000000000000000000000000000" &&
-      fromChainId === 1 && // Ethereum chain
-      parseFloat(amount) <= 0.018
-    ) {
-      return "Amount must be greater than 0.018 ETH";
+    if (isBelowMinimum) {
+      return `Amount must be greater than ${MIN_NATIVE_ETH_AMOUNT_DISPLAY} ETH`;
     }
 
     // Check if approval is needed (for non-native tokens)
     if (
       selectedTokenData &&
-      selectedTokenData.address !==
-        "0x0000000000000000000000000000000000000000" &&
+      selectedTokenData.address !== ZeroAddress &&
       needsApproval
     ) {
       return "Approve";

@@ -3,6 +3,12 @@ import { motion } from "framer-motion";
 import ProviderIcon from "../../../components/ProviderIcon";
 import useWallet from "../../../hooks/useWallet";
 import AddToWalletButton from "../../../components/AddToWalletButton";
+import { tryParseAmountToWei } from "../../../utils/amount";
+import { ZeroAddress } from "../../../const/swap";
+import {
+  MIN_NATIVE_ETH_AMOUNT_WEI,
+  MIN_NATIVE_ETH_AMOUNT_DISPLAY,
+} from "../constants";
 
 interface AmountInputProps {
   value: string;
@@ -44,18 +50,29 @@ const AmountInput: React.FC<AmountInputProps> = ({
     }
   };
 
+  const tokenDecimals = selectedTokenData?.decimals ?? 18;
+
   const handleMaxClick = () => {
-    // Use actual balance from contract
-    if (balance && !balanceLoading && parseFloat(balance) > 0) {
+    if (!balance || balanceLoading) return;
+    const balanceWei = tryParseAmountToWei(balance, tokenDecimals);
+    if (balanceWei && balanceWei > 0n) {
       onChange(balance);
     }
   };
 
   // Check if this is ETH native token on Ethereum chain
-  const isEthNative = selectedTokenData?.address === "0x0000000000000000000000000000000000000000" && fromChainId === 1;
-  const minAmount = 0.018;
-  const currentAmount = parseFloat(value || "0");
-  const isBelowMinimum = isEthNative && currentAmount > 0 && currentAmount < minAmount;
+  const isEthNative =
+    selectedTokenData?.address === ZeroAddress && fromChainId === 1;
+  const amountWei = tryParseAmountToWei(value, tokenDecimals);
+  const isBelowMinimum =
+    isEthNative &&
+    amountWei !== null &&
+    amountWei > 0n &&
+    amountWei < MIN_NATIVE_ETH_AMOUNT_WEI;
+  const meetsMinimum =
+    isEthNative &&
+    amountWei !== null &&
+    amountWei >= MIN_NATIVE_ETH_AMOUNT_WEI;
 
   return (
     <motion.div
@@ -143,7 +160,7 @@ const AmountInput: React.FC<AmountInputProps> = ({
             <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
               <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
             </svg>
-            <span>The PulseChain bridge requires a minimum of {minAmount} ETH for this transaction.</span>
+            <span>The PulseChain bridge requires a minimum of {MIN_NATIVE_ETH_AMOUNT_DISPLAY} ETH for this transaction.</span>
           </div>
           
           {/* Tooltip Icon */}
@@ -183,7 +200,7 @@ const AmountInput: React.FC<AmountInputProps> = ({
       )}
 
       {/* Success message when amount is valid */}
-      {isEthNative && currentAmount >= minAmount && currentAmount > 0 && (
+      {meetsMinimum && (
         <motion.div
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}

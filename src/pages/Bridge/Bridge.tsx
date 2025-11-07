@@ -19,6 +19,11 @@ import useWallet from "../../hooks/useWallet";
 import useEthBalance from "../../hooks/useEthBalance";
 import { OnRampBanner, OnRampModal } from "../../components/onramp";
 import { useState } from "react";
+import { ZeroAddress } from "../../const/swap";
+import {
+  isPositiveAmount as isPositiveAmountHelper,
+  tryParseAmountToWei,
+} from "../../utils/amount";
 
 const Bridge: React.FC = () => {
   const dispatch = useAppDispatch();
@@ -80,15 +85,18 @@ const Bridge: React.FC = () => {
     [dispatch]
   );
 
-  const convertToWei = (amount: string, decimals: number): string => {
-    const amountNum = parseFloat(amount);
-    if (isNaN(amountNum)) return "0";
-    return (amountNum * Math.pow(10, decimals)).toString();
+  const convertToWei = (value: string, decimals: number): string => {
+    const wei = tryParseAmountToWei(value, decimals);
+    return wei ? wei.toString() : "0";
+  };
+
+  const hasPositiveAmount = (value: string, decimals: number): boolean => {
+    return isPositiveAmountHelper(value, decimals);
   };
 
   // Fetch estimate when token, network, or amount changes
   useEffect(() => {
-    if (selectedToken && amount && parseFloat(amount) > 0) {
+    if (selectedToken && amount && hasPositiveAmount(amount, selectedToken.decimals)) {
       const amountInWei = convertToWei(amount, selectedToken.decimals);
       debouncedFetchEstimate(selectedToken.address, fromChainId, amountInWei);
     }
@@ -109,9 +117,14 @@ const Bridge: React.FC = () => {
   // Check if approval is needed when token or amount changes
   useEffect(() => {
     const checkApprovalStatus = async () => {
-      if (selectedToken && amount && parseFloat(amount) > 0 && account) {
+      if (
+        selectedToken &&
+        amount &&
+        hasPositiveAmount(amount, selectedToken.decimals) &&
+        account
+      ) {
         try {
-          if (selectedToken.address !== "0x0000000000000000000000000000000000000000") {
+          if (selectedToken.address !== ZeroAddress) {
             const { bridgeManagerAddress } = initializeBridgeManager(fromChainId, selectedToken.address);
             const amountInWei = convertToWei(amount, selectedToken.decimals);
             
@@ -152,7 +165,12 @@ const Bridge: React.FC = () => {
   };
 
   const handleBridge = async () => {
-    if (!selectedToken || !amount || parseFloat(amount) <= 0) return;
+    if (
+      !selectedToken ||
+      !amount ||
+      !hasPositiveAmount(amount, selectedToken.decimals)
+    )
+      return;
 
     if (!account) {
       console.error("No account connected");
