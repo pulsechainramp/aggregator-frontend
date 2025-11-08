@@ -86,13 +86,13 @@ const Referrals: React.FC = () => {
     dispatch(fetchReferralCreationFeeInfo());
   }, [dispatch]);
 
-  // Check if referral code is available
+  // Reset fees and reload referral code whenever the active wallet changes
   useEffect(() => {
     dispatch(clearReferralFees());
-    if (account && !referralCode) {
+    if (account) {
       dispatch(fetchReferralCode(account));
     }
-  }, [account, referralCode, dispatch]);
+  }, [account, dispatch]);
 
   useEffect(() => {
     if (!account || !creationFeeInfo?.fee) {
