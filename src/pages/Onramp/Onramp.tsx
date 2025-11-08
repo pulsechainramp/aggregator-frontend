@@ -16,11 +16,7 @@ const getFiatFor = (code?: string) =>
 function ProviderCard({ p }: { p: Provider }) {
   const { href, blocked, host, reason } = resolveProviderLink(p);
   const isDisabled = !href;
-  const buttonLabel = isDisabled
-    ? "Link unavailable"
-    : host
-      ? `Visit ${host}`
-      : "Visit site";
+  const buttonLabel = isDisabled ? "Link unavailable" : "Visit site";
 
   return (
     <li
@@ -40,7 +36,7 @@ function ProviderCard({ p }: { p: Provider }) {
             target="_blank"
             rel="noopener noreferrer"
             aria-disabled={isDisabled}
-            className={`touch-target inline-flex w-full items-center justify-center gap-2 rounded-lg border border-primary bg-primary px-4 py-3 text-base font-semibold text-white shadow-sm transition-transform transition-colors duration-150 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus active:translate-y-0 sm:w-auto sm:min-w-[9rem] ${
+            className={`touch-target inline-flex w-full items-center justify-center gap-2 rounded-lg border border-primary bg-primary px-4 py-3 text-base font-semibold text-white hover:text-white focus-visible:text-white active:text-white shadow-sm transition-transform transition-colors duration-150 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus active:translate-y-0 sm:w-auto sm:min-w-[9rem] ${
               isDisabled
                 ? "pointer-events-none cursor-not-allowed opacity-60"
                 : "hover:-translate-y-0.5 hover:bg-primary-600"
@@ -57,11 +53,6 @@ function ProviderCard({ p }: { p: Provider }) {
               &rarr;
             </span>
           </a>
-          {!isDisabled && host && (
-            <span className="text-center text-xs text-text-muted sm:text-left">
-              Destination: {host}
-            </span>
-          )}
         </div>
         {blocked && (
           <p className="text-xs text-danger">
