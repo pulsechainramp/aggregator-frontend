@@ -20,7 +20,7 @@ const getHost = (): string => {
   if (typeof window === "undefined") {
     throw new Error("SIWE validation unavailable in this environment");
   }
-  return window.location.host.toLowerCase();
+  return window.location.hostname.toLowerCase();
 };
 
 const getOrigin = (): string => {

@@ -492,6 +492,9 @@ const referralSlice = createSlice({
       state.referralFeeBasisPoints = null;
       state.referrerFeeBasisPoints = null;
     },
+    clearReferralFees: (state) => {
+      state.referralFees = [];
+    },
     setReferralAddress: (state, action: PayloadAction<ReferralAddress>) => {
       state.referralAddress = action.payload;
       state.referralFeeBasisPoints = null;
@@ -739,6 +742,7 @@ const referralSlice = createSlice({
 export const {
   clearReferralCode,
   clearReferralAddress,
+  clearReferralFees,
   setReferralAddress,
   setError,
 } = referralSlice.actions;

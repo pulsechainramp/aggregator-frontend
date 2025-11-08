@@ -1,6 +1,7 @@
 import { AbiCoder, ZeroAddress, Wallet, getBytes, keccak256 } from "ethers";
 import { describe, expect, it, vi } from "vitest";
 import { AffiliateRouterAddress } from "../const/swap";
+import { PulsexConfig } from "../config/pulsex";
 import { QuoteType, TokenType } from "../types/Swap";
 import { validateQuoteIntegrity } from "./quoteValidation";
 import { encodeSwapRoute, SwapRoute } from "./routeEncoding";
@@ -155,5 +156,114 @@ describe("validateQuoteIntegrity", () => {
         slippage: 0.5,
       })
     ).toThrow();
+  });
+
+  it("allows native token selections when calldata wraps through WPLS", async () => {
+    vi.stubEnv("VITE_QUOTE_SIGNER_ADDRESS", wallet.address);
+    const amountIn = "1000000000000000000";
+    const minAmountOut = "1500000000000000000";
+    const deadline = Math.floor(Date.now() / 1000) + 600;
+    const wpls = PulsexConfig.WPLSAddress;
+
+    const nativeToken: TokenType = {
+      address: ZeroAddress,
+      name: "PulseChain",
+      symbol: "PLS",
+      blockchainNetwork: "pulsechain",
+      network: "pulsechain",
+      decimals: 18,
+      image: "",
+      rank: 0,
+      type: "NATIVE",
+      usdPrice: 1,
+      token_security: null,
+      network_rank: 0,
+      price: 1,
+    };
+
+    const toToken: TokenType = {
+      address: "0x3333333333333333333333333333333333333333",
+      name: "Token Out",
+      symbol: "OUT",
+      blockchainNetwork: "pulsechain",
+      network: "pulsechain",
+      decimals: 18,
+      image: "",
+      rank: 0,
+      type: "erc20",
+      usdPrice: 1,
+      token_security: null,
+      network_rank: 0,
+      price: 1,
+    };
+
+    const swapRoute: SwapRoute = {
+      steps: [],
+      parentGroups: [],
+      destination: ZeroAddress,
+      tokenIn: wpls,
+      tokenOut: toToken.address,
+      groupCount: 0,
+      deadline,
+      amountIn,
+      amountOutMin: minAmountOut,
+      isETHOut: false,
+    };
+
+    const calldata = encodeSwapRoute(swapRoute);
+    const payload = {
+      version: 1,
+      router: AffiliateRouterAddress,
+      tokenIn: wpls,
+      tokenOut: toToken.address,
+      amountIn,
+      minAmountOut,
+      deadline,
+      calldataHash: keccak256(calldata),
+      issuedAt: Math.floor(Date.now() / 1000),
+      slippageBps: 50,
+    };
+
+    const encoded = new AbiCoder().encode(SIGNATURE_TYPES, [
+      payload.version,
+      payload.router,
+      payload.tokenIn,
+      payload.tokenOut,
+      payload.amountIn,
+      payload.minAmountOut,
+      payload.deadline,
+      payload.calldataHash,
+      payload.issuedAt,
+      payload.slippageBps,
+    ]);
+
+    const signature = await wallet.signMessage(getBytes(keccak256(encoded)));
+
+    const quote: QuoteType = {
+      calldata,
+      tokenInAddress: ZeroAddress,
+      tokenOutAddress: toToken.address,
+      amountIn,
+      minAmountOut,
+      outputAmount: "1500000000000000000",
+      deadline,
+      gasUSDEstimated: 2,
+      gasAmountEstimated: 200000,
+      route: [],
+      integrity: {
+        payload,
+        signature,
+        signer: wallet.address,
+      },
+    };
+
+    expect(() =>
+      validateQuoteIntegrity(quote, {
+        fromToken: nativeToken,
+        toToken,
+        fromAmount: "1",
+        slippage: 0.5,
+      })
+    ).not.toThrow();
   });
 });

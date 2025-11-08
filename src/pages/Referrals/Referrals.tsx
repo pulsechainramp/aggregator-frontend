@@ -23,6 +23,7 @@ import {
   createReferralCodeSecure,
   submitReferralCreationFeePayment,
   ensureSiweSessionAction,
+  clearReferralFees,
 } from "../../store/referralSlice";
 import { getAvailableTokensFromChain } from "../../store/swapSlice";
 import { toast } from "react-toastify";
@@ -87,6 +88,7 @@ const Referrals: React.FC = () => {
 
   // Check if referral code is available
   useEffect(() => {
+    dispatch(clearReferralFees());
     if (account && !referralCode) {
       dispatch(fetchReferralCode(account));
     }

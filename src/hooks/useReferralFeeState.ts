@@ -53,7 +53,7 @@ export const useReferralFeeState = (): ReferralFeeState => {
       !!normalizedDefaultReferrer && normalizedDefaultReferrer !== zeroLower;
 
     const promoRemaining = promo.promoRemaining ?? 0;
-    const tailCap = tailBps ?? 30;
+    const tailCap = tailBps ?? 100; // contract default is 1%
 
     const parsedReferrerBps =
       referrerFeeBasisPoints !== null && referrerFeeBasisPoints !== undefined
@@ -79,8 +79,10 @@ export const useReferralFeeState = (): ReferralFeeState => {
       : promo.promoBps ?? tailCap;
 
     const defaultBaseBps =
-      typeof defaultReferrerBps === "number" ? defaultReferrerBps : tailCap;
-    const defaultTail = Math.min(defaultBaseBps, tailCap);
+      typeof defaultReferrerBps === "number" && Number.isFinite(defaultReferrerBps)
+        ? defaultReferrerBps
+        : tailCap;
+    const defaultEffectiveBps = Math.max(defaultBaseBps, 0);
     const promoLimit = typeof maxPromoBps === "number" ? maxPromoBps : 300;
 
     let activeBps = 0;
@@ -103,8 +105,8 @@ export const useReferralFeeState = (): ReferralFeeState => {
     } else if (hasPendingReferral) {
       activeBps = Math.min(referrerBaseBps, promoLimit);
       phase = "pending";
-    } else if (hasDefaultReferrer) {
-      activeBps = defaultTail;
+    } else if (hasDefaultReferrer && defaultEffectiveBps > 0) {
+      activeBps = Math.min(defaultEffectiveBps, promoLimit);
       phase = "default";
     }
 

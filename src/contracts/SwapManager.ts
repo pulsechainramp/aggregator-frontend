@@ -174,6 +174,8 @@ export const getTokenAllowance = async (
 /**
  * Check if approval is needed
  */
+const APPROVAL_BUFFER_BPS = 500; // 5% headroom for referral fees and rounding
+
 export const needsApproval = async (
   tokenAddress: string,
   owner: string,
@@ -194,10 +196,13 @@ export const needsApproval = async (
       decimals
     );
 
-    // Convert amount to wei for comparison
-    const amountInWei = ethers.parseUnits(amount, decimals).toString();
+    const baseAmountWei = ethers.parseUnits(amount, decimals);
+    const bufferWei =
+      (baseAmountWei * BigInt(APPROVAL_BUFFER_BPS)) / BigInt(10_000);
+    const requiredAllowanceWei =
+      baseAmountWei + (bufferWei > 0n ? bufferWei : 1n);
 
-    return BigInt(allowance) >= BigInt(amountInWei);
+    return BigInt(allowance) >= requiredAllowanceWei;
   } catch (error) {
     console.error("Failed to check approval status:", error);
     throw new Error("Failed to check approval status");
@@ -220,10 +225,11 @@ export const approveToken = async (params: ApprovalParams): Promise<any> => {
       params.tokenAddress
     );
 
-    const amountInWei = ethers.parseUnits(
-      (Number(params.amount) * 1.01).toFixed(params.decimals),
-      params.decimals
-    );
+    const baseAmountWei = ethers.parseUnits(params.amount, params.decimals);
+    const bufferWei =
+      (baseAmountWei * BigInt(APPROVAL_BUFFER_BPS)) / BigInt(10_000);
+    const amountInWei =
+      baseAmountWei + (bufferWei > 0n ? bufferWei : 1n);
 
     // Execute approval transaction
     const transaction = await tokenContract.methods
@@ -237,7 +243,6 @@ export const approveToken = async (params: ApprovalParams): Promise<any> => {
     return {
       transactionHash: transaction.transactionHash,
       blockNumber: Number(transaction.blockNumber ?? 0),
-      newFeeBasisPoints,
     };
   } catch (error) {
     console.error("Approval failed:", error);
@@ -306,7 +311,6 @@ export const updateFeeBasisPoints = async (
     return {
       transactionHash: transaction.transactionHash,
       blockNumber: Number(transaction.blockNumber ?? 0),
-      newFeeBasisPoints,
     };
   } catch (error) {
     console.error("Fee basis points update failed:", error);
@@ -379,22 +383,27 @@ export const getPromoConstants = async (): Promise<ReferralConstants> => {
       AffiliateRouterAddress
     );
 
-    const [maxPromo, tail, defaultReferrer, defaultReferrerBps] = await Promise.all([
-      swapManagerContract.methods.MAX_PROMO_BPS().call(),
-      swapManagerContract.methods.TAIL_BPS().call(),
+    const [
+      maxPromoBps,
+      tailBps,
+      defaultReferrer,
+      defaultReferrerBasisPoints,
+    ] = await Promise.all([
+      swapManagerContract.methods.maxPromoBps().call(),
+      swapManagerContract.methods.tailBps().call(),
       swapManagerContract.methods.defaultReferrer().call(),
       swapManagerContract.methods.defaultReferrerBasisPoints().call(),
     ]);
 
     return {
-      maxPromoBps: Number(maxPromo),
-      tailBps: Number(tail),
+      maxPromoBps: Number(maxPromoBps),
+      tailBps: Number(tailBps),
       defaultReferrer:
         defaultReferrer &&
         defaultReferrer.toLowerCase() !== ethers.ZeroAddress.toLowerCase()
           ? defaultReferrer
           : null,
-      defaultReferrerBps: Number(defaultReferrerBps ?? 0),
+      defaultReferrerBps: Number(defaultReferrerBasisPoints ?? 0),
     };
   } catch (error) {
     console.error("Failed to fetch promo constants:", error);

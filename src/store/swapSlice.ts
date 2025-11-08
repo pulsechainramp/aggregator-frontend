@@ -3,6 +3,7 @@ import { QuoteType, TokenType, UnsignedQuoteType } from "../types/Swap";
 import { ethers } from "ethers";
 import { isSelfReferral, getStoredReferralCode } from "../utils/referralUtils";
 import { ZeroAddress, AffiliateRouterAddress, BackendURL } from "../const/swap";
+import { PulsexConfig } from "../config/pulsex";
 import {
   approveToken,
   executeSwap,
@@ -19,6 +20,7 @@ import { decodeSwapRouteSummary } from "../utils/routeEncoding";
 import { normalizeAmountInput, areAmountsEqual } from "../utils/amount";
 
 const ZERO_ADDRESS_LOWER = ZeroAddress.toLowerCase();
+const WPLS_ADDRESS_LOWER = PulsexConfig.WPLSAddress?.toLowerCase() ?? "";
 const BPS_DENOMINATOR = 10_000n;
 
 const clampSlippageBps = (slippage: number): number => {
@@ -100,8 +102,15 @@ const initialState: SwapState = {
   lastPulseXParams: null,
 };
 
-const isNativeAddress = (address: string) =>
-  address === ZERO_ADDRESS_LOWER || address === "pls";
+const isNativeAddress = (address: string) => {
+  if (!address) return false;
+  return (
+    address === ZERO_ADDRESS_LOWER ||
+    address === "pls" ||
+    address === "0x0" ||
+    (WPLS_ADDRESS_LOWER !== "" && address === WPLS_ADDRESS_LOWER)
+  );
+};
 
 const normalizeAddress = (address?: string | null) =>
   address ? address.toLowerCase() : "";

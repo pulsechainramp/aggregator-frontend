@@ -7,6 +7,7 @@ import {
   verifyMessage,
 } from "ethers";
 import { AffiliateRouterAddress } from "../const/swap";
+import { PulsexConfig } from "../config/pulsex";
 import {
   QuoteRouteSummary,
   QuoteType,
@@ -32,6 +33,7 @@ const MAX_CLOCK_SKEW_SECONDS = 300;
 const MIN_DEADLINE_BUFFER_SECONDS = 30;
 
 const abiCoder = new AbiCoder();
+const WPLS_ADDRESS_LOWER = PulsexConfig.WPLSAddress?.toLowerCase() ?? "";
 
 const normalizeAddress = (value?: string | null): string =>
   (value ?? "").trim().toLowerCase();
@@ -42,7 +44,8 @@ const isNative = (value: string): boolean => {
     normalized === "pls" ||
     normalized === "0x0" ||
     normalized === "" ||
-    normalized === ZeroAddress.toLowerCase()
+    normalized === ZeroAddress.toLowerCase() ||
+    (WPLS_ADDRESS_LOWER !== "" && normalized === WPLS_ADDRESS_LOWER)
   );
 };
 

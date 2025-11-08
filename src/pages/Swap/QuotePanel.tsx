@@ -75,7 +75,8 @@ const QuotePanel = () => {
     referralFeeState.tailBps,
   ]);
 
-  const activeReferralBps = effectiveReferralBps;
+  const activeReferralBps =
+    effectiveReferralBps > 0 ? effectiveReferralBps : referralFeeState.tailBps;
   const referralMultiplier =
     activeReferralBps > 0 ? 1 - activeReferralBps / 10000 : 1;
   const netToTokenAmount = toTokenAmount * referralMultiplier;
