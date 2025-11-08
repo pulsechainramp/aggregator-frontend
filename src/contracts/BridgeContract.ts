@@ -6,9 +6,9 @@ import ERC20ABI from "../abis/ERC20.json";
 import {
   BridgeManagerAddress,
   BridgeManagerAddressForNative,
+  ZeroAddress,
 } from "../const/swap";
 import { getWeb3ForChain, getWalletProvider } from "./BridgeBalance";
-import { ethers } from "ethers";
 
 export interface BridgeParams {
   tokenAddress: string;
@@ -27,6 +27,17 @@ export const assertEthereumSourceChain = (chainId: number) => {
   }
 };
 
+const getBridgeManagerConfig = (tokenAddress: string) => {
+  const isNative = tokenAddress.toLowerCase() === ZeroAddress.toLowerCase();
+  return {
+    isNative,
+    address: isNative ? BridgeManagerAddressForNative : BridgeManagerAddress,
+    abi: isNative
+      ? (BridgeManagerABIForNative as unknown as AbiItem[])
+      : (BridgeManagerABI as unknown as AbiItem[]),
+  };
+};
+
 /**
  * Initialize BridgeManager contract
  */
@@ -37,22 +48,13 @@ export const initializeBridgeManager = (
   try {
     assertEthereumSourceChain(chainId);
     const web3 = getWalletProvider();
-    const bridgeManagerAddress =
-      tokenAddress === "0x0000000000000000000000000000000000000000"
-        ? BridgeManagerAddressForNative
-        : BridgeManagerAddress;
-
-    const bridgeManagerContract = new web3.eth.Contract(
-      tokenAddress === "0x0000000000000000000000000000000000000000"
-        ? (BridgeManagerABIForNative as unknown as AbiItem[])
-        : (BridgeManagerABI as unknown as AbiItem[]),
-      bridgeManagerAddress
-    );
+    const { address, abi } = getBridgeManagerConfig(tokenAddress);
+    const bridgeManagerContract = new web3.eth.Contract(abi, address);
 
     return {
       web3,
       bridgeManagerContract,
-      bridgeManagerAddress,
+      bridgeManagerAddress: address,
     };
   } catch (error) {
     console.error("Failed to initialize BridgeManager:", error);
@@ -277,6 +279,86 @@ export const bridgeERC20Tokens = async (
   } catch (error) {
     console.error("Error bridging ERC20 tokens:", error);
     throw error;
+  }
+};
+
+type GasCostParams = BridgeParams & { userAddress: string };
+
+const FALLBACK_NATIVE_GAS_LIMIT = 180_000n;
+const FALLBACK_ERC20_GAS_LIMIT = 260_000n;
+const DEFAULT_GAS_PRICE_WEI = 30n * 10n ** 9n; // 30 gwei safety default
+
+const applyGasBuffer = (wei: bigint) => {
+  const buffer = wei / 10n;
+  return wei + (buffer > 0n ? buffer : 1n);
+};
+
+const getFallbackCostWei = (isNative: boolean, gasPriceWei: bigint) => {
+  const gasLimit = isNative
+    ? FALLBACK_NATIVE_GAS_LIMIT
+    : FALLBACK_ERC20_GAS_LIMIT;
+  return applyGasBuffer(gasLimit * gasPriceWei);
+};
+
+export const estimateBridgeGasCost = async ({
+  tokenAddress,
+  amount,
+  receiver,
+  chainId,
+  userAddress,
+}: GasCostParams): Promise<bigint> => {
+  assertEthereumSourceChain(chainId);
+  const config = getBridgeManagerConfig(tokenAddress);
+  const fallbackCost = () =>
+    getFallbackCostWei(config.isNative, DEFAULT_GAS_PRICE_WEI);
+
+  try {
+    const web3 = getWeb3ForChain(chainId);
+    const bridgeManagerContract = new web3.eth.Contract(
+      config.abi,
+      config.address
+    );
+
+    const method = config.isNative
+      ? bridgeManagerContract.methods.wrapAndRelayTokens(receiver)
+      : bridgeManagerContract.methods.relayTokens(
+          tokenAddress,
+          receiver,
+          amount
+        );
+
+    const overrides: Record<string, any> = {
+      from: userAddress,
+    };
+    if (config.isNative) {
+      overrides.value = amount;
+    }
+
+    let gasLimitBigInt = config.isNative
+      ? FALLBACK_NATIVE_GAS_LIMIT
+      : FALLBACK_ERC20_GAS_LIMIT;
+
+    try {
+      const gasLimit = await method.estimateGas(overrides);
+      gasLimitBigInt = BigInt(gasLimit);
+    } catch (error) {
+      console.warn("Falling back to default bridge gas limit:", error);
+    }
+
+    let gasPriceBigInt: bigint;
+    try {
+      const gasPrice = await web3.eth.getGasPrice();
+      gasPriceBigInt =
+        typeof gasPrice === "bigint" ? gasPrice : BigInt(gasPrice);
+    } catch (error) {
+      console.warn("Falling back to default gas price:", error);
+      gasPriceBigInt = DEFAULT_GAS_PRICE_WEI;
+    }
+
+    return applyGasBuffer(gasLimitBigInt * gasPriceBigInt);
+  } catch (error) {
+    console.error("Failed to estimate bridge gas cost:", error);
+    return fallbackCost();
   }
 };
 

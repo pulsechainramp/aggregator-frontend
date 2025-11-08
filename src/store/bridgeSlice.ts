@@ -10,6 +10,7 @@ import {
   handleTokenApproval,
   initializeBridgeManager,
   assertEthereumSourceChain,
+  estimateBridgeGasCost,
 } from "../contracts/BridgeContract";
 import { BackendURL, ZeroAddress } from "../const/swap";
 import { ensureSiweSessionAction } from "./referralSlice";
@@ -88,6 +89,9 @@ interface BridgeState {
   bridgeTransactionError: string | null;
   isPolling: boolean;
   pollingError: string | null;
+  gasCostWei: string | null;
+  gasCostLoading: boolean;
+  gasCostError: string | null;
 }
 
 const initialState: BridgeState = {
@@ -115,6 +119,9 @@ const initialState: BridgeState = {
   bridgeTransactionError: null,
   isPolling: false,
   pollingError: null,
+  gasCostWei: null,
+  gasCostLoading: false,
+  gasCostError: null,
 };
 
 // Fetch tokens for both chains and create pairs
@@ -230,6 +237,20 @@ export const fetchTokenPairs = createAsyncThunk(
     }
   }
 );
+
+export const fetchBridgeGasCost = createAsyncThunk<
+  string,
+  {
+    tokenAddress: string;
+    amount: string;
+    receiver: string;
+    chainId: number;
+    userAddress: string;
+  }
+>("bridge/fetchBridgeGasCost", async (params) => {
+  const cost = await estimateBridgeGasCost(params);
+  return cost.toString();
+});
 
 // Fetch tokens for a specific chain (for backward compatibility)
 export const fetchTokens = createAsyncThunk(
@@ -615,6 +636,11 @@ const bridgeSlice = createSlice({
       state.isPolling = false;
       state.pollingError = null;
     },
+    clearGasCost: (state) => {
+      state.gasCostWei = null;
+      state.gasCostLoading = false;
+      state.gasCostError = null;
+    },
   },
   extraReducers: (builder) => {
     builder
@@ -722,6 +748,20 @@ const bridgeSlice = createSlice({
         state.isPolling = false;
         state.pollingError =
           action.error.message || "Failed to poll bridge transaction status";
+      })
+      .addCase(fetchBridgeGasCost.pending, (state) => {
+        state.gasCostLoading = true;
+        state.gasCostError = null;
+      })
+      .addCase(fetchBridgeGasCost.fulfilled, (state, action) => {
+        state.gasCostLoading = false;
+        state.gasCostWei = action.payload;
+      })
+      .addCase(fetchBridgeGasCost.rejected, (state, action) => {
+        state.gasCostLoading = false;
+        state.gasCostWei = null;
+        state.gasCostError =
+          action.error.message || "Failed to estimate bridge gas cost";
       });
   },
 });
@@ -739,6 +779,7 @@ export const {
   setApproving,
   setNeedsApproval,
   clearBridgeTransaction,
+  clearGasCost,
 } = bridgeSlice.actions;
 
 export default bridgeSlice.reducer;

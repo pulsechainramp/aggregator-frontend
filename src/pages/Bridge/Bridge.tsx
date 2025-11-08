@@ -1,4 +1,4 @@
-import React, { useEffect, useCallback } from "react";
+import React, { useEffect, useCallback, useMemo } from "react";
 import { useAppDispatch, useAppSelector } from "../../store/hooks";
 import {
   fetchTokenPairs,
@@ -10,6 +10,8 @@ import {
   fetchBalance,
   clearTransactionHash,
   setNeedsApproval,
+  fetchBridgeGasCost,
+  clearGasCost,
 } from "../../store/bridgeSlice";
 import { checkTokenApproval } from "../../contracts/BridgeContract";
 import { initializeBridgeManager } from "../../contracts/BridgeContract";
@@ -24,6 +26,8 @@ import {
   isPositiveAmount as isPositiveAmountHelper,
   tryParseAmountToWei,
 } from "../../utils/amount";
+import { formatEther } from "ethers";
+import { MIN_NATIVE_ETH_AMOUNT_WEI } from "./constants";
 
 const Bridge: React.FC = () => {
   const dispatch = useAppDispatch();
@@ -51,6 +55,8 @@ const Bridge: React.FC = () => {
     bridgeTransaction,
     bridgeTransactionLoading,
     bridgeTransactionError,
+    gasCostWei,
+    gasCostLoading,
   } = useAppSelector((state) => state.bridge);
   const isSourceChainSupported = fromChainId === 1;
   const unsupportedBridgeMessage =
@@ -129,6 +135,39 @@ const Bridge: React.FC = () => {
       }));
     }
   }, [selectedToken, fromChainId, account, dispatch]);
+
+  useEffect(() => {
+    if (!account || !selectedToken || !isSourceChainSupported) {
+      dispatch(clearGasCost());
+      return;
+    }
+
+    const hasUsableAmount =
+      !!amount && hasPositiveAmount(amount, selectedToken.decimals);
+
+    const amountInWei = hasUsableAmount
+      ? convertToWei(amount, selectedToken.decimals)
+      : selectedToken.address === ZeroAddress
+      ? MIN_NATIVE_ETH_AMOUNT_WEI.toString()
+      : "1";
+
+    dispatch(
+      fetchBridgeGasCost({
+        tokenAddress: selectedToken.address,
+        amount: amountInWei,
+        receiver: account,
+        chainId: fromChainId,
+        userAddress: account,
+      })
+    );
+  }, [
+    account,
+    selectedToken,
+    amount,
+    fromChainId,
+    isSourceChainSupported,
+    dispatch,
+  ]);
 
   // Check if approval is needed when token or amount changes
   useEffect(() => {
@@ -251,8 +290,31 @@ const Bridge: React.FC = () => {
 
   const correspondingToken = getCorrespondingToken(selectedToken?.symbol || "", toChainId);
 
-  const { ethFloat, isOnEthereum } = useEthBalance();
+  const { ethFloat, isOnEthereum, loading: ethBalanceLoading } = useEthBalance();
   const [onrampOpen, setOnrampOpen] = useState(false);
+  const gasEstimateEth = useMemo(() => {
+    if (!gasCostWei) {
+      return null;
+    }
+    try {
+      const wei = BigInt(gasCostWei);
+      return Number(formatEther(wei));
+    } catch {
+      return null;
+    }
+  }, [gasCostWei]);
+
+  const recommendedEthThreshold = useMemo(() => {
+    const fallback = 0.02;
+    if (gasEstimateEth == null) {
+      return fallback;
+    }
+    return Math.max(gasEstimateEth, 0.002);
+  }, [gasEstimateEth]);
+
+  const shouldRenderOnRamp = useMemo(() => {
+    return isOnEthereum && gasEstimateEth !== null;
+  }, [isOnEthereum, gasEstimateEth]);
 
   return (
     <div className="relative flex flex-col items-center bg-bg-page px-4 pt-3 pb-10 text-text sm:px-6 lg:px-8">
@@ -261,10 +323,12 @@ const Bridge: React.FC = () => {
             <BridgeHeader />
 
             {/* On-Ramp suggestion (only when on Ethereum with low ETH) */}
-            {isOnEthereum && (
+            {shouldRenderOnRamp && (
               <OnRampBanner
                 currentEth={ethFloat}
-                thresholdEth={0.02}
+                thresholdEth={recommendedEthThreshold}
+                estimatedEth={gasEstimateEth}
+                loading={gasCostLoading}
                 onClickBuy={() => setOnrampOpen(true)}
               />
             )}
