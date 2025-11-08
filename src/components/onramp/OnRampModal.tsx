@@ -139,8 +139,8 @@ export default function OnRampModal({ open, onClose, address }: Props) {
               const buttonBase =
                 "touch-target inline-flex items-center justify-center rounded-lg border px-3 py-2 text-sm font-semibold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus";
               const buttonStyle = prefersPrimary
-                ? "border-primary bg-primary text-white hover:border-primary-600 hover:bg-primary-600 hover:underline"
-                : "border-border bg-bg-surface text-text hover:border-primary hover:text-primary hover:underline";
+                ? "border-primary bg-primary text-white hover:border-primary-600 hover:bg-primary-600 hover:text-white focus-visible:text-white active:text-white hover:underline"
+                : "border-border bg-bg-surface text-text hover:border-primary hover:text-text focus-visible:text-text active:text-text hover:underline";
               const disabledStyle = isDisabled
                 ? "pointer-events-none cursor-not-allowed opacity-60 hover:border-border hover:text-text"
                 : "";
