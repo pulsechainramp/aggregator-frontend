@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
+import { useNavigate } from "react-router-dom";
 import TokenSelector from "./TokenSelector";
 import AmountInput from "./AmountInput";
 import { BridgeToken, BridgeTransaction } from "../../../store/bridgeSlice";
@@ -91,6 +92,7 @@ const BridgeCard: React.FC<BridgeCardProps> = ({
   unsupportedReason,
 }) => {
   const dispatch = useAppDispatch();
+  const navigate = useNavigate();
   const { account, connectWallet, switchToChain, wallet } = useWallet();
   const {
     bridgeTransaction: polledBridgeTransaction,
@@ -100,6 +102,12 @@ const BridgeCard: React.FC<BridgeCardProps> = ({
 
   // Use polled bridge transaction if available, otherwise use the one from props
   const currentBridgeTransaction = polledBridgeTransaction || bridgeTransaction;
+  const hasActiveBridge = Boolean(currentBridgeTransaction);
+  const bridgeCompleted =
+    hasActiveBridge && currentBridgeTransaction.status === "executed";
+  const bridgeFormHidden = bridgeTransactionLoading || hasActiveBridge;
+  const bridgeInFlight = bridgeFormHidden && !bridgeCompleted;
+  const showBridgeForm = !bridgeFormHidden;
 
   // Filter tokens based on the current fromChainId
   const filteredTokens = tokens.filter(
@@ -248,6 +256,17 @@ const BridgeCard: React.FC<BridgeCardProps> = ({
 
   const handleNetworkSwap = async () => {
     onNetworkSwap();
+  };
+
+  const handleNavigateToSwap = () => {
+    try {
+      if (typeof window !== "undefined") {
+        window.localStorage.setItem("lastTab", "/swap");
+      }
+    } catch {
+      // ignore storage failures
+    }
+    navigate("/swap");
   };
 
   const handleButtonClick = async () => {
@@ -456,6 +475,7 @@ const BridgeCard: React.FC<BridgeCardProps> = ({
           {directionSupportMessage}
         </div>
       )}
+
       {error && (
         <div className="rounded-lg border border-danger bg-danger/10 p-3 text-sm text-danger">
           {error}
@@ -501,7 +521,8 @@ const BridgeCard: React.FC<BridgeCardProps> = ({
         </div>
       )}
 
-      <div className="space-y-4">
+      {showBridgeForm && (
+        <div className="space-y-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div
@@ -617,17 +638,17 @@ const BridgeCard: React.FC<BridgeCardProps> = ({
                 `${formatBalance(balance)} ${selectedToken}`
               )}
             </span>
-          </div>
         </div>
       </div>
-
+      </div>
+      )}
       <motion.button
         whileHover={{ scale: 1.01 }}
-      whileTap={{ scale: 0.99 }}
-      onClick={handleNetworkSwap}
-      disabled={true}
-      className="hidden cursor-not-allowed items-center justify-center rounded-xl border border-border bg-bg-page px-4 py-4 text-sm font-semibold text-text"
-    >
+        whileTap={{ scale: 0.99 }}
+        onClick={handleNetworkSwap}
+        disabled={true}
+        className="hidden cursor-not-allowed items-center justify-center rounded-xl border border-border bg-bg-page px-4 py-4 text-sm font-semibold text-text"
+      >
         <div className="flex items-center gap-3">
           <svg
             className="w-5 h-5 text-text-muted"
@@ -648,7 +669,8 @@ const BridgeCard: React.FC<BridgeCardProps> = ({
         </div>
       </motion.button>
 
-      <div className="space-y-4">
+      {showBridgeForm && (
+        <div className="space-y-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div
@@ -858,29 +880,49 @@ const BridgeCard: React.FC<BridgeCardProps> = ({
           </div>
         </div>
       </div>
+      )}
 
-      <motion.button
-        whileHover={{ scale: 1.01 }}
-        whileTap={{ scale: 0.99 }}
-        onClick={handleButtonClick}
-        disabled={disabled}
-        className={`mt-6 w-full rounded-xl py-4 text-lg font-semibold transition-all duration-300 shadow-sm ${buttonClasses}`}
-      >
-        {isBridging || isApproving ? (
-          <div className="flex items-center justify-center space-x-3">
-            <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-            <span>{isApproving ? "Approving..." : "Bridging..."}</span>
-          </div>
-        ) : currentBridgeTransaction &&
-          currentBridgeTransaction.status === "pending" ? (
-          <div className="flex items-center justify-center space-x-3">
-            <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-            <span>{getButtonText()}</span>
-          </div>
-        ) : (
-          getButtonText()
-        )}
-      </motion.button>
+      {bridgeCompleted ? (
+        <div className="mt-6 grid gap-3 sm:grid-cols-2">
+          <button
+            type="button"
+            onClick={handleNavigateToSwap}
+            className="w-full rounded-xl border border-transparent bg-primary py-4 text-lg font-semibold text-white shadow-sm transition hover:bg-primary-600 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
+          >
+            Swap on PulseChain
+          </button>
+          <button
+            type="button"
+            onClick={resetForm}
+            className="w-full rounded-xl border border-border bg-bg-page py-4 text-lg font-semibold text-text shadow-sm transition hover:border-primary hover:text-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
+          >
+            Bridge Another Asset
+          </button>
+        </div>
+      ) : showBridgeForm ? (
+        <motion.button
+          whileHover={{ scale: 1.01 }}
+          whileTap={{ scale: 0.99 }}
+          onClick={handleButtonClick}
+          disabled={disabled}
+          className={`mt-6 w-full rounded-xl py-4 text-lg font-semibold transition-all duration-300 shadow-sm ${buttonClasses}`}
+        >
+          {isBridging || isApproving ? (
+            <div className="flex items-center justify-center space-x-3">
+              <div className="w-5 h-5 rounded-full border-2 border-white border-t-transparent animate-spin"></div>
+              <span>{isApproving ? "Approving..." : "Bridging..."}</span>
+            </div>
+          ) : currentBridgeTransaction &&
+            currentBridgeTransaction.status === "pending" ? (
+            <div className="flex items-center justify-center space-x-3">
+              <div className="w-5 h-5 rounded-full border-2 border-white border-t-transparent animate-spin"></div>
+              <span>{getButtonText()}</span>
+            </div>
+          ) : (
+            getButtonText()
+          )}
+        </motion.button>
+      ) : null}
     </div>
   );
 };
