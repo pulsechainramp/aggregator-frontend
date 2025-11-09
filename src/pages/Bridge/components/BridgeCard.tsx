@@ -507,6 +507,9 @@ const BridgeCard: React.FC<BridgeCardProps> = ({
         <BridgeTransactionProgress
           bridgeTransaction={currentBridgeTransaction}
           isPolling={isPolling}
+          onBridgeAnother={resetForm}
+          onSwap={handleNavigateToSwap}
+          pollingError={pollingError}
         />
       )}
 
@@ -882,24 +885,7 @@ const BridgeCard: React.FC<BridgeCardProps> = ({
       </div>
       )}
 
-      {bridgeCompleted ? (
-        <div className="mt-6 grid gap-3 sm:grid-cols-2">
-          <button
-            type="button"
-            onClick={handleNavigateToSwap}
-            className="w-full rounded-xl border border-transparent bg-primary py-4 text-lg font-semibold text-white shadow-sm transition hover:bg-primary-600 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
-          >
-            Swap on PulseChain
-          </button>
-          <button
-            type="button"
-            onClick={resetForm}
-            className="w-full rounded-xl border border-border bg-bg-page py-4 text-lg font-semibold text-text shadow-sm transition hover:border-primary hover:text-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
-          >
-            Bridge Another Asset
-          </button>
-        </div>
-      ) : showBridgeForm ? (
+      {showBridgeForm && (
         <motion.button
           whileHover={{ scale: 1.01 }}
           whileTap={{ scale: 0.99 }}
@@ -922,7 +908,7 @@ const BridgeCard: React.FC<BridgeCardProps> = ({
             getButtonText()
           )}
         </motion.button>
-      ) : null}
+      )}
     </div>
   );
 };
