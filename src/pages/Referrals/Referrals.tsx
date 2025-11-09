@@ -168,7 +168,6 @@ const Referrals: React.FC = () => {
 
     try {
       await dispatch(submitReferralCreationFeePayment({ account })).unwrap();
-      await dispatch(checkReferralCreationFeePaid(account));
       toast.success("Referral creation fee paid");
     } catch (err: any) {
       const message =
@@ -214,11 +213,20 @@ const Referrals: React.FC = () => {
       dispatch(fetchReferralCode(account));
     } catch (err: any) {
       if (err?.type === "PAYMENT_REQUIRED") {
-        try {
-          const feeDisplay = formatEther(BigInt(err.fee));
-          toast.error(`Pay ${feeDisplay} PLS to unlock referrals`);
-        } catch (parseError) {
-          toast.error("Referral creation fee payment required");
+        if (hasPaidCreationFee) {
+          toast.info(
+            "Fee payment is still confirming. Please wait for one confirmation, then try again."
+          );
+        } else {
+          try {
+            const feeDisplay = formatEther(BigInt(err.fee));
+            toast.error(`Pay ${feeDisplay} PLS to unlock referrals`);
+          } catch (parseError) {
+            toast.error("Referral creation fee payment required");
+          }
+        }
+        if (account) {
+          dispatch(checkReferralCreationFeePaid(account));
         }
         return;
       }
@@ -526,6 +534,11 @@ const Referrals: React.FC = () => {
                     : "Authenticate & Create"}
                 </button>
               </div>
+              {payingCreationFee && (
+                <p className="text-xs text-text-muted">
+                  Waiting for your wallet transaction to confirm...
+                </p>
+              )}
               {checkingCreationFee && (
                 <p className="text-xs text-text-muted">
                   Confirming fee payment on-chain...

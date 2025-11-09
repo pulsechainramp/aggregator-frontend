@@ -11,6 +11,7 @@ import {
   getReferralCreationFee,
   hasPaidReferralCreationFee,
   payReferralCreationFee,
+  waitForTransaction,
 } from "../contracts/SwapManager";
 import { ethers } from "ethers";
 import { lockReferralBinding } from "../utils/referralUtils";
@@ -183,6 +184,9 @@ export const fetchReferralAddress = createAsyncThunk(
   }
 );
 
+const sleep = (ms: number) =>
+  new Promise((resolve) => setTimeout(resolve, ms));
+
 export const fetchReferralCreationFeeInfo = createAsyncThunk(
   "referral/fetchReferralCreationFeeInfo",
   async () => {
@@ -203,22 +207,54 @@ export const checkReferralCreationFeePaid = createAsyncThunk<
 });
 
 export const submitReferralCreationFeePayment = createAsyncThunk<
-  void,
+  { transactionHash: string | null },
   { account: string },
   { rejectValue: string }
->("referral/submitReferralCreationFeePayment", async ({ account }, thunkAPI) => {
-  try {
-    const fee = await getReferralCreationFee();
-    if (fee === "0") {
-      return;
+>(
+  "referral/submitReferralCreationFeePayment",
+  async ({ account }, thunkAPI) => {
+    try {
+      const fee = await getReferralCreationFee();
+      if (fee === "0") {
+        return { transactionHash: null };
+      }
+
+      const { transactionHash } = await payReferralCreationFee({
+        account,
+        value: fee,
+      });
+
+      if (transactionHash) {
+        await waitForTransaction(transactionHash, 1);
+      }
+
+      const maxAttempts = 5;
+      for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
+        try {
+          const paid = await thunkAPI
+            .dispatch(checkReferralCreationFeePaid(account))
+            .unwrap();
+          if (paid) {
+            break;
+          }
+        } catch (checkError) {
+          console.error("Failed to refresh creation fee status:", checkError);
+          break;
+        }
+
+        if (attempt < maxAttempts - 1) {
+          await sleep(1500);
+        }
+      }
+
+      return { transactionHash: transactionHash ?? null };
+    } catch (error: any) {
+      const message =
+        error?.message ?? "Failed to pay referral creation fee";
+      return thunkAPI.rejectWithValue(message);
     }
-    await payReferralCreationFee({ account, value: fee });
-  } catch (error: any) {
-    const message =
-      error?.message ?? "Failed to pay referral creation fee";
-    return thunkAPI.rejectWithValue(message);
   }
-});
+);
 
 export const requestSiweChallenge = createAsyncThunk<
   SiweChallenge,
@@ -639,7 +675,6 @@ const referralSlice = createSlice({
             fee: action.payload.fee,
             contractAddress: action.payload.contractAddress,
           };
-          state.hasPaidCreationFee = false;
         } else if (action.payload && action.payload.type === "UNAUTHORIZED") {
           state.error = action.payload.message;
           state.authToken = null;
