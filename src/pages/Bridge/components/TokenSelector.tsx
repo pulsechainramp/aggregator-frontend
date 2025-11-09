@@ -66,6 +66,28 @@ const TokenSelector: React.FC<TokenSelectorProps> = ({
   loading,
 }) => {
   const [isOpen, setIsOpen] = useState(false);
+  const selectorRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!isOpen) {
+      return;
+    }
+
+    const handleClickOutside = (event: MouseEvent | TouchEvent) => {
+      const target = event.target as Node | null;
+      if (selectorRef.current && target && !selectorRef.current.contains(target)) {
+        setIsOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    document.addEventListener("touchstart", handleClickOutside);
+
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("touchstart", handleClickOutside);
+    };
+  }, [isOpen]);
 
   const getNetworkLogo = (token: BridgeToken): string | undefined => {
     // Use actual network logos for native tokens
@@ -86,6 +108,7 @@ const TokenSelector: React.FC<TokenSelectorProps> = ({
       animate={{ opacity: 1, x: 0 }}
       transition={{ duration: 0.3 }}
       className="relative"
+      ref={selectorRef}
     >
       <motion.button
         whileHover={{ scale: 1.02 }}
