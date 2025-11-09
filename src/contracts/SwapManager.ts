@@ -174,8 +174,6 @@ export const getTokenAllowance = async (
 /**
  * Check if approval is needed
  */
-const APPROVAL_BUFFER_BPS = 500; // 5% headroom for referral fees and rounding
-
 export const needsApproval = async (
   tokenAddress: string,
   owner: string,
@@ -196,11 +194,7 @@ export const needsApproval = async (
       decimals
     );
 
-    const baseAmountWei = ethers.parseUnits(amount, decimals);
-    const bufferWei =
-      (baseAmountWei * BigInt(APPROVAL_BUFFER_BPS)) / BigInt(10_000);
-    const requiredAllowanceWei =
-      baseAmountWei + (bufferWei > 0n ? bufferWei : 1n);
+    const requiredAllowanceWei = ethers.parseUnits(amount, decimals);
 
     return BigInt(allowance) >= requiredAllowanceWei;
   } catch (error) {
@@ -225,11 +219,7 @@ export const approveToken = async (params: ApprovalParams): Promise<any> => {
       params.tokenAddress
     );
 
-    const baseAmountWei = ethers.parseUnits(params.amount, params.decimals);
-    const bufferWei =
-      (baseAmountWei * BigInt(APPROVAL_BUFFER_BPS)) / BigInt(10_000);
-    const amountInWei =
-      baseAmountWei + (bufferWei > 0n ? bufferWei : 1n);
+    const amountInWei = ethers.parseUnits(params.amount, params.decimals);
 
     // Execute approval transaction
     const transaction = await tokenContract.methods
