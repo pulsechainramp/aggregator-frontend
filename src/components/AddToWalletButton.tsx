@@ -1,6 +1,13 @@
 import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { addTokenToWallet, waitForChain, TokenInfo, EIP1193Provider } from "../utils/walletUtils";
+import { toast } from "react-toastify";
+import {
+  addTokenToWallet,
+  waitForChain,
+  TokenInfo,
+  EIP1193Provider,
+  AddTokenResult,
+} from "../utils/walletUtils";
 import useWallet from "../hooks/useWallet";
 import TokenAddFallbackModal from "./TokenAddFallbackModal";
 import ProviderIcon from "./ProviderIcon";
@@ -24,8 +31,6 @@ const AddToWalletButton: React.FC<AddToWalletButtonProps> = ({
 }) => {
   const { wallet, switchToChain, account } = useWallet();
   const [isAdding, setIsAdding] = useState(false);
-  const [showSuccess, setShowSuccess] = useState(false);
-  const [showError, setShowError] = useState(false);
   const [currentChainId, setCurrentChainId] = useState<number | null>(null);
   const [isSwitchingNetwork, setIsSwitchingNetwork] = useState(false);
   const [showFallback, setShowFallback] = useState(false);
@@ -224,16 +229,30 @@ const AddToWalletButton: React.FC<AddToWalletButtonProps> = ({
     return `Chain ID ${token.chainId}`;
   };
 
+  const handleAddFailure = (result: AddTokenResult) => {
+    const message = (() => {
+      switch (result.reason) {
+        case "rejected":
+          return "Token addition cancelled in wallet";
+        case "unsupported":
+          return `${token.symbol} must be added manually in this wallet`;
+        default:
+          return `Failed to add ${token.symbol}. Please try again.`;
+      }
+    })();
+
+    const notifier = result.reason === "rejected" ? toast.info : toast.error;
+    notifier(message);
+    setShowFallback(result.reason === "unsupported");
+  };
+
   const handleAddToken = async () => {
     if (!wallet) {
-      setShowError(true);
-      setTimeout(() => setShowError(false), 3000);
+      toast.error("Connect your wallet to add tokens");
       return;
     }
 
     setIsAdding(true);
-    setShowError(false);
-    setShowSuccess(false);
 
     try {
       // Check if user is on the correct network
@@ -252,21 +271,19 @@ const AddToWalletButton: React.FC<AddToWalletButtonProps> = ({
       }
 
       // Now add the token to the wallet
-  const success = await addTokenToWallet(token, { provider: wallet.provider as unknown as EIP1193Provider });
+      const result = await addTokenToWallet(token, {
+        provider: wallet.provider as unknown as EIP1193Provider,
+      });
 
-      if (success) {
-        setShowSuccess(true);
-        setTimeout(() => setShowSuccess(false), 3000);
+      if (result.ok) {
+        toast.success(`${token.symbol} added to wallet`);
+        setShowFallback(false);
       } else {
-        setShowError(true);
-        setTimeout(() => setShowError(false), 3000);
-        setShowFallback(true);
+        handleAddFailure(result);
       }
     } catch (error) {
       console.error("Error adding token:", error);
-      setShowError(true);
-      setTimeout(() => setShowError(false), 3000);
-      setShowFallback(true);
+      toast.error(`Failed to add ${token.symbol}. Please try again.`);
     } finally {
       setIsAdding(false);
       setIsSwitchingNetwork(false);
@@ -329,32 +346,6 @@ const AddToWalletButton: React.FC<AddToWalletButtonProps> = ({
           />
         )}
       </motion.button>
-      )}
-
-      {/* Success Message */}
-      {showSuccess && (
-        <motion.div
-          initial={{ opacity: 0, y: -10, scale: 0.95 }}
-          animate={{ opacity: 1, y: 0, scale: 1 }}
-          exit={{ opacity: 0, y: -10, scale: 0.95 }}
-          className="absolute bottom-full left-1/2 z-50 mb-2 -translate-x-1/2 transform whitespace-nowrap rounded-lg border border-success bg-success/10 px-3 py-2 text-sm font-semibold text-success shadow-sm"
-        >
-          Success: {token.symbol} added to wallet!
-        </motion.div>
-      )}
-
-      {/* Error Message */}
-      {showError && (
-        <motion.div
-          initial={{ opacity: 0, y: -10, scale: 0.95 }}
-          animate={{ opacity: 1, y: 0, scale: 1 }}
-          exit={{ opacity: 0, y: -10, scale: 0.95 }}
-          className="absolute bottom-full left-1/2 z-50 mb-2 max-w-xs -translate-x-1/2 transform whitespace-nowrap rounded-lg border border-danger bg-danger/10 px-3 py-2 text-sm font-semibold text-danger shadow-sm"
-        >
-          {!isOnCorrectNetwork()
-            ? `Failed to switch to ${getRequiredNetworkName()}. Please try again.`
-            : `Failed to add ${token.symbol}. Please try again.`}
-        </motion.div>
       )}
 
       <TokenAddFallbackModal

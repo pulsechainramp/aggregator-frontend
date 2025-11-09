@@ -150,7 +150,7 @@ const SwapCard: React.FC<SwapCardProps> = ({
                   try { await waitForChain(wallet.provider as unknown as EIP1193Provider, 369); } catch {}
                 }
 
-                const success = await addTokenToWallet(
+                const result = await addTokenToWallet(
                   {
                     address: fromToken.address,
                     symbol: fromToken.symbol,
@@ -160,8 +160,8 @@ const SwapCard: React.FC<SwapCardProps> = ({
                   { provider: wallet.provider as unknown as EIP1193Provider }
                 );
 
-                if (success) {
-                  // Show success feedback
+                if (!result.ok && result.reason !== "rejected") {
+                  toast.error(`Failed to add ${fromToken.symbol}. Please try again.`);
                 }
               } catch (error) {
                 console.error("Error adding token:", error);
@@ -221,7 +221,7 @@ const SwapCard: React.FC<SwapCardProps> = ({
                   try { await waitForChain(wallet.provider as unknown as EIP1193Provider, 369); } catch {}
                 }
 
-                const success = await addTokenToWallet(
+                const result = await addTokenToWallet(
                   {
                     address: toToken.address,
                     symbol: toToken.symbol,
@@ -231,8 +231,8 @@ const SwapCard: React.FC<SwapCardProps> = ({
                   { provider: wallet.provider as unknown as EIP1193Provider }
                 );
 
-                if (success) {
-                  // Show success feedback
+                if (!result.ok && result.reason !== "rejected") {
+                  toast.error(`Failed to add ${toToken.symbol}. Please try again.`);
                 }
               } catch (error) {
                 console.error("Error adding token:", error);

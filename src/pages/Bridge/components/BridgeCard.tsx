@@ -603,7 +603,7 @@ const BridgeCard: React.FC<BridgeCardProps> = ({
                     }
                   }
 
-                  const success = await addTokenToWallet(
+                  const result = await addTokenToWallet(
                     {
                       address: selectedTokenData.address,
                       symbol: cleanTokenSymbol(selectedToken),
@@ -614,8 +614,8 @@ const BridgeCard: React.FC<BridgeCardProps> = ({
                     { provider: wallet.provider as any }
                   );
 
-                  if (success) {
-                    // Show success feedback
+                  if (!result.ok) {
+                    console.error(`Failed to add ${selectedTokenData.symbol}: ${result.reason}`);
                   }
                 } catch (error) {
                   console.error("Error adding token:", error);

@@ -185,12 +185,12 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
         try { await waitForChain(wallet.provider as unknown as EIP1193Provider, token.chainId); } catch {}
       }
 
-      const success = await addTokenToWallet(token, { provider: wallet.provider as unknown as EIP1193Provider });
-      
-      if (success) {
-        // Token added successfully
-      } else {
-        console.error(`Failed to add ${token.symbol} to wallet`);
+      const result = await addTokenToWallet(token, {
+        provider: wallet.provider as unknown as EIP1193Provider,
+      });
+
+      if (!result.ok) {
+        console.error(`Failed to add ${token.symbol} to wallet: ${result.reason}`);
       }
     } catch (error) {
       console.error(`Failed to add ${token.symbol} to wallet:`, error);

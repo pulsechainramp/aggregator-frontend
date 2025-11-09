@@ -39,6 +39,10 @@ const CHAIN_CONFIG: Record<
 
 const hexChainId = (id: number) => `0x${id.toString(16)}`;
 
+export type AddTokenResult =
+  | { ok: true }
+  | { ok: false; reason: "unsupported" | "rejected" | "failed"; error?: unknown };
+
 /** Add/switch to the chain the token lives on (EIP-3085/3326) */
 async function ensureChain(provider: EIP1193Provider, targetChainId: number) {
   try {
@@ -133,18 +137,18 @@ export function waitForChain(
 
 /**
  * Ask the connected wallet to add/watch an ERC-20 token (EIP-747).
- * Returns true when the user accepts.
+ * Returns an object describing whether it succeeded and why it failed otherwise.
  */
 export async function addTokenToWallet(
   token: TokenInfo,
   wallet?: { provider?: EIP1193Provider }
-): Promise<boolean> {
+): Promise<AddTokenResult> {
   const provider: EIP1193Provider | undefined =
     wallet?.provider ?? (typeof window !== "undefined" ? (window as any).ethereum : undefined);
 
   if (!provider?.request) {
     console.error("No EIP-1193 provider found");
-    return false;
+    return { ok: false, reason: "failed" };
   }
 
   // Best effort: ensure correct chain first (uses your existing helpers)
@@ -170,20 +174,26 @@ export async function addTokenToWallet(
         },
       },
     });
-    return res === true;
+    if (isWatchAssetSuccess(res, provider, token)) {
+      return { ok: true };
+    }
+    return { ok: false, reason: "rejected" };
   } catch (err: any) {
     const unsupported =
       err?.code === 4100 ||
       /method.*not supported|not implemented|invalid method/i.test(err?.message);
     if (!unsupported) {
       if (err?.code !== 4001) console.error("wallet_watchAsset failed:", err);
-      return false;
+      if (err?.code === 4001) {
+        return { ok: false, reason: "rejected", error: err };
+      }
+      return { ok: false, reason: "failed", error: err };
     }
   }
 
   // If not supported, let the caller show your existing fallback modal
   console.warn("watchAsset not supported by this provider");
-  return false;
+  return { ok: false, reason: "unsupported" };
 }
 
 /** Handy for a manual fallback UI if watchAsset isn’t supported */
@@ -193,3 +203,38 @@ export const getTokenDisplayInfo = (token: TokenInfo) => ({
   decimals: token.decimals,
   chainId: token.chainId,
 });
+
+function isWatchAssetSuccess(res: any, provider: EIP1193Provider, token: TokenInfo): boolean {
+  if (res === true) return true;
+
+  if (typeof res === "string") {
+    const normalized = res.trim().toLowerCase();
+    if (normalized === "true" || normalized === token.address.toLowerCase()) {
+      return true;
+    }
+  }
+
+  if (res && typeof res === "object") {
+    if (res.success === true || res.result === true) return true;
+    const status = (res as any).status;
+    if (typeof status === "string" && status.toLowerCase() === "success") return true;
+
+    const nested = (res as any).result;
+    if (typeof nested === "string" && nested.trim().toLowerCase() === "true") {
+      return true;
+    }
+  }
+
+  if ((res === null || typeof res === "undefined") && isProbablyRabby(provider)) {
+    return true;
+  }
+
+  return false;
+}
+
+function isProbablyRabby(provider: EIP1193Provider): boolean {
+  if (!provider) return false;
+  if ((provider as any).isRabby) return true;
+  const inner = (provider as any).provider;
+  return Boolean(inner?.isRabby);
+}
