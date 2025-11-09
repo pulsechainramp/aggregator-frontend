@@ -65,6 +65,7 @@ interface SwapState {
     amount: string;
     allowedSlippage: number;
   } | null;
+  latestAllowanceRequestId: string | null;
 }
 
 type QuoteRequestSnapshot = {
@@ -100,6 +101,7 @@ const initialState: SwapState = {
   hasCalledPulseXOnce: false,
   // Parameter tracking for PulseX calls
   lastPulseXParams: null,
+  latestAllowanceRequestId: null,
 };
 
 const isNativeAddress = (address: string) => {
@@ -836,6 +838,7 @@ export const swapSlice = createSlice({
       state.transactionHash = null;
       state.hasCalledPulseXOnce = false;
       state.lastPulseXParams = null;
+      state.latestAllowanceRequestId = null;
     },
     // Quote loading states
     setPulseXLoading: (state, action) => {
@@ -977,13 +980,20 @@ export const swapSlice = createSlice({
       });
 
     builder
-      .addCase(checkTokenAllowance.pending, (state) => {
+      .addCase(checkTokenAllowance.pending, (state, action) => {
         state.isApproving = false;
+        state.latestAllowanceRequestId = action.meta.requestId;
       })
       .addCase(checkTokenAllowance.fulfilled, (state, action) => {
+        if (state.latestAllowanceRequestId !== action.meta.requestId) {
+          return;
+        }
         state.isApproved = action.payload?.hasAllowance || false;
       })
       .addCase(checkTokenAllowance.rejected, (state, action) => {
+        if (state.latestAllowanceRequestId !== action.meta.requestId) {
+          return;
+        }
         state.isApproved = false;
       });
 
