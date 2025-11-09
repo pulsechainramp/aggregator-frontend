@@ -45,6 +45,8 @@ const Referrals: React.FC = () => {
   const [tokens, setTokens] = useState<TokenType[]>([]);
   const [tokensLoading, setTokensLoading] = useState(false);
   const claiming = useReferralClaiming();
+  const [claimingToken, setClaimingToken] = useState<string | null>(null);
+  const [claimingAll, setClaimingAll] = useState(false);
   const [isFeePopupOpen, setIsFeePopupOpen] = useState(false);
   const referralFeeBasisPoints = useReferralFeeBasisPoints();
   const feeBasisPointsLoading = useReferralFeeBasisPointsLoading();
@@ -239,13 +241,13 @@ const Referrals: React.FC = () => {
     }
   };
   const handleClaim = async (fee: ReferralFee) => {
+    setClaimingToken(fee.token);
     try {
       if (!account) {
         toast.error("Please connect your wallet");
         return;
       }
 
-      // Dispatch Redux action for claiming
       const result = await dispatch(
         claimReferralEarnings({
           tokens: [fee.token],
@@ -253,23 +255,25 @@ const Referrals: React.FC = () => {
         })
       ).unwrap();
 
-      // Show success message
       toast.success(
         `Successfully claimed ${
           fee.amount
         } tokens! Transaction: ${result.transactionHash.slice(0, 10)}...`
       );
 
-      // Refresh the referral fees list
       if (account) {
         dispatch(fetchReferralFees(account));
       }
     } catch (error: any) {
       console.error("Error claiming tokens:", error);
+    } finally {
+      setClaimingToken((current) => (current === fee.token ? null : current));
     }
   };
 
   const handleBulkClaim = async () => {
+    setClaimingAll(true);
+    setClaimingToken(null);
     try {
       if (!account) {
         toast.error("Please connect your wallet");
@@ -281,10 +285,8 @@ const Referrals: React.FC = () => {
         return;
       }
 
-      // Prepare all token addresses for bulk claim
       const tokens = referralFees.map((fee) => fee.token);
 
-      // Dispatch Redux action for bulk claiming
       const result = await dispatch(
         claimReferralEarnings({
           tokens,
@@ -292,7 +294,6 @@ const Referrals: React.FC = () => {
         })
       ).unwrap();
 
-      // Show success message
       toast.success(
         `Successfully claimed all tokens! Transaction: ${result.transactionHash.slice(
           0,
@@ -300,14 +301,22 @@ const Referrals: React.FC = () => {
         )}...`
       );
 
-      // Refresh the referral fees list
       if (account) {
         dispatch(fetchReferralFees(account));
       }
     } catch (error: any) {
       console.error("Error bulk claiming tokens:", error);
+    } finally {
+      setClaimingAll(false);
     }
   };
+
+  useEffect(() => {
+    if (!claiming) {
+      setClaimingToken(null);
+      setClaimingAll(false);
+    }
+  }, [claiming]);
 
   const handleRefresh = () => {
     if (account) {
@@ -566,10 +575,16 @@ const Referrals: React.FC = () => {
               {filteredReferralFees.length > 0 && (
                 <button
                   onClick={handleBulkClaim}
-                  disabled={claiming || loading || tokensLoading}
+                  disabled={
+                    claimingAll ||
+                    claimingToken !== null ||
+                    claiming ||
+                    loading ||
+                    tokensLoading
+                  }
                   className="rounded-lg border border-primary bg-primary px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-primary-600 disabled:cursor-not-allowed disabled:border-border disabled:bg-border disabled:text-text-muted"
                 >
-                  {claiming
+                  {claimingAll
                     ? "Claiming All..."
                     : `Claim All (${filteredReferralFees.length})`}
                 </button>
@@ -623,6 +638,13 @@ const Referrals: React.FC = () => {
                 <tbody>
                   {filteredReferralFees.map((fee) => {
                     const tokenMetadata = getTokenMetadata(fee.token);
+                    const isCurrentTokenClaiming = claimingToken === fee.token;
+                    const anotherClaimInFlight =
+                      claimingAll ||
+                      (claimingToken !== null && claimingToken !== fee.token) ||
+                      (claiming && claimingToken === null && !claimingAll);
+                    const disableClaimButton =
+                      isCurrentTokenClaiming || anotherClaimInFlight;
                     const tokenChainId =
                       tokenMetadata?.blockchainNetwork?.toLowerCase() === "ethereum"
                         ? 1
@@ -695,10 +717,10 @@ const Referrals: React.FC = () => {
                             )}
                             <button
                               onClick={() => handleClaim(fee)}
-                              disabled={claiming}
+                              disabled={disableClaimButton}
                               className="rounded-lg border border-success bg-success px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-success/80 disabled:cursor-not-allowed disabled:border-border disabled:bg-border disabled:text-text-muted"
                             >
-                              {claiming ? "Claiming..." : "Claim"}
+                              {isCurrentTokenClaiming ? "Claiming..." : "Claim"}
                             </button>
                           </div>
                         </td>

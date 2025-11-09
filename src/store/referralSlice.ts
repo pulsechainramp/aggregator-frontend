@@ -694,6 +694,15 @@ const referralSlice = createSlice({
       .addCase(claimReferralEarnings.fulfilled, (state, action) => {
         state.claiming = false;
         state.error = null;
+        const claimedTokens: string[] = action.meta?.arg?.tokens ?? [];
+        if (claimedTokens.length > 0) {
+          const claimedSet = new Set(
+            claimedTokens.map((token) => token.toLowerCase())
+          );
+          state.referralFees = state.referralFees.filter(
+            (fee) => !claimedSet.has(fee.token.toLowerCase())
+          );
+        }
       })
       .addCase(claimReferralEarnings.rejected, (state, action) => {
         state.claiming = false;

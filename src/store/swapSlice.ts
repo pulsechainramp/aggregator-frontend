@@ -313,12 +313,20 @@ export const executeSwapAction = createAsyncThunk(
       }
     }
 
-    let candidateReferrer =
-      referralAddress &&
-      account &&
-      !isSelfReferral(account, referralAddress)
-        ? referralAddress
-        : undefined;
+    const selectReferrer = (address?: string | null): string | undefined => {
+      if (!address) {
+        return undefined;
+      }
+      if (address.toLowerCase() === ZERO_ADDRESS_LOWER) {
+        return undefined;
+      }
+      if (isSelfReferral(account, address)) {
+        return undefined;
+      }
+      return address;
+    };
+
+    let candidateReferrer = selectReferrer(referralAddress);
 
     const promo = state.referral.promo;
     const hasBoundReferrer =
@@ -326,7 +334,7 @@ export const executeSwapAction = createAsyncThunk(
       promo.firstReferrer.toLowerCase() !== ZERO_ADDRESS_LOWER;
 
     if (hasBoundReferrer) {
-      candidateReferrer = undefined;
+      candidateReferrer = selectReferrer(promo.firstReferrer);
     }
 
     if (referralAddress && account && isSelfReferral(account, referralAddress)) {
