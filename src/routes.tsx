@@ -9,6 +9,8 @@ import Terms from "./pages/Terms";
 import Privacy from "./pages/Privacy";
 import Onramp from "./pages/Onramp/Onramp";
 import Docs from "./pages/Docs/Docs";
+import Start from "./pages/Start";
+import Wallet from "./pages/Wallet";
 
 // track route changes under Router
 const RouteTracker = () => {
@@ -27,12 +29,28 @@ const RouteTracker = () => {
 const Landing = () => {
   const allowed = ["/bridge", "/swap"] as const;
   let target = "/bridge";
+  let shouldShowStart = false;
+
   try {
-    const last = typeof window !== "undefined" ? localStorage.getItem("lastTab") : null;
-    if (last && allowed.includes(last as (typeof allowed)[number])) {
-      target = last;
+    if (typeof window !== "undefined") {
+      const hasSeenStart = localStorage.getItem("hasSeenStart");
+      if (!hasSeenStart) {
+        shouldShowStart = true;
+      } else {
+        const last = localStorage.getItem("lastTab");
+        if (last && allowed.includes(last as (typeof allowed)[number])) {
+          target = last;
+        }
+      }
     }
-  } catch {}
+  } catch {
+    // ignore storage errors
+  }
+
+  if (shouldShowStart) {
+    return <Navigate to="/start" replace />;
+  }
+
   return <Navigate to={target} replace />;
 };
 
@@ -42,7 +60,9 @@ const AppRoutes = () => {
       <RouteTracker />
       <Routes>
         <Route path="/" element={<Landing />} />
+        <Route path="/start" element={<Start />} />
         <Route path="/onramp" element={<Onramp />} />
+        <Route path="/wallet" element={<Wallet />} />
         <Route path="/swap" element={<Swap />} />
         <Route path="/bridge" element={<Bridge />} />
         <Route path="/activity" element={<Activity />} />

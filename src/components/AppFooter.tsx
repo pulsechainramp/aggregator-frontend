@@ -45,6 +45,12 @@ export default function AppFooter() {
             >
               GitHub
             </a>
+            <Link
+              to="/start"
+              className="text-sm font-medium text-text-muted transition-colors hover:text-primary"
+            >
+              Get Started
+            </Link>
             <button
               onClick={copyDonationAddress}
               type="button"
