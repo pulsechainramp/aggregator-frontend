@@ -5,7 +5,7 @@ const NAV_LINKS = [
   { path: "/", label: "Swap" },
   { path: "/bridge", label: "Bridge" },
   { path: "/activity", label: "Activity" },
-  { path: "/about", label: "About" },
+  { path: "/start", label: "Start" },
 ] as const;
 
 const Navbar: React.FC = () => {

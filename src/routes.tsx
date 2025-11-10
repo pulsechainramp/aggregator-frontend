@@ -1,7 +1,6 @@
 import { Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { useEffect } from "react";
 import Swap from "./pages/Swap/Swap";
-import About from "./pages/About";
 import Bridge from "./pages/Bridge";
 import Activity from "./pages/Activity/Activity";
 import Referrals from "./pages/Referrals";
@@ -66,7 +65,6 @@ const AppRoutes = () => {
         <Route path="/swap" element={<Swap />} />
         <Route path="/bridge" element={<Bridge />} />
         <Route path="/activity" element={<Activity />} />
-        <Route path="/about" element={<About />} />
         <Route path="/referrals" element={<Referrals />} />
         <Route path="/docs" element={<Docs />} />
         <Route path="/terms" element={<Terms />} />

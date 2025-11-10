@@ -31,8 +31,8 @@ const NAV_LINKS = [
   { path: "/onramp", label: "Onramp" },
   { path: "/bridge", label: "Bridge" },
   { path: "/swap", label: "Swap" },
+  { path: "/start", label: "Start" },
   //{ path: "/activity", label: "Activity" },
-  { path: "/docs", label: "About" },
   { path: "/referrals", label: "Referrals" },
 ];
 

@@ -146,7 +146,7 @@ const Wallet = () => {
             </p>
             <h2 className="text-2xl font-bold text-text">What to do after your wallet is ready</h2>
             <p className="mt-1 text-sm text-text-muted">
-              Once your wallet is set up, continue by buying ETH and bridging it onto PulseChain.
+              Once your wallet is set up, continue by buying ETH, sending it to your wallet and then bridging it onto PulseChain.
             </p>
           </div>
           <div className="flex flex-col gap-3 sm:flex-row">
