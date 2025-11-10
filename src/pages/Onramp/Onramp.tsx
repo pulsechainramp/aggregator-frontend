@@ -275,6 +275,12 @@ export default function Onramp() {
             >
               Go to PulseChain Bridge
             </Link>
+            <div className="mt-3 text-sm text-text-muted">
+              Need a wallet first?{" "}
+              <Link to="/wallet" className="font-semibold text-primary hover:text-primary-600">
+                Visit Wallet Guide
+              </Link>
+            </div>
           </section>
 
         </motion.div>

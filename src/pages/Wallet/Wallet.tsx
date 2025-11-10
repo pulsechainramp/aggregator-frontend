@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 
 type WalletEntry = {
   name: string;
@@ -136,6 +137,32 @@ const Wallet = () => {
               </li>
             ))}
           </ul>
+        </section>
+
+        <section className="space-y-4 rounded-3xl border border-border bg-bg-surface p-6 shadow-floating sm:p-8">
+          <div>
+            <p className="text-sm font-semibold uppercase tracking-wide text-primary">
+              Keep moving
+            </p>
+            <h2 className="text-2xl font-bold text-text">What to do after your wallet is ready</h2>
+            <p className="mt-1 text-sm text-text-muted">
+              Once your wallet is set up, continue by buying ETH and bridging it onto PulseChain.
+            </p>
+          </div>
+          <div className="flex flex-col gap-3 sm:flex-row">
+            <Link
+              to="/onramp"
+              className="inline-flex w-full items-center justify-center rounded-xl border border-primary bg-primary px-5 py-3 text-base font-semibold text-white transition-all hover:-translate-y-0.5 hover:bg-primary-600 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus sm:w-1/2"
+            >
+              Go to Onramp
+            </Link>
+            <Link
+              to="/bridge"
+              className="inline-flex w-full items-center justify-center rounded-xl border border-border bg-bg-page px-5 py-3 text-base font-semibold text-text transition-all hover:-translate-y-0.5 hover:border-primary hover:text-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus sm:w-1/2"
+            >
+              Go to Bridge
+            </Link>
+          </div>
         </section>
       </div>
     </div>

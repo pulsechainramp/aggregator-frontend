@@ -3,18 +3,18 @@ import { Link } from "react-router-dom";
 
 const NEW_TO_CRYPTO_STEPS = [
   {
-    title: "1. Onramp",
-    body: "Pick a provider for your country and buy ETH.",
-    href: "/onramp",
-  },
-  {
-    title: "2. Wallet",
-    body: "Install a self-custody wallet and back up your phrase.",
+    title: "1. Wallet",
+    body: "Install a self-custody wallet (like Rabby or MetaMask) and back up your recovery phrase.",
     href: "/wallet",
   },
   {
+    title: "2. Onramp",
+    body: "Pick a provider for your country and buy ETH, then withdraw it to your wallet.",
+    href: "/onramp",
+  },
+  {
     title: "3. Bridge",
-    body: "Send ETH from your wallet to PulseChain.",
+    body: "Send ETH from your wallet to PulseChain so it's ready for swaps.",
     href: "/bridge",
   },
   {
