@@ -1,11 +1,23 @@
 # Referrals
 
-- Share your code from the Referrals tab to earn a percentage of qualified fees.
-- Referees see the discount or incentive before confirming their transaction.
-- Codes can be updated or revoked from your dashboard if you need to rotate them.
-- Abuse (spam, misleading claims) results in removal from the program.
+> ### Key Points
+> - Share your unique link or code to earn a slice of eligible fees.
+> - Friends always see the referral percentage before confirming.
+> - Earnings accrue in real time and can be claimed in the dashboard.
 
-## Best Practices
+**What you'll need**
+- Verified referral code  /  Connected wallet
 
-- Explain the full flow (buy → bridge → swap) so referrals know what to expect.
-- Remind friends to use a self-custodial wallet and follow the Safety & Trust guidelines.
+**Steps**
+1. Open the Referrals tab and connect your wallet.
+2. Copy your link or code; set the fee share you want to advertise (0.1%-3%).
+3. Share the link with friends; they onboard via Start and your code auto-applies.
+4. Track performance in the dashboard; claim earnings when you are ready.
+
+**Common mistakes**
+- Promising a rate you never set in the dashboard.
+- Sharing screenshots that expose your wallet address unintentionally.
+
+**Troubleshooting**
+- Friend says the fee is different? Ask them to refresh or re-open using your link.
+- Missing payout? Check the referrals page again or contact support.

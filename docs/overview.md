@@ -1,37 +1,26 @@
 # Overview
 
-## What Is PulseChainRamp?
-PulseChainRamp is a web experience that helps you move value onto PulseChain and swap between its most popular tokens. Think of it as a single doorway where you can:
-- Bridge assets like ETH, USDC, USDT, and DAI onto PulseChain.
-- Compare swap prices across multiple PulseChain DEXs automatically.
-- Earn referral rewards when friends trade through your personal link.
+> ### Key Points
+> - Buy, bridge, and swap in one guided flow.
+> - You approve every transaction in your own wallet (non-custodial).
+> - Status panels keep you informed about gas, timing, and next steps.
 
-No custodial account is required—you stay in control of your wallet at all times.
+**What you'll need**
+- Self-custody wallet / Internet connection
 
-## Key Features
-- **Smart Swap Routing** – We shop quotes across major PulseChain liquidity sources, then route your trade through the path with the best expected return. You see the price before confirming anything in your wallet.
-- **Referral Rewards** – Share your link, track who uses it, and claim the tokens you earn directly from the app.
-- **Bridging Portal** – Bring supported assets onto PulseChain using familiar wallets. Estimated arrival times and fees are shown before you commit.
-- **Safety Controls** – Automatic slippage protection stops trades that move too far against you. Referral fees are capped to keep rewards fair for both sides.
-- **Self-Serve Dashboard** – The Refer & Earn page shows your code, current fee percentage, and up-to-the-minute earnings with one-click claiming.
+**Steps**
+1. Connect your wallet and confirm it is on Ethereum before you begin.
+2. Buy ETH or a stablecoin through Onramp partners that work in your region.
+3. Withdraw from your exchange into your self-custody wallet; never bridge straight from an exchange.
+4. Bridge the funds to PulseChain; approve once, then send the transfer.
+5. Swap into the PulseChain asset you actually need (PLS, PLSX, HEX).
 
-## How the Experience Flows
-1. **Connect your wallet** (MetaMask, WalletConnect, Coinbase Wallet, etc.). You remain the signer of every transaction.
-2. **Bridge or swap** depending on whether you are moving funds onto PulseChain or trading between tokens already on the network.
-3. **Share your referral link** (found in the header menu or Refer & Earn page). Anyone who trades through your link boosts your rewards.
-4. **Claim rewards** whenever you like—funds are sent straight to your wallet after a single confirmation.
+**Common mistakes**
+- Starting from an exchange wallet instead of self-custody.
+- Forgetting to leave a little ETH behind for gas.
+- Switching networks mid-flow and approving on the wrong chain.
 
-## Helpful Tips
-- Keep some PLS on hand to cover gas fees before you start swapping.
-- For large trades, compare the displayed quote with other DEXs to make sure the expected output feels right.
-- If a transaction fails due to slippage, adjust the tolerance slightly or try again when the market calms down.
-- On mobile, use the in-app browser offered by many wallets for the smoothest experience.
-
-## Support the Project
-- Source code: [github.com/pulsechainramp](https://github.com/pulsechainramp)
-- PulseChain donations: `0x137e0A3205023f78535Ed303DAED89FCde8d87c2`
-
-## Need Assistance?
-- Message us via the Simplex widget in the footer, jump into Telegram at [t.me/PulseChainRamp](https://t.me/PulseChainRamp), or email [PulseChainRamp@gmail.com](mailto:PulseChainRamp@gmail.com).
-
-PulseChainRamp is designed to make bridging, swapping, and referrals simple without sacrificing transparency. Connect your wallet, explore the tools, and let us know how the experience feels.
+**Troubleshooting**
+- If balances look off, refresh the Wallet page to resync.
+- If the bridge takes longer than twenty minutes, check the transaction hash in your wallet.
+- Use the Troubleshooting doc for chain-specific fixes.

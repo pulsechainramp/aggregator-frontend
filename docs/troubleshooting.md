@@ -1,22 +1,28 @@
 # Troubleshooting
 
-## Bridge Stuck In Pending
+> ### Key Points
+> - Match the symptom to the fix and get back to bridging or swapping quickly.
+> - Always confirm you are on the correct network before retrying.
+> - Screenshots plus transaction hashes help support dig deeper if needed.
 
-- Check the originating transaction on the block explorer.
-- Speed up or cancel from your wallet if gas was too low.
-- Wait for the required confirmations listed in the UI before filing a support ticket.
+**What you'll need**
+- Wallet access  /  Transaction hash  /  Explorer tabs
 
-## Token Not Showing In Wallet
+**Steps**
+1. Find the symptom below.
+2. Follow the fix in order.
+3. Retry the action once the issue is resolved.
 
-- Add the contract address manually or use the in-app "Add to wallet" shortcut.
-- Confirm that you are on the PulseChain network and not still on Ethereum.
+**Common mistakes**
+- Spamming the bridge button without waiting for confirmations.
+- Forgetting to hold PLS for gas, leaving the wallet stuck.
+- Ignoring wallet popups asking for a network switch.
 
-## Claim Button Disabled
+**Troubleshooting by symptom**
 
-- Ensure your wallet is connected to PulseChain.
-- Refresh balances in the Wallet tab to sync the latest state.
-- Verify that you have enough PLS for gas; top up if needed.
-
-## Still Need Help?
-
-Capture transaction hashes, wallet address, and screenshots, then contact support so we can investigate quickly.
+- **Pending forever** - Speed up or cancel in your wallet, then resend with higher gas. Check an Ethereum gas tracker first.
+- **Transaction reverted** - Review the error in your wallet; often it is slippage or allowance related. Revisit Swap Guide or Allowances.
+- **Wrong network** - Switch back to Ethereum for bridge deposits or PulseChain for swaps. Use the network selector inside your wallet.
+- **No PLS for gas** - Use a friend, faucet, or a tiny bridge to get a bit of PLS before continuing.
+- **Token not visible** - Add the token manually or press "Add to wallet" from the Wallet page.
+- **Nonce stuck** - Send a zero-value transaction with higher gas using the same nonce to clear it, or use the "reset account" option in MetaMask.

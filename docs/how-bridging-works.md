@@ -1,13 +1,27 @@
 # How Bridging Works
 
-1. Start from Ethereum (or another supported origin chain) with ETH or a supported stablecoin.
-2. Approve the bridge contract so it can move only the amount you specify.
-3. Submit the bridge transaction and wait for the confirmation count displayed in the app.
-4. Watch the status panel for finalization on PulseChain, then claim the bridged tokens.
-5. Swap into the asset you actually need (PLS, WPLS, HEX, stablecoins) once the funds arrive.
+> ### Key Points
+> - Approve once (per token) and then bridge from Ethereum to PulseChain.
+> - Every step is confirmed in your wallet, so only you can move funds.
+> - Transfers typically arrive within a few minutes.
 
-## Best Practices
+**What you'll need**
+- Self-custody wallet / ETH on Ethereum for gas / Patience for a few confirmations
 
-- Keep the app open so you can see updated status and reminders.
-- If a transaction is pending for a long time, speed it up from your wallet or consult the Troubleshooting doc.
-- Confirm the destination address before pressing submit; bridges are irreversible.
+**Steps**
+1. Withdraw from your exchange to **your wallet address** on **Ethereum (ERC-20)**.
+2. Open the Bridge page and connect your wallet on Ethereum.
+3. Pick the token and amount; review timing and fees.
+4. Confirm the approval transaction (first time for each token).
+5. Confirm the bridge transaction.
+6. Stay on the page while the status tracker counts confirmations, then view the arrival on PulseChain.
+
+**Common mistakes**
+- Selecting the wrong network when withdrawing from an exchange.
+- Spending all ETH on the bridge transaction and leaving none for gas.
+- Switching networks before the bridge finishes.
+
+**Troubleshooting**
+- Pending forever: use "speed up" in your wallet or resend with higher gas.
+- Arrived but invisible: add the token to your wallet or use the Wallet page to display it.
+- Wrong chain connected: switch back to Ethereum and retry.
