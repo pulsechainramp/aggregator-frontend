@@ -37,6 +37,12 @@ export default function AppFooter() {
             &copy; {new Date().getFullYear()} PulseChainRamp. All rights reserved.
           </span>
           <nav className="flex flex-wrap items-center justify-center gap-x-4 gap-y-3 sm:gap-x-6">
+            <Link
+              to="/start"
+              className="text-sm font-medium text-text-muted transition-colors hover:text-primary"
+            >
+              Get Started
+            </Link>
             <a
               href="https://github.com/pulsechainramp"
               target="_blank"
@@ -45,12 +51,6 @@ export default function AppFooter() {
             >
               GitHub
             </a>
-            <Link
-              to="/start"
-              className="text-sm font-medium text-text-muted transition-colors hover:text-primary"
-            >
-              Get Started
-            </Link>
             <button
               onClick={copyDonationAddress}
               type="button"
