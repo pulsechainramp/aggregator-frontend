@@ -1,6 +1,6 @@
 export const ZeroAddress = "0x0000000000000000000000000000000000000000";
 
-export const AffiliateRouterAddress = "0x7872B42710294ce16fEA60575da45Fde51db78e8";
+export const AffiliateRouterAddress = "0xCf2B8a55c86790Ab8F04873033a6e46be99658a7";
 export const BridgeManagerAddress =
   "0x1715a3E4A142d8b698131108995174F37aEBA10D";
 export const BridgeManagerAddressForNative =
