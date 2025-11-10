@@ -3,10 +3,10 @@
 > ### Key Points
 > - Approve once (per token) and then bridge from Ethereum to PulseChain.
 > - Every step is confirmed in your wallet, so only you can move funds.
-> - Transfers typically arrive within a few minutes.
+> - Transfers typically arrive within twenty minutes.
 
 **What you'll need**
-- Self-custody wallet / ETH on Ethereum for gas / Patience for a few confirmations
+- Self-custody wallet / ETH on Ethereum for gas
 
 **Steps**
 1. Withdraw from your exchange to **your wallet address** on **Ethereum (ERC-20)**.
