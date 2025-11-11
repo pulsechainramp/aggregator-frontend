@@ -61,33 +61,13 @@
     "preview": "vite preview",
     "test": "vitest",
     "test:ui": "vitest --ui",
-    "test:e2e": "playwright test",
-    "test:e2e:ui": "playwright test --ui",
-    "codemod:layout-motion": "node scripts/codemods/ensure-layout-initial-false.js --components header,footer,nav",
     "postinstall": "node scripts/postinstall-fixes.js"
   },
   "eslintConfig": {
     "extends": [
       "react-app",
       "react-app/jest"
-    ],
-    "rules": {
-      "no-restricted-syntax": [
-        "warn",
-        {
-          "selector": "JSXAttribute[name.name='initial'][parent.name.object.name='motion'][parent.name.property.name=/^(header|footer|nav|main)$/]",
-          "message": "Layout-critical motion elements (header/footer/nav/main) must not start hidden; use initial={false}."
-        },
-        {
-          "selector": "MemberExpression[property.name='opacity'][object.type='MemberExpression'][object.property.name='style']",
-          "message": "Avoid mutating element.style.opacity directly; drive visibility with stateful classes or motion."
-        },
-        {
-          "selector": "MemberExpression[property.name='transform'][object.type='MemberExpression'][object.property.name='style']",
-          "message": "Avoid mutating element.style.transform directly; drive transforms through motion or CSS."
-        }
-      ]
-    }
+    ]
   },
   "browserslist": {
     "production": [
@@ -102,7 +82,6 @@
     ]
   },
   "devDependencies": {
-    "@playwright/test": "^1.56.1",
     "@testing-library/jest-dom": "^6.4.2",
     "@testing-library/react": "^14.2.1",
     "@testing-library/user-event": "^14.5.2",

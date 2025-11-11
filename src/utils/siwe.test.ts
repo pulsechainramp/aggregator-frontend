@@ -2,11 +2,9 @@ import { describe, expect, it, beforeEach } from "vitest";
 import { rememberSiweNonce, validateSiweMessage } from "./siwe";
 
 const mockLocation = (host: string, origin: string) => {
-  const hostname = host?.split(":")[0] ?? host;
   Object.defineProperty(window, "location", {
     value: {
       host,
-      hostname,
       origin,
     },
     writable: true,

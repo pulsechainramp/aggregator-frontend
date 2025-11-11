@@ -149,7 +149,7 @@ export default function Onramp() {
     <div className="bg-bg-page text-text">
       <div className="mx-auto max-w-5xl px-4 py-10 sm:px-6 lg:px-8">
         <motion.div
-          initial={false}
+          initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.35 }}
           className="space-y-6"

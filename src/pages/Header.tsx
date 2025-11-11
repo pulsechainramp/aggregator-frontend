@@ -162,8 +162,7 @@ const Header = () => {
   return (
     <Fragment>
       <motion.header
-        data-testid="site-header"
-        initial={false}
+        initial={{ y: -20, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         transition={{ type: "spring", stiffness: 120, damping: 22 }}
         className="sticky top-0 z-50 border-b border-border bg-bg-surface/95 backdrop-blur-sm shadow-sm"
@@ -183,7 +182,6 @@ const Header = () => {
               </span>
             </Link>
             <nav
-              data-testid="primary-nav"
               className="hidden nav:flex items-center gap-1"
               aria-label="Primary navigation"
             >
@@ -321,7 +319,6 @@ const Header = () => {
       </motion.header>
 
       <nav
-        data-testid="primary-nav-mobile"
         className="nav:hidden border-b border-border bg-bg-surface"
         aria-label="Primary navigation mobile"
       >

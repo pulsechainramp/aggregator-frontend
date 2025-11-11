@@ -536,7 +536,7 @@ const Swap: React.FC = () => {
 
   return (
     <motion.div
-      initial={false}
+      initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       className="flex flex-col items-center justify-start bg-bg-page px-4 pt-5 pb-8 text-text sm:px-6"
     >
