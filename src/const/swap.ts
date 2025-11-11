@@ -5,6 +5,8 @@ export const BridgeManagerAddress =
   "0x1715a3E4A142d8b698131108995174F37aEBA10D";
 export const BridgeManagerAddressForNative =
   "0x8AC4ae65b3656e26dC4e0e69108B392283350f55";
+export const MulticallAddress =
+  "0x7B65a02f08779355d84c8DE54e59c6390160A0f3"; // TODO: Update with actual Multicall contract address
 
 const DEV_BACKEND_FALLBACK = "http://localhost:3000/";
 

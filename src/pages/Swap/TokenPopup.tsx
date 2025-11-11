@@ -1,7 +1,9 @@
 import { AnimatePresence, motion } from "framer-motion";
 import { TokenType } from "../../types/Swap";
 import { useAppDispatch, useAppSelector } from "../../store/hooks";
-import { setFromToken, setToToken } from "../../store/swapSlice";
+import { setFromToken, setToToken, getTokenBalancesBatch } from "../../store/swapSlice";
+import useWallet from "../../hooks/useWallet";
+import { useEffect, useMemo } from "react";
 
 interface TokenPopupProps {
   isOpen: boolean;
@@ -28,8 +30,8 @@ const TokenPopup = ({
   setSearchToken,
   availableTokens,
 }: TokenPopupProps) => {
-  const { allChains } = useAppSelector((state) => state.swap);
-
+  const { allChains, tokenBalances, isTokenBalancesLoading } = useAppSelector((state) => state.swap);
+  const { account } = useWallet();
   const dispatch = useAppDispatch();
 
   const handleSetToken = (token: TokenType) => {
@@ -41,13 +43,75 @@ const TokenPopup = ({
   };
 
   // Filter for PulseChain tokens only
-  const pulsechainTokens = availableTokens.filter(
-    (token) => 
-      token.blockchainNetwork?.toLowerCase() === "pulsechain" ||
-      token.network?.toLowerCase() === "pulsechain" ||
-      token.blockchainNetwork?.toLowerCase() === "pls" ||
-      token.network?.toLowerCase() === "pls"
+  const pulsechainTokens = useMemo(
+    () =>
+      availableTokens.filter(
+        (token) =>
+          token.blockchainNetwork?.toLowerCase() === "pulsechain" ||
+          token.network?.toLowerCase() === "pulsechain" ||
+          token.blockchainNetwork?.toLowerCase() === "pls" ||
+          token.network?.toLowerCase() === "pls"
+      ),
+    [availableTokens]
   );
+
+
+  // Fetch token balances when popup opens and account is available
+  useEffect(() => {
+    if (isOpen && account && pulsechainTokens.length > 0) {
+      dispatch(getTokenBalancesBatch({ tokens: pulsechainTokens, account }));
+    }
+  }, [isOpen, account]);
+
+  // Helper function to format balance
+  const formatBalance = (balance: number): string => {
+    if (balance === 0) return "0";
+    if (balance < 0.0001) return "<0.0001";
+    if (balance < 1) return balance.toFixed(4);
+    if (balance < 1000) return balance.toFixed(2);
+    if (balance < 1000000) return (balance / 1000).toFixed(2) + "K";
+    return (balance / 1000000).toFixed(2) + "M";
+  };
+
+  // Get balance for a token (returns null if not loaded yet)
+  const getTokenBalance = (token: TokenType): number | null => {
+    const tokenAddress = token.address.toLowerCase();
+    // If loading and balance not in map, return null to show spinner
+    if (isTokenBalancesLoading && !(tokenAddress in tokenBalances)) {
+      return null;
+    }
+    return tokenBalances[tokenAddress] ?? 0;
+  };
+
+  // Filter and sort tokens: tokens with balance first, then empty tokens
+  const sortedAndFilteredTokens = useMemo(() => {
+    // Then sort: tokens with balance > 0 first, then tokens with balance = 0
+    return [...pulsechainTokens].sort((a, b) => {
+      const addressA = a.address.toLowerCase();
+      const addressB = b.address.toLowerCase();
+      
+      // Get balances (null if loading and not in map)
+      const balanceA = (isTokenBalancesLoading && !(addressA in tokenBalances))
+        ? null
+        : (tokenBalances[addressA] ?? 0);
+      const balanceB = (isTokenBalancesLoading && !(addressB in tokenBalances))
+        ? null
+        : (tokenBalances[addressB] ?? 0);
+      
+      // If either is loading (null), put it at the end
+      if (balanceA === null && balanceB === null) return 0;
+      if (balanceA === null) return 1;
+      if (balanceB === null) return -1;
+      
+      // If both have balance or both are zero, maintain original order
+      if ((balanceA > 0 && balanceB > 0) || (balanceA === 0 && balanceB === 0)) {
+        return 0;
+      }
+      
+      // Tokens with balance come first
+      return balanceB > balanceA ? 1 : -1;
+    });
+  }, [pulsechainTokens, tokenBalances, isTokenBalancesLoading]);
 
   // Filter for PulseChain chains only
   const pulsechainChains = allChains.filter(
@@ -207,8 +271,8 @@ const TokenPopup = ({
                     </button>
                   </div>
                   <div className="space-y-1.5 max-h-[200px] sm:max-h-[320px] overflow-y-auto custom-scrollbar">
-                    {pulsechainTokens.length > 0
-                      ? pulsechainTokens.map((token, index) => (
+                    {sortedAndFilteredTokens.length > 0
+                      ? sortedAndFilteredTokens.map((token, index) => (
                           <motion.button
                             key={index}
                             className="flex w-full items-center gap-3 rounded-lg border border-border bg-bg-page px-3 py-2 transition-colors hover:border-primary hover:bg-primary-050/60 sm:px-4"
@@ -232,6 +296,41 @@ const TokenPopup = ({
                                 {token.name}
                               </div>
                             </div>
+                                <div className="flex-shrink-0 text-right">
+                                  {isTokenBalancesLoading ? (
+                                    <div className="flex items-center justify-end">
+                                      <svg
+                                        className="animate-spin h-4 w-4 text-text-subtle"
+                                        xmlns="http://www.w3.org/2000/svg"
+                                        fill="none"
+                                        viewBox="0 0 24 24"
+                                      >
+                                        <circle
+                                          className="opacity-25"
+                                          cx="12"
+                                          cy="12"
+                                          r="10"
+                                          stroke="currentColor"
+                                          strokeWidth="4"
+                                        ></circle>
+                                        <path
+                                          className="opacity-75"
+                                          fill="currentColor"
+                                          d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                                        ></path>
+                                      </svg>
+                                    </div>
+                                  ) : (
+                                    <>
+                                      <div className="text-sm font-medium text-text">
+                                        {formatBalance(getTokenBalance(token) ?? 0)}
+                                      </div>
+                                      <div className="text-xs text-text-subtle">
+                                        {token.symbol}
+                                      </div>
+                                    </>
+                                  )}
+                                </div>
                           </motion.button>
                         ))
                       : Array.from({ length: 10 }).map((_, index) => (

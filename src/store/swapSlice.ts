@@ -11,6 +11,7 @@ import {
   needsApproval,
   createSwapManager,
 } from "../contracts/SwapManager";
+import { createMulticall } from "../contracts/Multicall";
 import { RootState } from "./store";
 import { fetchReferralPromo } from "./referralSlice";
 import { fetchPiteasQuoteClient } from "../utils/piteasQuote";
@@ -47,6 +48,10 @@ interface SwapState {
   fromTokenBalance: string;
   toTokenBalance: string;
   nativeBalance: string;
+  // Token balances map (token address -> balance)
+  tokenBalances: Record<string, number>;
+  // Token balances loading state
+  isTokenBalancesLoading: boolean;
   // Swap execution state
   isApproving: boolean;
   isSwapping: boolean;
@@ -88,6 +93,8 @@ const initialState: SwapState = {
   fromTokenBalance: "0",
   toTokenBalance: "0",
   nativeBalance: "0",
+  tokenBalances: {},
+  isTokenBalancesLoading: false,
   // Swap execution state
   isApproving: false,
   isSwapping: false,
@@ -358,6 +365,43 @@ export const executeSwapAction = createAsyncThunk(
     return {
       transactionHash: transaction.transactionHash,
     };
+  }
+);
+
+// Get token balances for multiple tokens using Multicall
+export const getTokenBalancesBatch = createAsyncThunk(
+  "swap/getTokenBalancesBatch",
+  async ({
+    tokens,
+    account,
+  }: {
+    tokens: TokenType[];
+    account: string;
+  }) => {
+    if (!account || tokens.length === 0) {
+      return {};
+    }
+
+    try {
+      const multicallManager = createMulticall();
+      const balances = await multicallManager.getTokenBalances({
+        tokens,
+        account,
+      });
+      
+      // Create a map of token address -> balance
+      const balanceMap: Record<string, number> = {};
+      for (let i = 0; i < tokens.length; i++) {
+        const token = tokens[i];
+        const tokenAddress = token.address.toLowerCase();
+        balanceMap[tokenAddress] = balances[i] as number;
+      }
+
+      return balanceMap;
+    } catch (error) {
+      console.error("Error getting token balances batch:", error);
+      return {};
+    }
   }
 );
 
@@ -827,6 +871,9 @@ export const swapSlice = createSlice({
     setNativeBalance: (state, action) => {
       state.nativeBalance = action.payload;
     },
+    setTokenBalances: (state, action) => {
+      state.tokenBalances = action.payload;
+    },
     // Set transaction hash
     setTransactionHash: (state, action) => {
       state.transactionHash = action.payload;
@@ -1020,6 +1067,19 @@ export const swapSlice = createSlice({
       })
       .addCase(refreshBalancesAfterSwap.rejected, (state, action) => {
         console.error("Failed to refresh balances after swap:", action.error);
+      });
+
+    builder
+      .addCase(getTokenBalancesBatch.pending, (state) => {
+        state.isTokenBalancesLoading = true;
+      })
+      .addCase(getTokenBalancesBatch.fulfilled, (state, action) => {
+        state.tokenBalances = { ...state.tokenBalances, ...action.payload };
+        state.isTokenBalancesLoading = false;
+      })
+      .addCase(getTokenBalancesBatch.rejected, (state, action) => {
+        console.error("Failed to get token balances batch:", action.error);
+        state.isTokenBalancesLoading = false;
       });
   },
 });
