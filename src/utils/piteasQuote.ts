@@ -36,7 +36,9 @@ const RATE_LIMIT_STORAGE_KEY =
   "pulsechainramp.piteas.quote.timestamps.v1";
 const MIN_WAIT_MS = 100;
 
-const provider = new ethers.JsonRpcProvider(PulsexConfig.RPC_URL);
+import { getPulsechainEthersProvider } from "../rpc/pulsechainProviders";
+
+const provider = getPulsechainEthersProvider();
 const pulsexV1Factory = new ethers.Contract(
   PulsexConfig.PulsexV1FactoryAddress,
   PulsexFactoryAbi,

@@ -3,6 +3,8 @@ import { AbiItem } from "web3-utils";
 import ERC20ABI from "../abis/ERC20.json";
 import { PulseChainConfig, EthereumConfig } from "../config/chainConfig";
 import { ZeroAddress, formatUnits, parseUnits } from "ethers";
+import { getPulsechainWeb3 } from "../rpc/pulsechainProviders";
+import { getEthereumWeb3 } from "../rpc/ethereumProviders";
 
 export interface BalanceParams {
   tokenAddress: string;
@@ -24,6 +26,12 @@ export const getRpcUrl = (chainId: number): string => {
 
 // Get Web3 instance for a specific chain
 export const getWeb3ForChain = (chainId: number): Web3 => {
+  if (chainId === PulseChainConfig.chainId) {
+    return getPulsechainWeb3();
+  }
+  if (chainId === EthereumConfig.chainId) {
+    return getEthereumWeb3();
+  }
   const rpcUrl = getRpcUrl(chainId);
   return new Web3(rpcUrl);
 };

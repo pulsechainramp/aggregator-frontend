@@ -1,4 +1,4 @@
-const DEFAULT_RPC_URL = "https://rpc.pulsechain.com";
+import { getPrimaryPulsechainRpcUrl } from "../rpc/pulsechainRpcConfig";
 
 export const PulsexConfig = {
   PulsexV1FactoryAddress: "0x1715a3e4a142d8b698131108995174f37aeba10d",
@@ -7,5 +7,5 @@ export const PulsexConfig = {
   PulsexV2RouterAddress: "0x165C3410fC91EF562C50559f7d2289fEbed552d9",
   PulsexStablePoolAddress: "0xE3acFA6C40d53C3faf2aa62D0a715C737071511c",
   WPLSAddress: "0xA1077a294dDE1B09bB078844df40758a5D0f9a27",
-  RPC_URL: import.meta.env.VITE_RPC_URL ?? DEFAULT_RPC_URL,
+  RPC_URL: getPrimaryPulsechainRpcUrl(),
 };

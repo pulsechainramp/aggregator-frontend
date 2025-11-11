@@ -1,3 +1,6 @@
+import { pulsechainRpcConfig } from "../rpc/pulsechainRpcConfig";
+import { ethereumRpcConfig } from "../rpc/ethereumRpcConfig";
+
 export const PulseChainConfig = {
   chainId: 369,
   chainSymbol: "PLS",
@@ -5,7 +8,7 @@ export const PulseChainConfig = {
   chainSymbolFull: "Pulse",
   chainIdHex: "0x171",
   blockTime: 3000,
-  providerList: ["https://rpc.pulsechain.com"],
+  providerList: pulsechainRpcConfig.urls,
   explorerUrl: "https://scan.pulsechain.com",
 };
 
@@ -16,7 +19,6 @@ export const EthereumConfig = {
   chainSymbolFull: "Ether",
   chainIdHex: "0x1",
   blockTime: 12000,
-  // providerList: ["https://sly-tiniest-hexagon.quiknode.pro/04ef7659b91d5f7874fb362c861b880f9ff7e16e/"],
-  providerList: ["https://ethereum-rpc.publicnode.com"],
+  providerList: ethereumRpcConfig.urls,
   explorerUrl: "https://etherscan.io",
 };
