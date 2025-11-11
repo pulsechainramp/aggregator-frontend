@@ -435,7 +435,7 @@ const Referrals: React.FC = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}
         <motion.div
-          initial={{ y: -20, opacity: 0 }}
+          initial={false}
           animate={{ y: 0, opacity: 1 }}
           transition={{ duration: 0.5 }}
           className="text-center mb-8"
@@ -564,7 +564,7 @@ const Referrals: React.FC = () => {
 
         {/* Referral Fees List */}
         <motion.div
-          initial={{ y: 20, opacity: 0 }}
+          initial={false}
           animate={{ y: 0, opacity: 1 }}
           transition={{ duration: 0.5, delay: 0.2 }}
           className="bg-bg-surface backdrop-blur-md border border-border rounded-xl p-6"

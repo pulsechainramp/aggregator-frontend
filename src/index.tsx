@@ -9,6 +9,7 @@ import { PulseChainConfig } from "./config/chainConfig";
 import createInjectedWalletInit from "./wallets/createInjectedWalletInit";
 import internetMoneyWalletInit from "./wallets/internetMoneyWallet";
 import { ThemeProvider } from "./theme/ThemeProvider";
+import { MotionConfig } from "framer-motion";
 
 const INTERNET_MONEY_WALLETCONNECT_LISTING_ID =
   "dd43441a6368ec9046540c46c5fdc58f79926d17ce61a176444568ca7c970dcd";
@@ -102,7 +103,9 @@ root.render(
   <React.StrictMode>
     <Web3OnboardProvider web3Onboard={web3Onboard}>
       <ThemeProvider>
-        <App />
+        <MotionConfig reducedMotion="user">
+          <App />
+        </MotionConfig>
       </ThemeProvider>
     </Web3OnboardProvider>
   </React.StrictMode>

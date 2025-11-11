@@ -42,7 +42,7 @@ const Activity: React.FC = () => {
       <div className="min-h-screen bg-bg-page text-text">
         <div className="mx-auto max-w-4xl px-4 py-12">
           <motion.div
-            initial={{ opacity: 0, y: 24 }}
+            initial={false}
             animate={{ opacity: 1, y: 0 }}
             className="rounded-2xl border border-border bg-bg-surface p-12 text-center shadow-floating"
           >
@@ -59,7 +59,7 @@ const Activity: React.FC = () => {
   return (
     <div className="min-h-screen bg-bg-page text-text">
       <div className="mx-auto max-w-6xl px-4 py-10">
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-8">
+        <motion.div initial={false} animate={{ opacity: 1, y: 0 }} className="space-y-8">
           <div className="flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
             <div>
               <h1 className="text-3xl font-semibold">Bridge Activity</h1>

@@ -5,9 +5,8 @@ const Footer = () => {
 
   return (
     <motion.footer
-      initial={{ y: 20, opacity: 0 }}
+      initial={false}
       animate={{ y: 0, opacity: 1 }}
-      transition={{ delay: 0.4 }}
       className="flex h-[100px] flex-col items-center justify-center space-y-3 text-center text-sm text-text-subtle"
     >
       <p>PulseChainRamp &copy; {year}</p>
