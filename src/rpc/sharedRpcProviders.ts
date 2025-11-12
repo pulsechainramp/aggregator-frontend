@@ -202,13 +202,11 @@ export class RetryingFallbackProvider extends FallbackProvider {
 
   override async _perform(req: any): Promise<any> {
     const { config, logPrefix } = this.context;
-    let lastError: any;
 
     for (let attempt = 0; attempt <= config.retryCount; attempt++) {
       try {
         return await super._perform(req);
       } catch (error: any) {
-        lastError = error;
         const transient = shouldCooldown(error) || error?.code === "RPC_COOLDOWN";
         if (!transient || attempt === config.retryCount) {
           throw error;
@@ -222,7 +220,5 @@ export class RetryingFallbackProvider extends FallbackProvider {
         }
       }
     }
-
-    throw lastError;
   }
 }
