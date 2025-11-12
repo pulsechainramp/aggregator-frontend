@@ -7,8 +7,11 @@ const DEFAULT_PULSECHAIN_RPCS = [
 const parseRpcUrls = (): string[] => {
   const raw =
     import.meta.env.VITE_PULSECHAIN_RPC_URLS ??
-    import.meta.env.VITE_RPC_URL ??
-    DEFAULT_PULSECHAIN_RPCS.join(",");
+    import.meta.env.VITE_RPC_URL;
+
+  if (!raw) {
+    return [...DEFAULT_PULSECHAIN_RPCS];
+  }
 
   const urls = raw
     .split(",")
@@ -16,7 +19,9 @@ const parseRpcUrls = (): string[] => {
     .filter(Boolean);
 
   if (urls.length === 0) {
-    return [...DEFAULT_PULSECHAIN_RPCS];
+    throw new Error(
+      "VITE_PULSECHAIN_RPC_URLS must include at least one RPC endpoint."
+    );
   }
 
   return Array.from(new Set(urls));
@@ -29,10 +34,6 @@ const coerceNumber = (value: string | undefined, fallback: number): number => {
 
 const urls = parseRpcUrls();
 
-if (urls.length === 0) {
-  throw new Error("VITE_PULSECHAIN_RPC_URLS must include at least one RPC endpoint.");
-}
-
 export const pulsechainRpcConfig = {
   urls,
   stallTimeoutMs: coerceNumber(import.meta.env.VITE_RPC_STALL_TIMEOUT_MS, 1200),
@@ -42,3 +43,4 @@ export const pulsechainRpcConfig = {
 };
 
 export const getPrimaryPulsechainRpcUrl = (): string => pulsechainRpcConfig.urls[0];
+
