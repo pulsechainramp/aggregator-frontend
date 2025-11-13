@@ -90,6 +90,7 @@ interface ReferralState {
   defaultReferrer: string | null;
   defaultReferrerBps: number | null;
   authToken: string | null;
+  authAddress: string | null;
   siweChallenge: SiweChallenge | null;
   siweLoading: boolean;
   authenticating: boolean;
@@ -125,6 +126,7 @@ const initialState: ReferralState = {
   defaultReferrer: null,
   defaultReferrerBps: null,
   authToken: null,
+  authAddress: null,
   siweChallenge: null,
   siweLoading: false,
   authenticating: false,
@@ -301,8 +303,14 @@ const ensureSiweSessionInternal = async (
 
   const state = thunkAPI.getState?.();
   const existingToken: string | null = state?.referral?.authToken ?? null;
+  const authenticatedAddress: string | null =
+    state?.referral?.authAddress ?? null;
 
-  if (existingToken) {
+  if (
+    existingToken &&
+    authenticatedAddress &&
+    authenticatedAddress.toLowerCase() === address.toLowerCase()
+  ) {
     return existingToken;
   }
 
@@ -651,11 +659,13 @@ const referralSlice = createSlice({
       .addCase(verifySiweSignature.fulfilled, (state, action) => {
         state.authenticating = false;
         state.authToken = action.payload.token;
+        state.authAddress = action.payload.address.toLowerCase();
         state.paymentRequired = null;
       })
       .addCase(verifySiweSignature.rejected, (state, action) => {
         state.authenticating = false;
         state.authToken = null;
+        state.authAddress = null;
         state.error =
           action.error.message || "Failed to verify SIWE signature";
       })
@@ -678,6 +688,7 @@ const referralSlice = createSlice({
         } else if (action.payload && action.payload.type === "UNAUTHORIZED") {
           state.error = action.payload.message;
           state.authToken = null;
+          state.authAddress = null;
         } else {
           state.error =
             (action.payload && action.payload.type === "UNKNOWN"
