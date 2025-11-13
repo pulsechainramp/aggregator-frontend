@@ -38,6 +38,7 @@ import {
   QuoteValidationResult,
 } from "../../utils/quoteValidation";
 import { QuoteType, TokenType } from "../../types/Swap";
+import { PulseChainConfig } from "../../config/chainConfig";
 
 const { toast } = toastify;
 
@@ -52,7 +53,7 @@ type PendingSwap = {
 
 const Swap: React.FC = () => {
   const dispatch = useAppDispatch();
-  const { account } = useWallet();
+  const { account, wallet, currentChainId } = useWallet();
 
   const [isTokenPopupOpen, setIsTokenPopupOpen] = useState(false);
   const [isSlippagePopupOpen, setIsSlippagePopupOpen] = useState(false);
@@ -82,6 +83,11 @@ const Swap: React.FC = () => {
     showBetterRouterMessage,
   } = useAppSelector((state) => state.swap);
   const { tailBps, maxPromoBps } = useAppSelector((state) => state.referral);
+
+  const shouldBlockQuotes =
+    Boolean(wallet) &&
+    currentChainId !== null &&
+    currentChainId !== PulseChainConfig.chainId;
 
   const outputAmount =
     quote?.outputAmount && toToken?.decimals
@@ -396,16 +402,7 @@ const Swap: React.FC = () => {
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
-    if (
-      fromToken?.blockchainNetwork !== "pulsechain" ||
-      toToken?.blockchainNetwork !== "pulsechain"
-    ) {
-      return;
-    }
-
-    if (fromToken?.address && toToken?.address && fromAmount) {
-      dispatch(setQuote(null));
-
+    const clearQuoteTimers = () => {
       if (timeoutRef.current) {
         clearTimeout(timeoutRef.current);
         timeoutRef.current = null;
@@ -414,8 +411,23 @@ const Swap: React.FC = () => {
         clearInterval(intervalRef.current);
         intervalRef.current = null;
       }
+    };
 
-      timeoutRef.current = setTimeout(() => {
+    const tokensOnPulsechain =
+      fromToken?.blockchainNetwork === "pulsechain" &&
+      toToken?.blockchainNetwork === "pulsechain";
+
+    if (!tokensOnPulsechain || shouldBlockQuotes) {
+      clearQuoteTimers();
+      dispatch(setQuote(null));
+      return;
+    }
+
+    if (fromToken?.address && toToken?.address && fromAmount) {
+      dispatch(setQuote(null));
+      clearQuoteTimers();
+
+      const requestQuote = () => {
         dispatch(
           getQuote({
             tokenInAddress:
@@ -432,39 +444,19 @@ const Swap: React.FC = () => {
             account,
           })
         );
+      };
 
-        intervalRef.current = setInterval(() => {
-          dispatch(
-            getQuote({
-              tokenInAddress:
-                fromToken.address.toLowerCase() === ZeroAddress
-                  ? "PLS"
-                  : fromToken.address,
-              tokenOutAddress:
-                toToken.address.toLowerCase() === ZeroAddress
-                  ? "PLS"
-                  : toToken.address,
-              amount: fromAmount,
-              allowedSlippage: slippage,
-              fromDecimal: fromToken.decimals,
-              account,
-            })
-          );
-        }, 10000);
+      timeoutRef.current = setTimeout(() => {
+        requestQuote();
+        intervalRef.current = setInterval(requestQuote, 10000);
       }, 3000);
     } else {
+      clearQuoteTimers();
       dispatch(setQuote(null));
     }
 
     return () => {
-      if (timeoutRef.current) {
-        clearTimeout(timeoutRef.current);
-        timeoutRef.current = null;
-      }
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current);
-        intervalRef.current = null;
-      }
+      clearQuoteTimers();
     };
   }, [
     dispatch,
@@ -473,6 +465,10 @@ const Swap: React.FC = () => {
     fromAmount,
     fromToken?.decimals,
     slippage,
+    fromToken?.blockchainNetwork,
+    toToken?.blockchainNetwork,
+    account,
+    shouldBlockQuotes,
   ]);
 
   useEffect(() => {
@@ -582,6 +578,27 @@ const Swap: React.FC = () => {
                 <span>
                   For a better rate, please wait a moment...
                 </span>
+              </div>
+            </div>
+          )}
+
+          {shouldBlockQuotes && (
+            <div className="rounded-lg border border-warning bg-warning-050/60 p-3">
+              <div className="flex items-center justify-center gap-2 text-sm text-warning">
+                <svg
+                  className="h-4 w-4"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                  />
+                </svg>
+                <span>Switch your wallet network to PulseChain to refresh quotes.</span>
               </div>
             </div>
           )}

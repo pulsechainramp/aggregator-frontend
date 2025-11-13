@@ -17,21 +17,30 @@ const rpcContext: RpcProviderContext = {
 const httpProvider = new MultiRpcHttpProvider(rpcContext);
 const pulsechainWeb3 = new Web3(httpProvider as any);
 
-const circuitBreakerProviders = pulsechainRpcConfig.urls.map(
-  (url) => new CircuitBreakerJsonRpcProvider(url, rpcContext)
-);
+const createFallbackProvider = () => {
+  const circuitBreakerProviders = pulsechainRpcConfig.urls.map(
+    (url) => new CircuitBreakerJsonRpcProvider(url, rpcContext)
+  );
 
-const fallbackProvider = new RetryingFallbackProvider(
-  circuitBreakerProviders.map((provider, index) => ({
-    provider,
-    priority: index + 1,
-    stallTimeout: pulsechainRpcConfig.stallTimeoutMs,
-    weight: 1,
-  })),
-  1,
-  rpcContext
-);
+  return new RetryingFallbackProvider(
+    circuitBreakerProviders.map((provider, index) => ({
+      provider,
+      priority: index + 1,
+      stallTimeout: pulsechainRpcConfig.stallTimeoutMs,
+      weight: 1,
+    })),
+    1,
+    rpcContext
+  );
+};
+
+let fallbackProvider = createFallbackProvider();
 
 export const getPulsechainWeb3 = () => pulsechainWeb3;
 
 export const getPulsechainEthersProvider = () => fallbackProvider;
+
+export const resetPulsechainEthersProvider = () => {
+  fallbackProvider = createFallbackProvider();
+  return fallbackProvider;
+};
