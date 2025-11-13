@@ -20,11 +20,15 @@ const NetworkWarning: React.FC = () => {
 
   // Determine what network is required for current page
   const getRequiredNetwork = () => {
-    if (location.pathname === "/bridge") {
+    const path = location.pathname;
+    if (path.startsWith("/bridge")) {
       return "ethereum"; // Bridge requires Ethereum as source
     }
-    if (location.pathname === "/" || location.pathname === "/swap") {
+    if (path === "/" || path.startsWith("/swap")) {
       return "pulsechain"; // Swap requires PulseChain
+    }
+    if (path.startsWith("/referrals")) {
+      return "pulsechain"; // Referral dashboard requires PulseChain
     }
     return null; // Other pages don't have specific requirements
   };

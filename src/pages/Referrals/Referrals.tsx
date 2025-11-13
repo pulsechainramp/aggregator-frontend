@@ -36,7 +36,7 @@ import { BackendURL } from "../../const/swap";
 import { formatEther } from "ethers";
 
 const Referrals: React.FC = () => {
-  const { account } = useWallet();
+  const { account, isOnPulseChain } = useWallet();
   const dispatch = useAppDispatch();
   const referralCode = useReferralCode();
   const referralFees = useReferralFees();
@@ -165,6 +165,11 @@ const Referrals: React.FC = () => {
   const handlePayCreationFee = async () => {
     if (!account) {
       toast.error("Please connect your wallet");
+      return;
+    }
+
+    if (!isPulseChainNetwork) {
+      toast.error("Switch to PulseChain to pay the referral creation fee");
       return;
     }
 
@@ -402,6 +407,8 @@ const Referrals: React.FC = () => {
     (fee) => Number(fee.amount) > 0
   );
 
+  const isPulseChainNetwork = isOnPulseChain();
+
   if (!account) {
     return (
       <div className="bg-bg-page px-4 py-16 text-text sm:py-24">
@@ -513,11 +520,14 @@ const Referrals: React.FC = () => {
                     disabled={
                       payingCreationFee ||
                       checkingCreationFee ||
-                      hasPaidCreationFee === true
+                      hasPaidCreationFee === true ||
+                      !isPulseChainNetwork
                     }
                     className="rounded-lg border border-primary bg-primary px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-primary-600 disabled:cursor-not-allowed disabled:border-border disabled:bg-border disabled:text-text-muted"
                   >
-                    {payingCreationFee
+                    {!isPulseChainNetwork
+                      ? "Switch to PulseChain"
+                      : payingCreationFee
                       ? "Paying..."
                       : hasPaidCreationFee === true
                       ? "Paid"
@@ -543,6 +553,11 @@ const Referrals: React.FC = () => {
                     : "Authenticate & Create"}
                 </button>
               </div>
+              {!isPulseChainNetwork && requiresPayment && (
+                <p className="text-xs text-danger">
+                  Switch to PulseChain to pay the creation fee and unlock referral codes.
+                </p>
+              )}
               {payingCreationFee && (
                 <p className="text-xs text-text-muted">
                   Waiting for your wallet transaction to confirm...
