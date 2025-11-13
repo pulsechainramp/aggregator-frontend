@@ -6,6 +6,7 @@ import { QuoteType, TokenType } from "../types/Swap";
 import { PulseChainConfig } from "../config/chainConfig";
 import { AffiliateRouterAddress } from "../const/swap";
 import { BigNumberish, ethers, ZeroAddress } from "ethers";
+import { getPulsechainWeb3 } from "../rpc/pulsechainProviders";
 
 const AffiliateRouterABI =
   (AffiliateRouterArtifact as { abi: AbiItem[] }).abi ||
@@ -51,12 +52,7 @@ export interface ReferralConstants {
   defaultReferrerBps: number | null;
 }
 
-export const getWeb3 = () =>
-  new Web3(
-    PulseChainConfig.providerList[
-      Math.floor(Math.random() * PulseChainConfig.providerList.length)
-    ]
-  );
+export const getWeb3 = () => getPulsechainWeb3();
 
 export const getProvider = () => {
   // First try to get provider from window object

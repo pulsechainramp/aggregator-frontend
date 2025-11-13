@@ -39,7 +39,7 @@ http://localhost:5173
 ### Prerequisites
 - **Runtime:** Node 20+
 - **Package manager:** npm 10+
-- **Infra (if used):** PulseChain RPC (`https://rpc.pulsechain.com`), Ethereum RPC (`https://ethereum-rpc.publicnode.com`), SMTP account for contact emails
+- **Infra (if used):** PulseChain RPCs (`VITE_PULSECHAIN_RPC_URLS`), Ethereum RPCs (`VITE_ETHEREUM_RPC_URLS`), SMTP account for contact emails
 
 ### Local Development
 ```bash
@@ -55,6 +55,12 @@ npm run dev
 |---|---|:--:|---|
 | `VITE_BACKEND_URL` | `https://api.pulsechainramp.com/` | yes | Base URL for routing API (`/quote`, `/referral`, etc.). Must be HTTPS in production. |
 | `VITE_PITEAS_API_BASE_URL` | `https://sdk.piteas.io` | yes | Direct browser endpoint for Piteas quotes. Each client uses its own IP quota. |
+| `VITE_PULSECHAIN_RPC_URLS` | `https://rpc.pulsechain.com,https://pulsechain-rpc.publicnode.com,https://rpc-pulsechain.g4mm4.io,https://pulsechain.rpc.thirdweb.com` | yes | Comma-separated PulseChain RPC pool (leftmost wins unless it stalls). |
+| `VITE_ETHEREUM_RPC_URLS` | `https://ethereum-rpc.publicnode.com,https://ethereum.public.blockpi.network/v1/rpc/public,https://eth.drpc.org` |  | Comma-separated Ethereum RPC pool for read-only bridge operations. |
+| `VITE_RPC_STALL_TIMEOUT_MS` / `VITE_ETH_RPC_STALL_TIMEOUT_MS` | `1200` |  | Milliseconds to wait before treating an RPC request as stalled (PulseChain / Ethereum override). |
+| `VITE_RPC_RETRY_COUNT` / `VITE_ETH_RPC_RETRY_COUNT` | `2` |  | Number of additional failover rounds before surfacing an error (PulseChain / Ethereum override). |
+| `VITE_RPC_RETRY_DELAY_MS` / `VITE_ETH_RPC_RETRY_DELAY_MS` | `200` |  | Delay between retry rounds when all RPCs report transient failures. |
+| `VITE_RPC_COOLDOWN_MS` / `VITE_ETH_RPC_COOLDOWN_MS` | `30000` |  | Duration to keep a flapping RPC out of rotation once it fails a health check. |
 | `VITE_QUOTE_SIGNER_ADDRESS` | `0xf39F...` | yes | Address of the backend attestation signer. Used to verify `/quote/attest` signatures before enabling swaps. |
 | `VITE_SIWE_CHAIN_IDS` | `369,943` |  | Comma-separated list of chain IDs that SIWE challenges must match (default PulseChain mainnet only). |
 | `CONTACT_SMTP_*` | Gmail/SMTP creds | optional | Needed only when deploying the contact form API. |
