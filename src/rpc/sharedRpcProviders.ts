@@ -149,7 +149,26 @@ export class CircuitBreakerJsonRpcProvider extends JsonRpcProvider {
   private failedUntil = 0;
 
   constructor(private readonly rpcUrl: string, private readonly context: RpcProviderContext) {
-    super(rpcUrl, context.chain);
+    super(rpcUrl, "any");
+  }
+
+  override async _detectNetwork() {
+    const network = await super._detectNetwork();
+    const expectedChainId = this.context.chain?.chainId;
+    const observedChainId =
+      typeof network?.chainId === "bigint"
+        ? Number(network.chainId)
+        : network?.chainId;
+    if (
+      expectedChainId &&
+      typeof observedChainId === "number" &&
+      observedChainId !== expectedChainId
+    ) {
+      throw new Error(
+        `RPC provider ${this.rpcUrl} returned unexpected chain id ${observedChainId}, expected ${expectedChainId}`
+      );
+    }
+    return network;
   }
 
   override _getConnection() {

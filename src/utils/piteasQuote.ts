@@ -36,12 +36,16 @@ const RATE_LIMIT_STORAGE_KEY =
   "pulsechainramp.piteas.quote.timestamps.v1";
 const MIN_WAIT_MS = 100;
 
-import {
-  getPulsechainEthersProvider,
-  resetPulsechainEthersProvider,
-} from "../rpc/pulsechainProviders";
+import { getPrimaryPulsechainRpcUrl } from "../rpc/pulsechainRpcConfig";
+import { PulseChainConfig } from "../config/chainConfig";
 
-let provider = getPulsechainEthersProvider();
+const provider = new ethers.JsonRpcProvider(
+  getPrimaryPulsechainRpcUrl(),
+  {
+    chainId: PulseChainConfig.chainId,
+    name: PulseChainConfig.chainName.toLowerCase(),
+  }
+);
 
 const createFactoryContract = (address: string) =>
   new ethers.Contract(address, PulsexFactoryAbi, provider);
@@ -69,45 +73,6 @@ const getStablePoolContract = (address: string): StablePoolContract => {
   return stablePoolContracts.get(address)!;
 };
 
-const resetPiteasProvider = () => {
-  provider = resetPulsechainEthersProvider();
-  pulsexV1Factory = createFactoryContract(
-    PulsexConfig.PulsexV1FactoryAddress
-  );
-  pulsexV2Factory = createFactoryContract(
-    PulsexConfig.PulsexV2FactoryAddress
-  );
-  stablePoolContracts.clear();
-};
-
-const isNetworkChangedError = (error: unknown): boolean => {
-  if (!error || typeof error !== "object") {
-    return false;
-  }
-  const err = error as { code?: string; message?: string };
-  return (
-    err.code === "NETWORK_ERROR" &&
-    typeof err.message === "string" &&
-    /network changed/i.test(err.message)
-  );
-};
-
-const withProviderRecovery = async <T>(
-  operation: () => Promise<T>
-): Promise<T> => {
-  try {
-    return await operation();
-  } catch (error) {
-    if (isNetworkChangedError(error)) {
-      console.warn(
-        "[Piteas Quote] PulseChain provider network changed, rebuilding provider"
-      );
-      resetPiteasProvider();
-      return await operation();
-    }
-    throw error;
-  }
-};
 
 const isStorageAvailable = (): boolean => {
   if (typeof window === "undefined" || !("localStorage" in window)) {
@@ -447,8 +412,6 @@ export const fetchPiteasQuoteClient = async (
     }
 
     const data = (await response.json()) as PiteasApiQuote;
-    return withProviderRecovery(() =>
-      transformQuoteData(data, isEthOut)
-    );
+    return transformQuoteData(data, isEthOut);
   });
 };
