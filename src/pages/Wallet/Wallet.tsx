@@ -152,7 +152,7 @@ const Wallet = () => {
           <div className="flex flex-col gap-3 sm:flex-row">
             <Link
               to="/onramp"
-              className="inline-flex w-full items-center justify-center rounded-xl border border-primary bg-primary px-5 py-3 text-base font-semibold text-white transition-all hover:-translate-y-0.5 hover:bg-primary-600 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus sm:w-1/2"
+              className="inline-flex w-full items-center justify-center rounded-xl border border-primary bg-primary px-5 py-3 text-base font-semibold text-white transition-all hover:-translate-y-0.5 hover:bg-primary-600 hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus sm:w-1/2"
             >
               Go to Onramp
             </Link>

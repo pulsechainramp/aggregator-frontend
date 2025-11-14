@@ -15,15 +15,8 @@ const AGE_MINIMUM = 18;
 
 export default function Terms() {
   return (
-    <main className="
-        mx-auto max-w-3xl px-4 py-10
-        text-slate-900 dark:text-slate-200
-        leading-7 space-y-5
-        [&_h1]:text-slate-50 [&_h1]:mb-6
-        [&_h2]:text-slate-100 [&_h2]:mt-8 [&_h2]:mb-2
-        [&_ul]:list-disc [&_ul]:pl-6
-        [&_a]:underline [&_a]:text-success hover:[&_a]:text-emerald-200
-      ">
+    <main className="mx-auto max-w-3xl px-4 py-10">
+      <article className="prose prose-lg prose-slate dark:prose-invert prose-headings:text-black prose-headings:mt-10 prose-headings:mb-3 prose-p:text-black prose-ul:my-4 prose-li:text-black dark:prose-headings:text-slate-50 dark:prose-p:text-slate-200 dark:prose-li:text-slate-200 max-w-none space-y-4">
       <h1>Terms of Use</h1>
       <p><strong>Last updated:</strong> 04 October 2025</p>
 
@@ -204,6 +197,7 @@ export default function Terms() {
       <p>
         <a href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a>
       </p>
+      </article>
     </main>
   );
 }

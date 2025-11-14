@@ -61,22 +61,16 @@ export const useQuoteSummary = (): QuoteSummary => {
         ? Number(ethers.formatUnits(quote.uiMinAmountOut, toDecimals))
         : toTokenAmount * (1 - (Number(slippage) || 0) / 100);
 
-    const toTokenUsdPrice = parseUsd(toToken?.usdPrice);
-    const fromTokenUsdPrice = parseUsd(fromToken?.usdPrice);
-
-    let priceImpact = 0;
-    if (
-      fromAmountNumber > 0 &&
-      typeof fromTokenUsdPrice === "number" &&
-      typeof toTokenUsdPrice === "number" &&
-      toTokenUsdPrice > 0
-    ) {
-      const baseline =
-        (fromAmountNumber * fromTokenUsdPrice) / toTokenUsdPrice;
-      if (baseline > 0) {
-        priceImpact = ((toTokenAmount - baseline) / baseline) * 100;
-      }
-    }
+    const toTokenUsdPrice = parseUsd(
+      typeof toToken?.price === "number" && Number.isFinite(toToken.price)
+        ? toToken.price
+        : toToken?.usdPrice
+    );
+    const fromTokenUsdPrice = parseUsd(
+      typeof fromToken?.price === "number" && Number.isFinite(fromToken.price)
+        ? fromToken.price
+        : fromToken?.usdPrice
+    );
 
     const normalizedAccount = account?.toLowerCase();
     const normalizedReferral = referralAddress?.toLowerCase();
@@ -103,6 +97,22 @@ export const useQuoteSummary = (): QuoteSummary => {
       typeof toTokenUsdPrice === "number"
         ? referralFeeTokenAmount * toTokenUsdPrice
         : 0;
+
+    let priceImpact = 0;
+    if (
+      fromAmountNumber > 0 &&
+      typeof fromTokenUsdPrice === "number" &&
+      typeof toTokenUsdPrice === "number" &&
+      fromTokenUsdPrice > 0 &&
+      toTokenUsdPrice > 0
+    ) {
+      const fairOutput =
+        (fromAmountNumber * fromTokenUsdPrice) / toTokenUsdPrice;
+      const effectiveOutput = netToTokenAmount;
+      if (fairOutput > 0 && effectiveOutput > 0) {
+        priceImpact = ((effectiveOutput - fairOutput) / fairOutput) * 100;
+      }
+    }
 
     const exchangeRate =
       toTokenAmount > 0 ? fromAmountNumber / toTokenAmount : 0;

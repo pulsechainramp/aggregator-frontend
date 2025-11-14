@@ -334,7 +334,7 @@ const Docs = () => {
           <div className="mt-8 flex flex-wrap gap-3">
             <Link
               to={activeDoc.cta.href}
-              className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-primary-600 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
+              className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-primary-600 hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
             >
               {activeDoc.cta.label}
             </Link>
