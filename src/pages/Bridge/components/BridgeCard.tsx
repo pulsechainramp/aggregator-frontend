@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
+import { ArrowPathIcon } from "@heroicons/react/24/solid";
 import { useNavigate } from "react-router-dom";
 import TokenSelector from "./TokenSelector";
 import AmountInput from "./AmountInput";
@@ -48,6 +49,8 @@ interface BridgeCardProps {
   balance: string;
   balanceLoading: boolean;
   balanceError: string | null;
+  onRefreshBalance?: () => void;
+  isRefreshingBalance?: boolean;
   transactionHash: string | null;
   isApproving: boolean;
   approvalTxHash: string | null;
@@ -81,6 +84,8 @@ const BridgeCard: React.FC<BridgeCardProps> = ({
   balance,
   balanceLoading,
   balanceError,
+  onRefreshBalance,
+  isRefreshingBalance = false,
   transactionHash,
   isApproving,
   approvalTxHash,
@@ -117,6 +122,9 @@ const BridgeCard: React.FC<BridgeCardProps> = ({
   const directionSupportMessage =
     unsupportedReason ??
     "PulseBridge currently supports bridging from Ethereum to PulseChain only.";
+
+  const refreshDisabled =
+    !account || balanceLoading || isRefreshingBalance;
 
   const getNetworkName = (network: "ETH" | "PLS") => {
     return network === "ETH" ? "Ethereum" : "PulseChain";
@@ -526,51 +534,67 @@ const BridgeCard: React.FC<BridgeCardProps> = ({
 
       {showBridgeForm && (
         <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div
-              className={`flex h-8 w-8 items-center justify-center rounded-full border border-border ${getNetworkBadgeClass(
-                fromNetwork
-              )} overflow-hidden`}
-            >
-              {getNetworkLogo(fromNetwork) ? (
-                <img
-                  src={getNetworkLogo(fromNetwork)}
-                  alt={getNetworkName(fromNetwork)}
-                  className="h-5 w-5 rounded-full object-cover"
-                  onError={(e) => {
-                    const target = e.target as HTMLImageElement;
-                    target.style.display = "none";
-                    target.nextElementSibling?.classList.remove("hidden");
-                  }}
-                />
-              ) : null}
-              <span
-                className={`text-sm font-semibold ${
-                  getNetworkLogo(fromNetwork) ? "hidden" : ""
-                }`}
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div
+                className={`flex h-8 w-8 items-center justify-center rounded-full border border-border ${getNetworkBadgeClass(
+                  fromNetwork
+                )} overflow-hidden`}
               >
-                {fromNetwork}
-              </span>
+                {getNetworkLogo(fromNetwork) ? (
+                  <img
+                    src={getNetworkLogo(fromNetwork)}
+                    alt={getNetworkName(fromNetwork)}
+                    className="h-5 w-5 rounded-full object-cover"
+                    onError={(e) => {
+                      const target = e.target as HTMLImageElement;
+                      target.style.display = "none";
+                      target.nextElementSibling?.classList.remove("hidden");
+                    }}
+                  />
+                ) : null}
+                <span
+                  className={`text-sm font-semibold ${
+                    getNetworkLogo(fromNetwork) ? "hidden" : ""
+                  }`}
+                >
+                  {fromNetwork}
+                </span>
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold text-text">
+                  From {getNetworkName(fromNetwork)}
+                </h3>
+                <p className="text-sm text-text-muted">Source network</p>
+              </div>
             </div>
-            <div>
-              <h3 className="text-lg font-semibold text-text">
-                From {getNetworkName(fromNetwork)}
-              </h3>
-              <p className="text-sm text-text-muted">Source network</p>
-            </div>
+            {onRefreshBalance && (
+              <button
+                type="button"
+                onClick={onRefreshBalance}
+                disabled={refreshDisabled}
+                className="flex items-center justify-center rounded-full border border-border px-2.5 py-2 text-text-muted transition hover:border-primary hover:text-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus disabled:cursor-not-allowed disabled:opacity-60"
+                title="Refresh balance"
+                aria-label="Refresh balance"
+              >
+                <ArrowPathIcon
+                  className={`h-4 w-4 ${
+                    isRefreshingBalance ? "animate-spin text-primary" : ""
+                  }`}
+                />
+              </button>
+            )}
           </div>
-        </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          <TokenSelector
-            selectedToken={selectedToken}
-            onTokenSelect={handleTokenSelect}
-            network={fromNetwork}
-            tokens={filteredTokens}
-            loading={loading}
-          />
-          <div className="flex items-center gap-2">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <TokenSelector
+              selectedToken={selectedToken}
+              onTokenSelect={handleTokenSelect}
+              network={fromNetwork}
+              tokens={filteredTokens}
+              loading={loading}
+            />
+            <div className="flex items-center gap-2">
             <AmountInput
               value={amount}
               onChange={onAmountChange}

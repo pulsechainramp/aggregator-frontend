@@ -61,6 +61,7 @@ const Bridge: React.FC = () => {
   const isSourceChainSupported = fromChainId === 1;
   const unsupportedBridgeMessage =
     "PulseBridge currently supports bridging from Ethereum to PulseChain only. Switch the source network to Ethereum to continue.";
+  const [isBalanceRefreshing, setIsBalanceRefreshing] = useState(false);
 
   useEffect(() => {
     dispatch(fetchTokenPairs());
@@ -135,6 +136,24 @@ const Bridge: React.FC = () => {
       }));
     }
   }, [selectedToken, fromChainId, account, dispatch]);
+
+  const handleManualBalanceRefresh = useCallback(() => {
+    if (!selectedToken || !account || balanceLoading) {
+      return;
+    }
+
+    setIsBalanceRefreshing(true);
+    dispatch(
+      fetchBalance({
+        tokenAddress: selectedToken.address,
+        account,
+        chainId: fromChainId,
+        decimals: selectedToken.decimals,
+      })
+    ).finally(() => {
+      setIsBalanceRefreshing(false);
+    });
+  }, [selectedToken, account, balanceLoading, fromChainId, dispatch]);
 
   useEffect(() => {
     if (!account || !selectedToken || !isSourceChainSupported) {
@@ -356,6 +375,8 @@ const Bridge: React.FC = () => {
                 balance={balance}
                 balanceLoading={balanceLoading}
                 balanceError={balanceError}
+                onRefreshBalance={handleManualBalanceRefresh}
+                isRefreshingBalance={isBalanceRefreshing}
                 transactionHash={transactionHash}
                 isApproving={isApproving}
                 approvalTxHash={approvalTxHash}

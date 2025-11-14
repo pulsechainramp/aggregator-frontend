@@ -101,7 +101,6 @@ const BridgeTransactionProgress: React.FC<
   const [copyMessageId, setCopyMessageId] = useState(false);
   const [copyPayin, setCopyPayin] = useState(false);
   const [copyPayout, setCopyPayout] = useState(false);
-  const [lastStatusUpdateMs, setLastStatusUpdateMs] = useState(Date.now());
 
   useEffect(() => {
     if (bridgeTransaction && bridgeTransaction.status === "pending") {
@@ -222,21 +221,6 @@ const BridgeTransactionProgress: React.FC<
     bridgeTransaction.tokenDecimals
   );
 
-  useEffect(() => {
-    setLastStatusUpdateMs(Date.now());
-  }, [
-    bridgeTransaction.messageId,
-    bridgeTransaction.status,
-    bridgeTransaction.targetTxHash,
-    bridgeTransaction.updatedAt,
-  ]);
-
-  const lastUpdatedMs = Math.max(currentTime - lastStatusUpdateMs, 0);
-
-  const lastUpdatedLabel = Math.max(1, Math.round(lastUpdatedMs / 1000));
-  const lastUpdatedText =
-    lastUpdatedLabel < 5 ? "just now" : `${lastUpdatedLabel}s ago`;
-
   const progressAriaText = isFailed
     ? "Needs attention"
     : isExecuted
@@ -264,11 +248,6 @@ const BridgeTransactionProgress: React.FC<
 
   const handleSaveReceipt = () => {
     if (!bridgeTransaction) return;
-    const popup = window.open("", "_blank", "noopener,noreferrer");
-    if (!popup) {
-      window.print();
-      return;
-    }
 
     const depositChain = getChainName(bridgeTransaction.sourceChainId);
     const destinationChain = getChainName(bridgeTransaction.targetChainId);
@@ -341,10 +320,52 @@ const BridgeTransactionProgress: React.FC<
 </body>
 </html>`;
 
-    popup.document.write(html);
-    popup.document.close();
-    popup.focus();
-    popup.print();
+    const printFrame = document.createElement("iframe");
+    printFrame.style.position = "fixed";
+    printFrame.style.right = "0";
+    printFrame.style.bottom = "0";
+    printFrame.style.width = "0";
+    printFrame.style.height = "0";
+    printFrame.style.border = "0";
+    document.body.appendChild(printFrame);
+
+    const printWindow = printFrame.contentWindow;
+    const printDocument = printWindow?.document || printFrame.contentDocument;
+
+    if (!printWindow || !printDocument) {
+      if (printFrame.parentNode) {
+        printFrame.parentNode.removeChild(printFrame);
+      }
+      window.scrollTo(0, 0);
+      window.print();
+      return;
+    }
+
+    const cleanup = () => {
+      if (printFrame.parentNode) {
+        printFrame.parentNode.removeChild(printFrame);
+      }
+    };
+
+    const triggerPrint = () => {
+      printWindow.focus();
+      printWindow.print();
+      setTimeout(cleanup, 100);
+    };
+
+    const handleReady = () => {
+      triggerPrint();
+      printFrame.onload = null;
+    };
+
+    printFrame.onload = handleReady;
+    printDocument.open();
+    printDocument.write(html);
+    printDocument.close();
+
+    if (printDocument.readyState === "complete") {
+      handleReady();
+    }
   };
 
   return (
@@ -382,31 +403,22 @@ const BridgeTransactionProgress: React.FC<
             <p className="text-xl font-semibold text-text">{primaryMessage}</p>
             <p className="mt-1 text-sm text-text-muted">{reassurance}</p>
           </div>
-          {!isExecuted && (
+          {!isExecuted && pollingError && (
             <div className="flex items-center gap-2 text-xs text-text-muted">
-              {pollingError ? (
-                <>
-                  <svg
-                    className="h-3.5 w-3.5 text-warning"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M4 4v6h6M20 20v-6h-6M4 14v6h6M20 10V4h-6"
-                    />
-                  </svg>
-                  <span>Trying again...</span>
-                </>
-              ) : (
-                <>
-                  <span className="h-2 w-2 rounded-full bg-primary" />
-                  <span>Updated {lastUpdatedText}</span>
-                </>
-              )}
+              <svg
+                className="h-3.5 w-3.5 text-warning"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M4 4v6h6M20 20v-6h-6M4 14v6h6M20 10V4h-6"
+                />
+              </svg>
+              <span>Trying again...</span>
             </div>
           )}
         </div>
