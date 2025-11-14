@@ -39,6 +39,7 @@ import {
 } from "../../utils/quoteValidation";
 import { QuoteType, TokenType } from "../../types/Swap";
 import { PulseChainConfig } from "../../config/chainConfig";
+import { useQuoteSummary } from "../../hooks/useQuoteSummary";
 
 const { toast } = toastify;
 
@@ -89,10 +90,8 @@ const Swap: React.FC = () => {
     currentChainId !== null &&
     currentChainId !== PulseChainConfig.chainId;
 
-  const outputAmount =
-    quote?.outputAmount && toToken?.decimals
-      ? Number(ethers.formatUnits(quote.outputAmount, toToken.decimals))
-      : 0;
+  const quoteSummary = useQuoteSummary();
+  const outputAmount = quoteSummary.netToTokenAmount;
 
   const openPreview = (swapRequest: PendingSwap) => {
     setPendingSwap(swapRequest);

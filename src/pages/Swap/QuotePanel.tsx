@@ -1,178 +1,145 @@
-import React, { useMemo, useState } from "react";
+import React, { useState } from "react";
 import { ChevronDownIcon, ChevronUpIcon } from "@heroicons/react/24/solid";
-import { useAppSelector } from "../../store/hooks";
-import { ethers } from "ethers";
 import RouteDetailsPopup from "./RouteDetailPopup";
 import { motion } from "framer-motion";
-import { useReferralFeeState } from "../../hooks/useReferralFeeState";
-import useWallet from "../../hooks/useWallet";
+import { useQuoteSummary } from "../../hooks/useQuoteSummary";
+import { useAppSelector } from "../../store/hooks";
 
 const QuotePanel = () => {
-  const { fromToken, toToken, quote, slippage, fromAmount } = useAppSelector(
-    (state) => state.swap
-  );
-  const referralFeeState = useReferralFeeState();
-  const referralAddress = useAppSelector(
-    (state) => state.referral.referralAddress?.address
-  );
-  const { account } = useWallet();
-
+  const { fromToken, toToken } = useAppSelector((state) => state.swap);
   const [showRoute, setShowRoute] = useState(false);
-  const apiVersion = "2.3";
+  const [open, setOpen] = useState(false);
+  const summary = useQuoteSummary();
 
-  const [open, setOpen] = useState(true);
-  const toTokenAmount =
-    quote?.outputAmount && toToken?.decimals
-      ? Number(ethers.formatUnits(quote?.outputAmount, toToken?.decimals))
-      : 0;
+  const {
+    netToTokenAmount,
+    priceImpact,
+    networkFeeUsd,
+    referralFeeBps,
+    netMinOutput,
+    slippage,
+    fromAmountNumber,
+    fromTokenUsdPrice,
+  } = summary;
 
-  const minOutput =
-    quote?.uiMinAmountOut && toToken?.decimals
-      ? Number(ethers.formatUnits(quote.uiMinAmountOut, toToken.decimals))
-      : toTokenAmount * (1 - slippage / 100);
+  const toSymbol = toToken?.symbol ?? "--";
+  const fromSymbol = fromToken?.symbol ?? "--";
 
-  const impact =
-    fromToken && toToken
-      ? ((toTokenAmount -
-          (Number(fromAmount) * fromToken?.usdPrice) / toToken?.usdPrice) /
-          ((Number(fromAmount) * fromToken?.usdPrice) / toToken?.usdPrice)) *
-        100
-      : 0;
-
-  const formatBps = (bps: number) => `${(bps / 100).toFixed(2)}%`;
-
-  const effectiveReferralBps = useMemo(() => {
-    const normalizedAccount = account ? account.toLowerCase() : null;
-    const normalizedReferral = referralAddress
-      ? referralAddress.toLowerCase()
-      : null;
-    const isSelfReferral =
-      normalizedAccount && normalizedReferral
-        ? normalizedAccount === normalizedReferral
-        : false;
-
-    if (isSelfReferral) {
-      return referralFeeState.tailBps;
+  const formatTokenAmount = (value: number, digits = 6) => {
+    if (!Number.isFinite(value)) {
+      return "0";
     }
-
-    if (
-      referralFeeState.phase === "default" ||
-      referralFeeState.phase === "tail"
-    ) {
-      return referralFeeState.activeBps;
+    if (value === 0) {
+      return "0";
     }
+    return Number(value.toFixed(digits)).toLocaleString();
+  };
 
-    if (referralFeeState.phase === "pending") {
-      return referralFeeState.activeBps;
+  const formatUsd = (value: number | null, digits = 2) => {
+    if (value === null || !Number.isFinite(value)) {
+      return null;
     }
+    return `$${value.toFixed(digits)}`;
+  };
 
-    return referralFeeState.activeBps;
-  }, [
-    account,
-    referralAddress,
-    referralFeeState.activeBps,
-    referralFeeState.phase,
-    referralFeeState.tailBps,
-  ]);
-
-  const activeReferralBps =
-    effectiveReferralBps > 0 ? effectiveReferralBps : referralFeeState.tailBps;
-  const referralMultiplier =
-    activeReferralBps > 0 ? 1 - activeReferralBps / 10000 : 1;
-  const netToTokenAmount = toTokenAmount * referralMultiplier;
-  const netMinOutput = minOutput * referralMultiplier;
-  const referralFeeDisplay =
-    activeReferralBps > 0
-      ? `-${formatBps(activeReferralBps)}`
-      : formatBps(0);
+  const feePercent =
+    referralFeeBps > 0 ? `-${(referralFeeBps / 100).toFixed(2)}%` : "0%";
+  const priceImpactDisplay = Number.isFinite(priceImpact)
+    ? `${priceImpact.toFixed(2)}%`
+    : "--";
+  const fromToToRate =
+    fromAmountNumber > 0 ? netToTokenAmount / fromAmountNumber : 0;
+  const fromToToDisplay =
+    fromToToRate > 0
+      ? `${formatTokenAmount(fromToToRate, 8)} ${toSymbol}`
+      : `0 ${toSymbol}`;
+  const usdPriceDisplay =
+    typeof fromTokenUsdPrice === "number"
+      ? `($${fromTokenUsdPrice.toFixed(4)})`
+      : "";
 
   return (
     <div className="mt-2 w-full rounded-xl border border-border bg-bg-surface p-4 text-text shadow-sm sm:p-5">
-      {/* Top row */}
-      <div
-        className="flex items-center justify-between cursor-pointer w-full"
-        onClick={() => setOpen((v) => !v)}
-      >
-        <div className="flex items-center gap-2 text-base font-semibold text-text">
-          <span>
-            1 {toToken?.symbol} ={" "}
-            {Number(((Number(fromAmount) || 1) / toTokenAmount).toFixed(10))}{" "}
-            {fromToken?.symbol}
-          </span>
-          <span className="text-text-muted">
-            ($
-            {Number(toToken?.usdPrice).toFixed(5).toLocaleString()})
-          </span>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div className="text-base font-semibold text-text">
+          1 {fromSymbol} = {fromToToDisplay}
+          {usdPriceDisplay && <span className="ml-1 text-sm text-text-muted">{usdPriceDisplay}</span>}
         </div>
-        <div className="select-none flex items-center gap-1 text-sm text-text-muted">
+        <button
+          type="button"
+          onClick={() => setOpen((v) => !v)}
+          className="flex items-center gap-1 text-sm font-semibold text-text-muted hover:text-text"
+          aria-expanded={open}
+        >
           Details
           {open ? (
-            <ChevronUpIcon className="ml-1 h-4 w-4 text-text-muted" />
+            <ChevronUpIcon className="ml-1 h-4 w-4 text-current" />
           ) : (
-            <ChevronDownIcon className="ml-1 h-4 w-4 text-text-muted" />
+            <ChevronDownIcon className="ml-1 h-4 w-4 text-current" />
           )}
-        </div>
+        </button>
       </div>
-      {/* Details */}
+
       {open && (
-        <div className="mt-4 space-y-2 text-sm">
-          <div className="flex justify-between">
-            <span className="text-text-muted">Network fee</span>
-            <span className="font-medium text-text">
-              {quote?.gasUSDEstimated?.toFixed(3)}$
-            </span>
-          </div>
-          <div className="flex justify-between">
-            <span className="text-text-muted">Price impact</span>
-            <span className="font-medium text-text">{impact.toFixed(2)}%</span>
-          </div>
-          <div className="flex justify-between">
-            <span className="text-text-muted">Slippage tolerance</span>
-            <span className="font-medium text-text">{slippage}%</span>
-          </div>
-          <div className="flex justify-between">
-            <span className="text-text-muted">Referral fee</span>
-            <span className="font-medium text-text">
-              {referralFeeDisplay}
-            </span>
-          </div>
-          <div className="flex justify-between">
-            <span className="text-text-muted">Minimum output</span>
-            <span className="font-mono font-medium text-text">
-              {Number(netMinOutput.toFixed(10))} {toToken?.symbol}
-            </span>
-          </div>
-          <div className="flex justify-between">
-            <span className="text-text-muted">Expected output</span>
-            <span className="font-mono font-medium text-text">
-              {Number(netToTokenAmount.toFixed(10))} {toToken?.symbol}
-            </span>
-          </div>
-          <div className="mt-2 flex items-center justify-between border-t border-border pt-2">
-            <span className="text-xs text-text-subtle">
-            </span>
-            <div
-              className="relative flex items-center cursor-pointer"
-              onClick={() => setShowRoute(true)}
-            >
-              <button className="flex items-center gap-1 rounded-md px-1 py-1 text-xs font-semibold text-primary transition-colors hover:text-primary-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus/40">
-                Show Route
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  strokeWidth={2}
-                  stroke="currentColor"
-                  className="w-4 h-4"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M17.25 6.75L21 10.5m0 0l-3.75 3.75M21 10.5H3"
-                  />
-                </svg>
-              </button>
+        <div className="mt-4 space-y-3 text-sm">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <div className="flex items-center justify-between">
+              <span className="text-text-muted">Network fee</span>
+              <span className="font-medium text-text">
+                {networkFeeUsd !== null
+                  ? formatUsd(networkFeeUsd, 3) ?? "--"
+                  : "--"}
+              </span>
             </div>
+            <div className="flex items-center justify-between">
+              <span className="text-text-muted">Price impact</span>
+              <span className="font-medium text-text">
+                {priceImpactDisplay}
+              </span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-text-muted">Slippage tolerance</span>
+              <span className="font-medium text-text">{slippage}%</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-text-muted">Referral fee</span>
+              <span className="font-medium text-text">{feePercent}</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-text-muted">Minimum output</span>
+              <span className="font-mono font-medium text-text">
+                {formatTokenAmount(netMinOutput, 8)} {toSymbol}
+              </span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-text-muted">Expected output</span>
+              <span className="font-mono font-medium text-text">
+                {formatTokenAmount(netToTokenAmount, 8)} {toSymbol}
+              </span>
+            </div>
+          </div>
+          <div className="flex justify-end border-t border-border pt-3">
+            <button
+              className="flex items-center gap-1 rounded-md px-2 py-1 text-xs font-semibold text-primary transition-colors hover:text-primary-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus/40"
+              onClick={() => setShowRoute(true)}
+              type="button"
+            >
+              Show Route
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+                strokeWidth={2}
+                stroke="currentColor"
+                className="h-4 w-4"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M17.25 6.75L21 10.5m0 0l-3.75 3.75M21 10.5H3"
+                />
+              </svg>
+            </button>
           </div>
         </div>
       )}
