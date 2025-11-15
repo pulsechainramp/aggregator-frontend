@@ -42,6 +42,8 @@ import { PulseChainConfig } from "../../config/chainConfig";
 import { useQuoteSummary } from "../../hooks/useQuoteSummary";
 
 const { toast } = toastify;
+const QUOTE_REFRESH_INTERVAL_MS = 10_000;
+const INITIAL_QUOTE_DELAY_MS = 2_000;
 
 type PendingSwap = {
   quote: QuoteType;
@@ -447,8 +449,8 @@ const Swap: React.FC = () => {
 
       timeoutRef.current = setTimeout(() => {
         requestQuote();
-        intervalRef.current = setInterval(requestQuote, 10000);
-      }, 3000);
+        intervalRef.current = setInterval(requestQuote, QUOTE_REFRESH_INTERVAL_MS);
+      }, INITIAL_QUOTE_DELAY_MS);
     } else {
       clearQuoteTimers();
       dispatch(setQuote(null));
@@ -459,13 +461,13 @@ const Swap: React.FC = () => {
     };
   }, [
     dispatch,
-    fromToken?.address,
-    toToken?.address,
+    fromToken ? fromToken.address : undefined,
+    toToken ? toToken.address : undefined,
     fromAmount,
-    fromToken?.decimals,
+    fromToken ? fromToken.decimals : undefined,
     slippage,
-    fromToken?.blockchainNetwork,
-    toToken?.blockchainNetwork,
+    fromToken ? fromToken.blockchainNetwork : undefined,
+    toToken ? toToken.blockchainNetwork : undefined,
     account,
     shouldBlockQuotes,
   ]);
