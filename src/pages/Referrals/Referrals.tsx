@@ -246,13 +246,18 @@ const Referrals: React.FC = () => {
     }
   };
   const handleClaim = async (fee: ReferralFee) => {
+    if (!account) {
+      toast.error("Please connect your wallet");
+      return;
+    }
+
+    if (!isPulseChainNetwork) {
+      toast.error("Switch to PulseChain to claim your referral earnings");
+      return;
+    }
+
     setClaimingToken(fee.token);
     try {
-      if (!account) {
-        toast.error("Please connect your wallet");
-        return;
-      }
-
       const result = await dispatch(
         claimReferralEarnings({
           tokens: [fee.token],
@@ -277,19 +282,24 @@ const Referrals: React.FC = () => {
   };
 
   const handleBulkClaim = async () => {
+    if (!account) {
+      toast.error("Please connect your wallet");
+      return;
+    }
+
+    if (!isPulseChainNetwork) {
+      toast.error("Switch to PulseChain to claim your referral earnings");
+      return;
+    }
+
+    if (referralFees.length === 0) {
+      toast.error("No tokens to claim");
+      return;
+    }
+
     setClaimingAll(true);
     setClaimingToken(null);
     try {
-      if (!account) {
-        toast.error("Please connect your wallet");
-        return;
-      }
-
-      if (referralFees.length === 0) {
-        toast.error("No tokens to claim");
-        return;
-      }
-
       const tokens = referralFees.map((fee) => fee.token);
 
       const result = await dispatch(
@@ -455,6 +465,13 @@ const Referrals: React.FC = () => {
           </p>
         </motion.div>
 
+        {!isPulseChainNetwork && (
+          <div className="mb-6 rounded-xl border border-warning/50 bg-warning/10 px-4 py-3 text-sm text-warning">
+            Switch to PulseChain to update your referral fee or claim your referral
+            earnings.
+          </div>
+        )}
+
         {/* Your referral link */}
         <section className="mb-6 rounded-2xl border border-border bg-bg-surface p-4">
           <h2 className="text-text font-semibold mb-2">Your referral link</h2>
@@ -491,9 +508,12 @@ const Referrals: React.FC = () => {
               <div className="pt-1">
                 <button
                   onClick={() => setIsFeePopupOpen(true)}
-                  className="touch-target inline-flex items-center justify-center rounded-lg border border-success bg-success px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-success/80 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
+                  disabled={!isPulseChainNetwork}
+                  className="touch-target inline-flex items-center justify-center rounded-lg border border-success bg-success px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-success/80 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus disabled:cursor-not-allowed disabled:border-border disabled:bg-border disabled:text-text-muted"
                 >
-                  Update referral fee
+                  {isPulseChainNetwork
+                    ? "Update referral fee"
+                    : "Switch to PulseChain"}
                 </button>
               </div>
             </div>
@@ -595,11 +615,14 @@ const Referrals: React.FC = () => {
                     claimingToken !== null ||
                     claiming ||
                     loading ||
-                    tokensLoading
+                    tokensLoading ||
+                    !isPulseChainNetwork
                   }
                   className="rounded-lg border border-primary bg-primary px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-primary-600 disabled:cursor-not-allowed disabled:border-border disabled:bg-border disabled:text-text-muted"
                 >
-                  {claimingAll
+                  {!isPulseChainNetwork
+                    ? "Switch to PulseChain"
+                    : claimingAll
                     ? "Claiming All..."
                     : `Claim All (${filteredReferralFees.length})`}
                 </button>
@@ -659,7 +682,9 @@ const Referrals: React.FC = () => {
                       (claimingToken !== null && claimingToken !== fee.token) ||
                       (claiming && claimingToken === null && !claimingAll);
                     const disableClaimButton =
-                      isCurrentTokenClaiming || anotherClaimInFlight;
+                      isCurrentTokenClaiming ||
+                      anotherClaimInFlight ||
+                      !isPulseChainNetwork;
                     const tokenChainId =
                       tokenMetadata?.blockchainNetwork?.toLowerCase() === "ethereum"
                         ? 1
@@ -730,13 +755,17 @@ const Referrals: React.FC = () => {
                                 size="sm"
                               />
                             )}
-                            <button
-                              onClick={() => handleClaim(fee)}
-                              disabled={disableClaimButton}
-                              className="rounded-lg border border-success bg-success px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-success/80 disabled:cursor-not-allowed disabled:border-border disabled:bg-border disabled:text-text-muted"
-                            >
-                              {isCurrentTokenClaiming ? "Claiming..." : "Claim"}
-                            </button>
+                              <button
+                                onClick={() => handleClaim(fee)}
+                                disabled={disableClaimButton}
+                                className="rounded-lg border border-success bg-success px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-success/80 disabled:cursor-not-allowed disabled:border-border disabled:bg-border disabled:text-text-muted"
+                              >
+                                {!isPulseChainNetwork
+                                  ? "Switch to PulseChain"
+                                  : isCurrentTokenClaiming
+                                  ? "Claiming..."
+                                  : "Claim"}
+                              </button>
                           </div>
                         </td>
                       </motion.tr>
