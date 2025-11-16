@@ -671,13 +671,12 @@ export const getQuote = createAsyncThunk<
       lastPulseXParams.allowedSlippage !== allowedSlippage;
 
     if (isNewQuoteRequest) {
-      // New parameters: Call PulseX first, then switch to Piteams
+      // New parameters: Call PulseX only (Piteas temporarily disabled)
       dispatch(setPulseXLoading(true));
-      dispatch(setPiteamsLoading(true));
-      dispatch(setShowBetterRouterMessage(true));
+      dispatch(setPiteamsLoading(false));
+      dispatch(setShowBetterRouterMessage(false));
 
       try {
-        // Start PulseX API call first (fast response)
         const pulseXResult = await dispatch(getPulseXQuote({
           tokenInAddress,
           tokenOutAddress,
@@ -686,7 +685,6 @@ export const getQuote = createAsyncThunk<
           fromDecimal,
         })).unwrap();
 
-        // Store the parameters for this PulseX call
         dispatch(setLastPulseXParams({
           tokenInAddress,
           tokenOutAddress,
@@ -694,88 +692,43 @@ export const getQuote = createAsyncThunk<
           allowedSlippage,
         }));
 
-        // If PulseX succeeds, return it immediately and start piteams in background
-         if (!("error" in pulseXResult)) {
-           // Start piteams API call in background
-           dispatch(getPiteamsQuote({
-            tokenInAddress,
-            tokenOutAddress,
-            amount: normalizedAmount,
-            allowedSlippage,
-            fromDecimal,
-            account,
-          })).then((piteamsResult) => {
-            if (piteamsResult.type === 'swap/getPiteamsQuote/fulfilled' && piteamsResult.payload) {
-              // Compare output amounts and update if piteams is better
-              const pulseXOutput = pulseXResult.outputAmount;
-              const piteamsOutput = piteamsResult.payload.outputAmount;
-              
-               if (piteamsOutput && pulseXOutput && BigInt(piteamsOutput) > BigInt(pulseXOutput)) {
-                 try {
-                   const verifiedQuote = ensureValidQuote(piteamsResult.payload);
-                   dispatch(applyQuoteIfCurrent({
-                     quote: verifiedQuote,
-                     params: requestSnapshot,
-                   }));
-                 } catch (validationError) {
-                   console.error("Rejected tampered Piteas quote:", validationError);
-                 }
-               }
-              // Hide the better router message once piteams completes
-              dispatch(setShowBetterRouterMessage(false));
-            }
-          }).catch(() => {
-            // If piteams fails, hide the message
-            dispatch(setShowBetterRouterMessage(false));
-          });
-          
-           return ensureValidQuote(pulseXResult);
+        if ("error" in pulseXResult) {
+          throw pulseXResult.error instanceof Error
+            ? pulseXResult.error
+            : new Error('PulseX quote API failed');
         }
+
+        return ensureValidQuote(pulseXResult);
       } catch (error) {
         console.error('PulseX quote failed:', error);
+        throw error;
       }
-
-      // If PulseX fails, wait for piteams
-      try {
-         const piteamsResult = await dispatch(getPiteamsQuote({
-           tokenInAddress,
-           tokenOutAddress,
-          amount: normalizedAmount,
-          allowedSlippage,
-          fromDecimal,
-          account,
-        })).unwrap();
-
-        dispatch(setShowBetterRouterMessage(false));
-        return ensureValidQuote(piteamsResult);
-      } catch (error) {
-        console.error('Piteams quote failed:', error);
-      }
-
-      // If both fail, return error
-      dispatch(setShowBetterRouterMessage(false));
-      throw new Error('Both quote APIs failed');
     } else {
-      // Same parameters: Only call Piteams API
-      dispatch(setPiteamsLoading(true));
+      // Same parameters: reuse PulseX quote path
+      dispatch(setPulseXLoading(true));
+      dispatch(setPiteamsLoading(false));
+      dispatch(setShowBetterRouterMessage(false));
 
       try {
-        const piteamsResult = await dispatch(getPiteamsQuote({
+        const pulseXResult = await dispatch(getPulseXQuote({
           tokenInAddress,
           tokenOutAddress,
-          amount: normalizedAmount,
+          amount,
           allowedSlippage,
           fromDecimal,
-          account,
         })).unwrap();
 
-        return ensureValidQuote(piteamsResult);
-      } catch (error) {
-        console.error('Piteams quote failed:', error);
-      }
+        if ("error" in pulseXResult) {
+          throw pulseXResult.error instanceof Error
+            ? pulseXResult.error
+            : new Error('PulseX quote API failed');
+        }
 
-      // If Piteams fails, return error
-      throw new Error('Piteams quote API failed');
+        return ensureValidQuote(pulseXResult);
+      } catch (error) {
+        console.error('PulseX quote failed:', error);
+        throw error;
+      }
     }
   }
 );
