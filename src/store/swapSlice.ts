@@ -692,15 +692,17 @@ export const getQuote = createAsyncThunk<
           allowedSlippage,
         }));
 
-        if (!("error" in pulseXResult)) {
-          return ensureValidQuote(pulseXResult);
+        if ("error" in pulseXResult) {
+          throw pulseXResult.error instanceof Error
+            ? pulseXResult.error
+            : new Error('PulseX quote API failed');
         }
+
+        return ensureValidQuote(pulseXResult);
       } catch (error) {
         console.error('PulseX quote failed:', error);
         throw error;
       }
-
-      throw new Error('PulseX quote API failed');
     } else {
       // Same parameters: reuse PulseX quote path
       dispatch(setPulseXLoading(true));
@@ -716,15 +718,17 @@ export const getQuote = createAsyncThunk<
           fromDecimal,
         })).unwrap();
 
-        if (!("error" in pulseXResult)) {
-          return ensureValidQuote(pulseXResult);
+        if ("error" in pulseXResult) {
+          throw pulseXResult.error instanceof Error
+            ? pulseXResult.error
+            : new Error('PulseX quote API failed');
         }
+
+        return ensureValidQuote(pulseXResult);
       } catch (error) {
         console.error('PulseX quote failed:', error);
         throw error;
       }
-
-      throw new Error('PulseX quote API failed');
     }
   }
 );
