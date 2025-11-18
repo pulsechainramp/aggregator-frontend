@@ -1,4 +1,4 @@
-import { AbiCoder, ZeroAddress, Wallet, getBytes, keccak256 } from "ethers";
+import { AbiCoder, ZeroAddress, Wallet, getBytes, keccak256, parseUnits } from "ethers";
 import { describe, expect, it, vi } from "vitest";
 import { AffiliateRouterAddress } from "../const/swap";
 import { PulsexConfig } from "../config/pulsex";
@@ -263,6 +263,196 @@ describe("validateQuoteIntegrity", () => {
         toToken,
         fromAmount: "1",
         slippage: 0.5,
+      })
+    ).not.toThrow();
+  });
+  it("accepts PulseX stable steps carrying userData", async () => {
+    vi.stubEnv("VITE_QUOTE_SIGNER_ADDRESS", wallet.address);
+    const { fromToken, toToken } = buildTokens();
+    const amountIn = "1000000000000000000";
+    const minAmountOut = "990000000000000000";
+    const deadline = Math.floor(Date.now() / 1000) + 600;
+
+    const swapRoute: SwapRoute = {
+      steps: [
+        {
+          dex: "pulsexStable",
+          path: [fromToken.address, toToken.address],
+          pool: PulsexConfig.PulsexStablePoolAddress,
+          percent: 100000,
+          groupId: 0,
+          parentGroupId: 0,
+          userData: "0x0102",
+        },
+      ],
+      parentGroups: [{ id: 0, percent: 100000 }],
+      destination: ZeroAddress,
+      tokenIn: fromToken.address,
+      tokenOut: toToken.address,
+      groupCount: 1,
+      deadline,
+      amountIn,
+      amountOutMin: minAmountOut,
+      isETHOut: false,
+    };
+
+    const calldata = encodeSwapRoute(swapRoute);
+    const payload = {
+      version: 1,
+      router: AffiliateRouterAddress,
+      tokenIn: fromToken.address,
+      tokenOut: toToken.address,
+      amountIn,
+      minAmountOut,
+      deadline,
+      calldataHash: keccak256(calldata),
+      issuedAt: Math.floor(Date.now() / 1000),
+      slippageBps: 100,
+    };
+
+    const encoded = new AbiCoder().encode(SIGNATURE_TYPES, [
+      payload.version,
+      payload.router,
+      payload.tokenIn,
+      payload.tokenOut,
+      payload.amountIn,
+      payload.minAmountOut,
+      payload.deadline,
+      payload.calldataHash,
+      payload.issuedAt,
+      payload.slippageBps,
+    ]);
+
+    const signature = await wallet.signMessage(getBytes(keccak256(encoded)));
+
+    const quote: QuoteType = {
+      calldata,
+      tokenInAddress: fromToken.address,
+      tokenOutAddress: toToken.address,
+      amountIn,
+      minAmountOut,
+      outputAmount: "1000000000000000000",
+      deadline,
+      gasUSDEstimated: 2,
+      gasAmountEstimated: 200000,
+      route: [],
+      integrity: {
+        payload,
+        signature,
+        signer: wallet.address,
+      },
+    };
+
+    expect(() =>
+      validateQuoteIntegrity(quote, {
+        fromToken,
+        toToken,
+        fromAmount: "1",
+        slippage: 1,
+      })
+    ).not.toThrow();
+  });
+
+  it("accepts mixed PulseX V2 legs that pivot through the stable pool", async () => {
+    vi.stubEnv("VITE_QUOTE_SIGNER_ADDRESS", wallet.address);
+    const { fromToken, toToken } = buildTokens();
+    const pivotToken: TokenType = {
+      ...fromToken,
+      address: "0x3333333333333333333333333333333333333333",
+      symbol: "USDT",
+    };
+    const amountIn = parseUnits("1", fromToken.decimals).toString();
+    const minAmountOut = parseUnits("1.04", toToken.decimals).toString();
+    const deadline = Math.floor(Date.now() / 1000) + 600;
+
+    const swapRoute: SwapRoute = {
+      steps: [
+        {
+          dex: "pulsexStable",
+          path: [fromToken.address, pivotToken.address],
+          pool: PulsexConfig.PulsexStablePoolAddress,
+          percent: 100000,
+          groupId: 0,
+          parentGroupId: 0,
+          userData: "0x0001",
+        },
+        {
+          dex: "pulsexV2",
+          path: [pivotToken.address, toToken.address],
+          pool: "0x4444444444444444444444444444444444444444",
+          percent: 100000,
+          groupId: 1,
+          parentGroupId: 0,
+          userData: "0x",
+        },
+      ],
+      parentGroups: [
+        { id: 0, percent: 100000 },
+        { id: 1, percent: 100000 },
+      ],
+      destination: ZeroAddress,
+      tokenIn: fromToken.address,
+      tokenOut: toToken.address,
+      groupCount: 2,
+      deadline,
+      amountIn,
+      amountOutMin: minAmountOut,
+      isETHOut: false,
+    };
+
+    const calldata = encodeSwapRoute(swapRoute);
+    const payload = {
+      version: 1,
+      router: AffiliateRouterAddress,
+      tokenIn: fromToken.address,
+      tokenOut: toToken.address,
+      amountIn,
+      minAmountOut,
+      deadline,
+      calldataHash: keccak256(calldata),
+      issuedAt: Math.floor(Date.now() / 1000),
+      slippageBps: 100,
+    };
+
+    const encoded = new AbiCoder().encode(SIGNATURE_TYPES, [
+      payload.version,
+      payload.router,
+      payload.tokenIn,
+      payload.tokenOut,
+      payload.amountIn,
+      payload.minAmountOut,
+      payload.deadline,
+      payload.calldataHash,
+      payload.issuedAt,
+      payload.slippageBps,
+    ]);
+
+    const signature = await wallet.signMessage(getBytes(keccak256(encoded)));
+
+    const quote: QuoteType = {
+      calldata,
+      tokenInAddress: fromToken.address,
+      tokenOutAddress: toToken.address,
+      amountIn,
+      minAmountOut,
+      outputAmount: parseUnits("1.05", toToken.decimals).toString(),
+      deadline,
+      gasUSDEstimated: 3,
+      gasAmountEstimated: 300000,
+      route: [],
+      integrity: {
+        payload,
+        signature,
+        signer: wallet.address,
+      },
+    };
+
+    expect(() =>
+      validateQuoteIntegrity(quote, {
+        fromToken,
+        toToken,
+        fromAmount: "1",
+        slippage: 1,
       })
     ).not.toThrow();
   });
