@@ -69,10 +69,6 @@ const AmountInput: React.FC<AmountInputProps> = ({
     amountWei !== null &&
     amountWei > 0n &&
     amountWei < MIN_NATIVE_ETH_AMOUNT_WEI;
-  const meetsMinimum =
-    isEthNative &&
-    amountWei !== null &&
-    amountWei >= MIN_NATIVE_ETH_AMOUNT_WEI;
 
   return (
     <motion.div
@@ -199,19 +195,6 @@ const AmountInput: React.FC<AmountInputProps> = ({
         </motion.div>
       )}
 
-      {/* Success message when amount is valid */}
-      {meetsMinimum && (
-        <motion.div
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="mt-2 flex items-center gap-2 text-sm text-success"
-        >
-          <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
-            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-          </svg>
-          <span>Amount meets minimum requirement for bridging</span>
-        </motion.div>
-      )}
     </motion.div>
   );
 };

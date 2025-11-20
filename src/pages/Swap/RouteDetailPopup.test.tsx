@@ -6,19 +6,13 @@ import RouteDetailsPopup from "./RouteDetailPopup";
 import type { QuoteType, RouteType, TokenType } from "../../types/Swap";
 
 const buildToken = (overrides: Partial<TokenType>): TokenType => ({
+  chainId: 369,
   address: "0x0000000000000000000000000000000000000001",
   name: "Token",
   symbol: "TKN",
   blockchainNetwork: "pulse",
   network: "pulse",
   decimals: 18,
-  image: "",
-  rank: 0,
-  type: "erc20",
-  usdPrice: 1,
-  token_security: null,
-  network_rank: 0,
-  price: 1,
   ...overrides,
 });
 
@@ -120,7 +114,6 @@ const buildQuoteFixture = () => {
 
 const renderWithQuote = (quote: QuoteType, fromToken: TokenType, toToken: TokenType) => {
   const swapState = {
-    allChains: [],
     availableTokens: [],
     fromToken,
     toToken,
@@ -140,6 +133,7 @@ const renderWithQuote = (quote: QuoteType, fromToken: TokenType, toToken: TokenT
     hasCalledPulseXOnce: false,
     lastPulseXParams: null,
     latestAllowanceRequestId: null,
+    areTokensLoading: false,
   };
 
   const store = configureStore({

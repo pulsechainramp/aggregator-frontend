@@ -1,4 +1,9 @@
-import { createAsyncThunk, createSlice, PayloadAction } from "@reduxjs/toolkit";
+import {
+  createAsyncThunk,
+  createSelector,
+  createSlice,
+  PayloadAction,
+} from "@reduxjs/toolkit";
 import { QuoteType, TokenType, UnsignedQuoteType } from "../types/Swap";
 import { ethers } from "ethers";
 import { isSelfReferral, getStoredReferralCode } from "../utils/referralUtils";
@@ -19,6 +24,13 @@ import { validateQuoteIntegrity } from "../utils/quoteValidation";
 import { decodeSwapRouteSummary } from "../utils/routeEncoding";
 import { normalizeAmountInput, areAmountsEqual } from "../utils/amount";
 
+const getPublicAssetUrl = (assetPath: string) => {
+  const baseUrl = import.meta.env.BASE_URL ?? "/";
+  const normalizedBase = baseUrl.endsWith("/") ? baseUrl : `${baseUrl}/`;
+  const normalizedAsset = assetPath.startsWith("/") ? assetPath.slice(1) : assetPath;
+  return `${normalizedBase}${normalizedAsset}`;
+};
+
 const ZERO_ADDRESS_LOWER = ZeroAddress.toLowerCase();
 const WPLS_ADDRESS_LOWER = PulsexConfig.WPLSAddress?.toLowerCase() ?? "";
 const BPS_DENOMINATOR = 10_000n;
@@ -36,7 +48,6 @@ const applySlippageToAmount = (amount: string, slippageBps: number): string => {
 };
 
 interface SwapState {
-  allChains: TokenType[];
   availableTokens: TokenType[];
   fromToken: TokenType | null;
   toToken: TokenType | null;
@@ -66,6 +77,7 @@ interface SwapState {
     allowedSlippage: number;
   } | null;
   latestAllowanceRequestId: string | null;
+  areTokensLoading: boolean;
 }
 
 type QuoteRequestSnapshot = {
@@ -77,7 +89,6 @@ type QuoteRequestSnapshot = {
 };
 
 const initialState: SwapState = {
-  allChains: [],
   availableTokens: [],
   fromToken: null,
   toToken: null,
@@ -102,6 +113,16 @@ const initialState: SwapState = {
   // Parameter tracking for PulseX calls
   lastPulseXParams: null,
   latestAllowanceRequestId: null,
+  areTokensLoading: false,
+};
+
+const resetSwapTransientState = (state: SwapState) => {
+  state.isSwapping = false;
+  state.isApproving = false;
+  state.transactionHash = null;
+  state.hasCalledPulseXOnce = false;
+  state.lastPulseXParams = null;
+  state.latestAllowanceRequestId = null;
 };
 
 const isNativeAddress = (address: string) => {
@@ -219,11 +240,13 @@ export const checkTokenAllowance = createAsyncThunk(
     amount,
     decimals,
     userAddress,
+    chainId,
   }: {
     tokenAddress: string;
     amount: string;
     decimals: number;
     userAddress: string;
+    chainId?: number;
   }) => {
     if (tokenAddress === ZeroAddress) {
       return { hasAllowance: true, allowance: "0" };
@@ -234,7 +257,8 @@ export const checkTokenAllowance = createAsyncThunk(
       userAddress,
       AffiliateRouterAddress,
       amount,
-      decimals
+      decimals,
+      chainId
     );
 
     return {
@@ -251,11 +275,13 @@ export const approveTokenAction = createAsyncThunk(
     account,
     amount,
     decimals,
+    chainId,
   }: {
     tokenAddress: string;
     account: string;
     amount: string;
     decimals: number;
+    chainId?: number;
   }) => {
     if (tokenAddress === ZeroAddress) {
       throw new Error("Native token does not require approval");
@@ -269,8 +295,18 @@ export const approveTokenAction = createAsyncThunk(
       decimals,
     });
 
+    const hasAllowance = await needsApproval(
+      tokenAddress,
+      account,
+      AffiliateRouterAddress,
+      amount,
+      decimals,
+      chainId
+    );
+
     return {
       transactionHash: transaction.transactionHash,
+      hasAllowance,
     };
   }
 );
@@ -421,22 +457,17 @@ export const refreshBalancesAfterSwap = createAsyncThunk(
   }
 );
 
-export const getAllChains = createAsyncThunk("swap/getAllChains", async () => {
-  const response = await fetch(
-    "https://api.rubic.exchange/api/v2/tokens/allchains"
-  );
-  const data = await response.json();
-  return data || [];
-});
-
-export const getAvailableTokensFromChain = createAsyncThunk(
-  "swap/getAvailableTokensFromChain",
-  async (chain: TokenType) => {
-    const response = await fetch(
-      `https://api.rubic.exchange/api/v2/tokens/?page=1&pageSize=200&network=${chain.blockchainNetwork}`
-    );
-    const data = await response.json();
-    return data.results || [];
+export const loadPulsexTokens = createAsyncThunk(
+  "swap/loadPulsexTokens",
+  async () => {
+    const response = await fetch(getPublicAssetUrl("pulsex-tokens.json"), {
+      cache: "no-cache",
+    });
+    if (!response.ok) {
+      throw new Error(`Failed to load PulseX tokens (${response.status})`);
+    }
+    const data = (await response.json()) as TokenType[];
+    return data || [];
   }
 );
 
@@ -737,23 +768,17 @@ export const swapSlice = createSlice({
   name: "swap",
   initialState,
   reducers: {
-    setAllChains: (state, action) => {
-      state.allChains = action.payload;
-    },
-    setAvailableTokens: (state, action) => {
-      state.availableTokens = action.payload;
-    },
     setFromToken: (state, action) => {
       state.fromToken = action.payload;
-      resetSwapState();
+      resetSwapTransientState(state);
     },
     setToToken: (state, action) => {
       state.toToken = action.payload;
-      resetSwapState();
+      resetSwapTransientState(state);
     },
     setFromAmount: (state, action) => {
       state.fromAmount = action.payload;
-      resetSwapState();
+      resetSwapTransientState(state);
     },
     setQuote: (state, action) => {
       state.quote = action.payload;
@@ -768,7 +793,7 @@ export const swapSlice = createSlice({
     },
     setSlippage: (state, action) => {
       state.slippage = action.payload;
-      resetSwapState();
+      resetSwapTransientState(state);
     },
     // Set balances
     setFromTokenBalance: (state, action) => {
@@ -786,11 +811,11 @@ export const swapSlice = createSlice({
     },
     // Reset swap state
     resetSwapState: (state) => {
-      state.isSwapping = false;
+      resetSwapTransientState(state);
+    },
+    clearApprovalState: (state) => {
+      state.isApproved = false;
       state.isApproving = false;
-      state.transactionHash = null;
-      state.hasCalledPulseXOnce = false;
-      state.lastPulseXParams = null;
       state.latestAllowanceRequestId = null;
     },
     // Quote loading states
@@ -812,29 +837,21 @@ export const swapSlice = createSlice({
   },
   extraReducers: (builder) => {
     builder
-      .addCase(getAllChains.pending, (state) => {})
-      .addCase(getAllChains.fulfilled, (state, action) => {
-        const pulseIndex = action.payload.findIndex(
-          (chain: any) => chain.symbol === "PLS"
-        );
-        if (pulseIndex > -1) {
-          const [pulseChain] = action.payload.splice(pulseIndex, 1);
-          state.allChains = [pulseChain, ...action.payload];
-        } else {
-          state.allChains = action.payload;
-        }
+      .addCase(loadPulsexTokens.pending, (state) => {
+        state.areTokensLoading = true;
       })
-      .addCase(getAllChains.rejected, (state, action) => {
-        console.error("Failed to get all chains:", action.error);
-      });
-
-    builder
-      .addCase(getAvailableTokensFromChain.pending, (state) => {})
-      .addCase(getAvailableTokensFromChain.fulfilled, (state, action) => {
-        state.availableTokens = action.payload;
+      .addCase(loadPulsexTokens.fulfilled, (state, action) => {
+        state.availableTokens = action.payload.map((token) => ({
+          ...token,
+          blockchainNetwork: token.blockchainNetwork ?? "pulsechain",
+          network: token.network ?? "PulseChain",
+          image: token.image ?? token.logoURI,
+        }));
+        state.areTokensLoading = false;
       })
-      .addCase(getAvailableTokensFromChain.rejected, (state, action) => {
-        console.error("Failed to get available tokens:", action.error);
+      .addCase(loadPulsexTokens.rejected, (state, action) => {
+        console.error("Failed to load PulseX tokens:", action.error);
+        state.areTokensLoading = false;
       });
 
     builder
@@ -891,6 +908,9 @@ export const swapSlice = createSlice({
       })
       .addCase(approveTokenAction.fulfilled, (state, action) => {
         state.isApproving = false;
+        state.isApproved =
+          Boolean(action.payload?.transactionHash) &&
+          Boolean(action.payload?.hasAllowance);
       })
       .addCase(approveTokenAction.rejected, (state, action) => {
         state.isApproving = false;
@@ -977,9 +997,27 @@ export const swapSlice = createSlice({
   },
 });
 
+const selectSwapState = (state: RootState) => state.swap;
+
+export const selectAllPulsexTokens = createSelector(
+  selectSwapState,
+  (swap) => swap.availableTokens
+);
+
+export const selectDefaultPulsexTokens = createSelector(
+  selectAllPulsexTokens,
+  (tokens) =>
+    tokens.filter(
+      (token) => token.tier !== "unverified" && token.origin !== "prefork"
+    )
+);
+
+export const selectCoreFavoriteTokens = createSelector(
+  selectAllPulsexTokens,
+  (tokens) => tokens.filter((token) => token.tier === "core")
+);
+
 export const {
-  setAllChains,
-  setAvailableTokens,
   setFromToken,
   setToToken,
   setFromAmount,
@@ -991,6 +1029,7 @@ export const {
   setNativeBalance,
   setTransactionHash,
   resetSwapState,
+  clearApprovalState,
   setPulseXLoading,
   setPiteamsLoading,
   setShowBetterRouterMessage,

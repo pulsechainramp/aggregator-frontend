@@ -26,6 +26,7 @@ import {
   MIN_NATIVE_ETH_AMOUNT_WEI,
   MIN_NATIVE_ETH_AMOUNT_DISPLAY,
 } from "../constants";
+import TokenIcon from "../../../components/TokenIcon";
 
 interface BridgeCardProps {
   fromNetwork: "ETH" | "PLS";
@@ -633,6 +634,7 @@ const BridgeCard: React.FC<BridgeCardProps> = ({
                       symbol: cleanTokenSymbol(selectedToken),
                       decimals: selectedTokenData.decimals,
                       chainId: fromChainId,
+                      logoURI: selectedTokenData.logoURI,
                       image: selectedTokenData.logoURI,
                     },
                     { provider: wallet.provider as any }
@@ -737,27 +739,14 @@ const BridgeCard: React.FC<BridgeCardProps> = ({
         <div className="rounded-xl border border-border bg-bg-surface p-4 shadow-sm">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-full border border-border bg-primary-050 text-primary">
-                {correspondingTokenData?.logoURI ? (
-                  <img
-                    src={correspondingTokenData.logoURI}
-                    alt={correspondingToken}
-                    className="h-6 w-6 rounded-full object-cover"
-                    onError={(e) => {
-                      const target = e.target as HTMLImageElement;
-                      target.style.display = "none";
-                      target.nextElementSibling?.classList.remove("hidden");
-                    }}
-                  />
-                ) : null}
-                <span
-                  className={`text-sm font-semibold ${
-                    correspondingTokenData?.logoURI ? "hidden" : ""
-                  }`}
-                >
-                  {correspondingToken}
-                </span>
-              </div>
+              <TokenIcon
+                token={{
+                  symbol: correspondingToken,
+                  logoURI: correspondingTokenData?.logoURI,
+                  image: correspondingTokenData?.logoURI,
+                }}
+                size={40}
+              />
               <div>
                 <div className="text-base font-semibold text-text">
                   {correspondingToken}
@@ -826,6 +815,7 @@ const BridgeCard: React.FC<BridgeCardProps> = ({
                             symbol: cleanTokenSymbol(correspondingToken),
                             decimals: correspondingTokenData.decimals,
                             chainId: toChainId,
+                            logoURI: correspondingTokenData.logoURI,
                             image: correspondingTokenData.logoURI,
                           }}
                           variant="outline"
@@ -886,17 +876,18 @@ const BridgeCard: React.FC<BridgeCardProps> = ({
                             />
                           </svg>
                         </motion.button>
-                        <AddToWalletButton
-                          token={{
-                            address: correspondingTokenData.address,
-                            symbol: cleanTokenSymbol(correspondingToken),
-                            decimals: correspondingTokenData.decimals,
-                            chainId: toChainId,
-                            image: correspondingTokenData.logoURI,
-                          }}
-                          variant="outline"
-                          size="sm"
-                        />
+                    <AddToWalletButton
+                      token={{
+                        address: correspondingTokenData.address,
+                        symbol: cleanTokenSymbol(correspondingToken),
+                        decimals: correspondingTokenData.decimals,
+                        chainId: toChainId,
+                        logoURI: correspondingTokenData.logoURI,
+                        image: correspondingTokenData.logoURI,
+                      }}
+                      variant="outline"
+                      size="sm"
+                    />
                       </>
                     )}
                   </div>

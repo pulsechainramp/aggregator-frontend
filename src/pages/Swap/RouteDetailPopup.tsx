@@ -1,4 +1,5 @@
 import { FaArrowRight } from "react-icons/fa";
+import TokenIcon from "../../components/TokenIcon";
 import { useAppSelector } from "../../store/hooks";
 
 const RouteDetailsPopup = () => {
@@ -17,11 +18,7 @@ const RouteDetailsPopup = () => {
         >
           {/* Start Token */}
           <div className="mb-2 flex flex-col items-center sm:mb-0">
-            <img
-              src={fromToken?.image}
-              alt="fromToken"
-              className="mb-1 h-6 w-6 rounded-full sm:h-8 sm:w-8"
-            />
+            <TokenIcon token={fromToken ?? undefined} size={32} />
             <span className="text-xs font-semibold text-text">{route.percent}%</span>
           </div>
 
@@ -58,11 +55,7 @@ const RouteDetailsPopup = () => {
 
           {/* End Token */}
           <div className="mt-2 flex flex-col items-center sm:mt-0">
-            <img
-              src={toToken?.image}
-              alt="toToken"
-              className="mb-1 h-6 w-6 rounded-full sm:h-8 sm:w-8"
-            />
+            <TokenIcon token={toToken ?? undefined} size={32} />
           </div>
         </div>
       ))}

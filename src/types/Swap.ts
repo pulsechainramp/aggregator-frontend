@@ -1,17 +1,15 @@
-export interface TokenType {
-  address: string;
-  name: string;
-  symbol: string;
-  blockchainNetwork: string;
-  network: string;
-  decimals: number;
-  image: string;
-  rank: number;
-  type: string;
-  usdPrice: number;
-  token_security: any;
-  network_rank: number;
-  price: number;
+import { PulsexToken } from "./PulsexTokens";
+
+export interface TokenType extends PulsexToken {
+  image?: string;
+  blockchainNetwork?: string;
+  network?: string;
+  rank?: number;
+  type?: string;
+  usdPrice?: number;
+  token_security?: any;
+  network_rank?: number;
+  price?: number;
 }
 
 export interface QuoteIntegrityPayload {

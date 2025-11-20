@@ -5,8 +5,9 @@ export interface TokenInfo {
   address: string;
   symbol: string;
   decimals: number;
-  image?: string;   // ≤256KB, ≤512x512 if bitmap (per EIP-747 guidance)
-  chainId: number;  // 1 = Ethereum, 369 = PulseChain, etc.
+  logoURI?: string;
+  image?: string; // 256KB, 512x512 max (per EIP-747 guidance)
+  chainId: number; // 1 = Ethereum, 369 = PulseChain, etc.
 }
 
 /** Minimal EIP-1193 provider surface */

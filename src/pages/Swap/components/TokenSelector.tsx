@@ -1,28 +1,39 @@
 import { ChevronDownIcon } from "@heroicons/react/24/solid";
 import { motion } from "framer-motion";
 import React from "react";
+import TokenIcon from "../../../components/TokenIcon";
 import { TokenType } from "../../../types/Swap";
 
 interface TokenSelectorProps {
   token: TokenType | null;
-  allChains: TokenType[];
   type: "from" | "to";
   onSelect: () => void;
 }
 
 const TokenSelector: React.FC<TokenSelectorProps> = ({
   token,
-  allChains,
   type,
   onSelect,
 }) => {
-  const networkIcon = token
-    ? allChains.find(
-        (chain) =>
-          chain.blockchainNetwork === token.blockchainNetwork ||
-          chain.network === token.network
-      )?.image
+  const getOriginLabel = (candidate: TokenType) => {
+    switch (candidate.origin) {
+      case "bridged-eth":
+        return "Bridged (ETH)";
+      case "prefork":
+        return "Prefork";
+      default:
+        return undefined;
+    }
+  };
+
+  const networkLabel = token
+    ? token.network ??
+      (token.blockchainNetwork
+        ? token.blockchainNetwork.charAt(0).toUpperCase() +
+          token.blockchainNetwork.slice(1)
+        : "PulseChain")
     : undefined;
+  const originLabel = token ? getOriginLabel(token) : undefined;
 
   return (
     <motion.button
@@ -34,32 +45,17 @@ const TokenSelector: React.FC<TokenSelectorProps> = ({
     >
       {token ? (
         <>
-          <div className="relative flex h-11 w-11 items-center justify-center rounded-full border border-border bg-bg-page">
-            {token.image ? (
-              <img
-                src={token.image}
-                alt={token.symbol}
-                className="h-9 w-9 rounded-full object-cover"
-              />
-            ) : (
-              <span className="text-sm font-semibold">{token.symbol}</span>
-            )}
-            {networkIcon && (
-              <div className="absolute -bottom-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full border border-bg-surface bg-primary-050">
-                <img
-                  src={networkIcon}
-                  alt={`${token.network} icon`}
-                  className="h-4 w-4 rounded-full object-cover"
-                  onError={(event) => {
-                    (event.target as HTMLImageElement).style.display = "none";
-                  }}
-                />
-              </div>
-            )}
-          </div>
+          <TokenIcon token={token} size={44} />
           <div className="flex max-w-[120px] flex-col items-start">
-            <span className="text-xs font-medium text-text-muted">{token.network}</span>
+            <span className="text-xs font-medium text-text-muted">
+              {networkLabel}
+            </span>
             <span className="w-full truncate text-base">{token.symbol}</span>
+            {originLabel && (
+              <span className="text-[10px] font-semibold uppercase tracking-wide text-text-subtle">
+                {originLabel}
+              </span>
+            )}
           </div>
         </>
       ) : (

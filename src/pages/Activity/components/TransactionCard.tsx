@@ -1,12 +1,16 @@
 import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { BridgeTransaction } from "../../../store/bridgeSlice";
-import { useAppSelector } from "../../../store/hooks";
-import { useAppDispatch } from "../../../store/hooks";
+import { useAppSelector, useAppDispatch } from "../../../store/hooks";
 import { fetchTransactionStatus } from "../../../store/activitySlice";
-import { addTokenToWallet, waitForChain, EIP1193Provider } from "../../../utils/walletUtils";
-import { TokenInfo } from "../../../utils/walletUtils";
+import {
+  addTokenToWallet,
+  waitForChain,
+  EIP1193Provider,
+  TokenInfo,
+} from "../../../utils/walletUtils";
 import useWallet from "../../../hooks/useWallet";
+import TokenIcon from "../../../components/TokenIcon";
 
 interface TransactionCardProps {
   transaction: BridgeTransaction;
@@ -115,53 +119,30 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
 
   const { fromToken, toToken } = getCorrespondingTokens();
 
-  const getTokenLogo = (
-    token: any,
+  const renderTokenIcon = (
+    token: TokenInfo | null,
     fallbackSymbol: string,
     size: "sm" | "md" | "lg" = "md"
   ) => {
-    const sizeClasses = {
-      sm: "w-8 h-8",
-      md: "w-10 h-10",
-      lg: "w-12 h-12",
+    const sizeMap: Record<typeof size, number> = {
+      sm: 32,
+      md: 40,
+      lg: 48,
     };
 
-    if (token?.logoURI) {
-      return (
-        <img
-          src={token.logoURI}
-          alt={token.symbol}
-          className={`${sizeClasses[size]} rounded-full object-cover`}
-          onError={(e) => {
-            const target = e.target as HTMLImageElement;
-            target.style.display = "none";
-            target.nextElementSibling?.classList.remove("hidden");
-          }}
-        />
-      );
-    }
-
-    if (token?.image) {
-      return (
-        <img
-          src={token.image}
-          alt={token.symbol}
-          className={`${sizeClasses[size]} rounded-full object-cover`}
-          onError={(e) => {
-            const target = e.target as HTMLImageElement;
-            target.style.display = "none";
-            target.nextElementSibling?.classList.remove("hidden");
-          }}
-        />
-      );
-    }
-
     return (
-      <div
-        className={`${sizeClasses[size]} rounded-full border border-border bg-primary-050 text-primary flex items-center justify-center font-semibold`}
-      >
-        {(token?.symbol || fallbackSymbol).charAt(0)}
-      </div>
+      <TokenIcon
+        token={
+          token
+            ? {
+                symbol: token.symbol,
+                logoURI: token.logoURI ?? token.image,
+                image: token.logoURI ?? token.image,
+              }
+            : { symbol: fallbackSymbol }
+        }
+        size={sizeMap[size]}
+      />
     );
   };
 
@@ -307,7 +288,7 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
         {/* Left Side - Token and Amount */}
         <div className="flex items-center space-x-4">
           <div className="flex-shrink-0">
-            {getTokenLogo(fromToken, transaction.tokenSymbol, "lg")}
+              {renderTokenIcon(fromToken, transaction.tokenSymbol, "lg")}
           </div>
 
           <div>
@@ -391,7 +372,7 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
               {/* From Token */}
               <div className="bg-bg-surface rounded-lg p-4 border border-border">
                 <div className="flex items-center space-x-3 mb-3">
-                  {getTokenLogo(fromToken, transaction.tokenSymbol, "md")}
+                  {renderTokenIcon(fromToken, transaction.tokenSymbol, "md")}
                   <div>
                     <h5 className="font-medium text-white">From Token</h5>
                     <p className="text-sm text-text-muted">
@@ -457,7 +438,7 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
               {/* To Token */}
               <div className="bg-bg-surface rounded-lg p-4 border border-border">
                 <div className="flex items-center space-x-3 mb-3">
-                  {getTokenLogo(toToken, transaction.tokenSymbol, "md")}
+                  {renderTokenIcon(toToken, transaction.tokenSymbol, "md")}
                   <div>
                     <h5 className="font-medium text-white">To Token</h5>
                     <p className="text-sm text-text-muted">

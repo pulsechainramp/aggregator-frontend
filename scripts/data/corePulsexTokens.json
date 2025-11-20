@@ -1,0 +1,91 @@
+[
+  {
+    "chainId": 369,
+    "address": "0x0000000000000000000000000000000000000000",
+    "symbol": "PLS",
+    "name": "PulseChain",
+    "decimals": 18,
+    "origin": "native",
+    "preferredLogoURI": "https://raw.githubusercontent.com/PLS369/pulsechain-assets/main/blockchain/pulsechain/assets/0xA1077a294dDE1B09bB078844df40758a5D0f9a27/logo.png"
+  },
+  {
+    "chainId": 369,
+    "address": "0xA1077a294dDE1B09bB078844df40758a5D0f9a27",
+    "symbol": "WPLS",
+    "name": "Wrapped Pulse",
+    "decimals": 18,
+    "origin": "native",
+    "preferredLogoURI": "https://raw.githubusercontent.com/PLS369/pulsechain-assets/main/blockchain/pulsechain/assets/0xA1077a294dDE1B09bB078844df40758a5D0f9a27/logo.png"
+  },
+  {
+    "chainId": 369,
+    "address": "0x95B303987A60C71504D99Aa1b13B4DA07b0790ab",
+    "symbol": "PLSX",
+    "name": "PulseX",
+    "decimals": 18,
+    "origin": "native",
+    "preferredLogoURI": "https://raw.githubusercontent.com/PLS369/pulsechain-assets/main/blockchain/pulsechain/assets/0x95B303987A60C71504D99Aa1b13B4DA07b0790ab/logo.png"
+  },
+  {
+    "chainId": 369,
+    "address": "0x2fa878Ab3F87CC1C9737Fc071108F904c0B0C95d",
+    "symbol": "INC",
+    "name": "Incentive",
+    "decimals": 18,
+    "origin": "native",
+    "preferredLogoURI": "https://raw.githubusercontent.com/PLS369/pulsechain-assets/main/blockchain/pulsechain/assets/0x2fa878Ab3F87CC1C9737Fc071108F904c0B0C95d/logo.png"
+  },
+  {
+    "chainId": 369,
+    "address": "0x15D38573d2feeb82e7ad5187aB8c1D52810B1f07",
+    "symbol": "USDC",
+    "name": "USDC from Ethereum",
+    "decimals": 6,
+    "origin": "bridged-eth",
+    "originChainId": 1,
+    "originAddress": "0xA0b86991C6218B36c1d19D4a2e9Eb0cE3606eB48",
+    "preferredLogoURI": "https://raw.githubusercontent.com/PLS369/pulsechain-assets/main/blockchain/pulsechain/assets/0x15D38573d2feeb82e7ad5187aB8c1D52810B1f07/logo.png"
+  },
+  {
+    "chainId": 369,
+    "address": "0x0Cb6F5a34ad42ec934882A05265A7d5F59b51A2f",
+    "symbol": "USDT",
+    "name": "USDT from Ethereum",
+    "decimals": 6,
+    "origin": "bridged-eth",
+    "originChainId": 1,
+    "originAddress": "0xdAC17F958D2ee523a2206206994597C13D831ec7",
+    "preferredLogoURI": "https://raw.githubusercontent.com/PLS369/pulsechain-assets/main/blockchain/pulsechain/assets/0x0Cb6F5a34ad42ec934882A05265A7d5F59b51A2f/logo.png"
+  },
+  {
+    "chainId": 369,
+    "address": "0xefD766cCb38EaF1dfd701853BFCe31359239F305",
+    "symbol": "DAI",
+    "name": "DAI from Ethereum",
+    "decimals": 18,
+    "origin": "bridged-eth",
+    "originChainId": 1,
+    "originAddress": "0x6B175474E89094C44Da98b954EedeAC495271d0F",
+    "preferredLogoURI": "https://raw.githubusercontent.com/PLS369/pulsechain-assets/main/blockchain/pulsechain/assets/0xefD766cCb38EaF1dfd701853BFCe31359239F305/logo.png"
+  },
+  {
+    "chainId": 369,
+    "address": "0x02DcdD04e3F455D838cd1249292C58f3B79e3C3C",
+    "symbol": "WETH",
+    "name": "WETH from Ethereum",
+    "decimals": 18,
+    "origin": "bridged-eth",
+    "originChainId": 1,
+    "originAddress": "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
+    "preferredLogoURI": "https://raw.githubusercontent.com/PLS369/pulsechain-assets/main/blockchain/pulsechain/assets/0x02DcdD04e3F455D838cd1249292C58f3B79e3C3C/logo.png"
+  },
+  {
+    "chainId": 369,
+    "address": "0x2b591e99afE9f32eAA6214f7B7629768c40Eeb39",
+    "symbol": "HEX",
+    "name": "HEX",
+    "decimals": 8,
+    "origin": "native",
+    "preferredLogoURI": "https://raw.githubusercontent.com/PLS369/pulsechain-assets/main/blockchain/pulsechain/assets/0x2b591e99afE9f32eAA6214f7B7629768c40Eeb39/logo.png"
+  }
+]

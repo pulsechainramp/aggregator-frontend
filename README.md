@@ -64,6 +64,7 @@ npm run dev
 | `VITE_QUOTE_SIGNER_ADDRESS` | `0xf39F...` | yes | Address of the backend attestation signer. Used to verify `/quote/attest` signatures before enabling swaps. |
 | `VITE_SIWE_CHAIN_IDS` | `369,943` |  | Comma-separated list of chain IDs that SIWE challenges must match (default PulseChain mainnet only). |
 | `CONTACT_SMTP_*` | Gmail/SMTP creds | optional | Needed only when deploying the contact form API. |
+| `VITE_TX_RECEIPT_TIMEOUT_MS` | `120000` | optional | How long (ms) to wait for tx receipts before surfacing a timeout in approvals/swaps. |
 
 ---
 
