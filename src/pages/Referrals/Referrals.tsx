@@ -3,6 +3,7 @@ import { motion } from "framer-motion";
 import useWallet from "../../hooks/useWallet";
 import {
   useAppDispatch,
+  useAppSelector,
   useReferralCode,
   useReferralFees,
   useReferralLoading,
@@ -25,9 +26,9 @@ import {
   ensureSiweSessionAction,
   clearReferralFees,
 } from "../../store/referralSlice";
-import { getAvailableTokensFromChain } from "../../store/swapSlice";
+import { loadPulsexTokens } from "../../store/swapSlice";
 import { toast } from "react-toastify";
-import { TokenType } from "../../types/Swap";
+import TokenIcon from "../../components/TokenIcon";
 import AddToWalletButton from "../../components/AddToWalletButton";
 import CustomConnectButton from "../../components/CustomConnectButton";
 import ReferralFeePopup from "../Swap/ReferralFeePopup";
@@ -42,8 +43,6 @@ const Referrals: React.FC = () => {
   const referralFees = useReferralFees();
   const loading = useReferralLoading();
   const error = useReferralError();
-  const [tokens, setTokens] = useState<TokenType[]>([]);
-  const [tokensLoading, setTokensLoading] = useState(false);
   const claiming = useReferralClaiming();
   const [claimingToken, setClaimingToken] = useState<string | null>(null);
   const [claimingAll, setClaimingAll] = useState(false);
@@ -62,6 +61,10 @@ const Referrals: React.FC = () => {
     creatingReferralCode,
     paymentRequired,
   } = useReferralState();
+  const { availableTokens: tokens, areTokensLoading } = useAppSelector(
+    (state) => state.swap
+  );
+  const tokenCount = tokens.length;
 
   useLayoutEffect(() => {
     if (typeof window === "undefined") return;
@@ -120,37 +123,18 @@ const Referrals: React.FC = () => {
       .toString();
   }, [referralFees]);
 
-  // Fetch tokens for metadata
-  const fetchTokens = async () => {
-    setTokensLoading(true);
-    try {
-      const pulsechainChain = {
-        blockchainNetwork: "pulsechain",
-        address: "0x0000000000000000000000000000000000000000",
-        name: "PulseChain",
-        symbol: "PLS",
-        decimals: 18,
-        image: "",
-      } as TokenType;
-
-      const tokensData = await dispatch(
-        getAvailableTokensFromChain(pulsechainChain)
-      ).unwrap();
-      setTokens(tokensData);
-    } catch (error) {
-      console.error("Error fetching tokens:", error);
-    } finally {
-      setTokensLoading(false);
-    }
-  };
-
   useEffect(() => {
     if (account) {
       dispatch(fetchReferralFees(account));
       dispatch(fetchReferralFeeBasisPoints(account));
-      fetchTokens();
     }
   }, [account, dispatch]);
+
+  useEffect(() => {
+    if (tokenCount === 0) {
+      dispatch(loadPulsexTokens());
+    }
+  }, [dispatch, tokenCount]);
 
   // Cleanup on unmount
   useEffect(() => {
@@ -336,7 +320,7 @@ const Referrals: React.FC = () => {
   const handleRefresh = () => {
     if (account) {
       dispatch(fetchReferralFees(account));
-      fetchTokens();
+      dispatch(loadPulsexTokens());
     }
   };
 
@@ -615,7 +599,7 @@ const Referrals: React.FC = () => {
                     claimingToken !== null ||
                     claiming ||
                     loading ||
-                    tokensLoading ||
+                    areTokensLoading ||
                     !isPulseChainNetwork
                   }
                   className="rounded-lg border border-primary bg-primary px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-primary-600 disabled:cursor-not-allowed disabled:border-border disabled:bg-border disabled:text-text-muted"
@@ -629,10 +613,10 @@ const Referrals: React.FC = () => {
               )}
               <button
                 onClick={handleRefresh}
-                disabled={loading || tokensLoading}
+                disabled={loading || areTokensLoading}
                 className="px-4 py-2 rounded-lg border border-success bg-success text-white font-medium transition-colors hover:bg-success/90 disabled:cursor-not-allowed disabled:border-border disabled:bg-border disabled:text-text-muted"
               >
-                {loading || tokensLoading ? "Refreshing..." : "Refresh"}
+                {loading || areTokensLoading ? "Refreshing..." : "Refresh"}
               </button>
             </div>
           </div>
@@ -641,7 +625,7 @@ const Referrals: React.FC = () => {
               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-500 mx-auto"></div>
               <p className="text-text-muted mt-4">Loading referral fees...</p>
             </div>
-          ) : tokensLoading ? (
+          ) : areTokensLoading ? (
             <div className="text-center py-8">
               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto"></div>
               <p className="text-text-muted mt-4">Loading token metadata...</p>
@@ -699,23 +683,19 @@ const Referrals: React.FC = () => {
                       >
                         <td className="py-4 px-4">
                           <div className="flex items-center gap-3">
-                            <div className="flex h-8 w-8 items-center justify-center overflow-hidden rounded-lg border border-border bg-bg-raised text-xs font-semibold uppercase text-primary">
-                              {tokenMetadata?.image ? (
-                                <img
-                                  src={tokenMetadata.image}
-                                  alt={tokenMetadata.symbol}
-                                  className="h-full w-full object-cover"
-                                  onError={(event) => {
-                                    event.currentTarget.src =
-                                      "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzIiIGhlaWdodD0iMzIiIHZpZXdCb3g9IjAgMCAzMiAzMiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMTYiIGN5PSIxNiIgcj0iMTYiIGZpbGw9IiMxMEI5NjEiLz4KPC9zdmc+Cg==";
-                                  }}
-                                />
-                              ) : (
-                                <div className="flex h-full w-full items-center justify-center bg-primary-050 text-primary">
-                                  {(tokenMetadata?.symbol || fee.token.slice(2, 6)).toUpperCase()}
-                                </div>
-                              )}
-                            </div>
+                            <TokenIcon
+                              token={
+                                tokenMetadata
+                                  ? {
+                                      symbol: tokenMetadata.symbol,
+                                      logoURI: tokenMetadata.logoURI ?? tokenMetadata.image,
+                                      image: tokenMetadata.logoURI ?? tokenMetadata.image,
+                                      remoteLogoURIs: tokenMetadata.remoteLogoURIs,
+                                    }
+                                  : { symbol: fee.token.slice(2, 6) }
+                              }
+                              size={36}
+                            />
                             <div>
                               {tokenMetadata ? (
                                 <>

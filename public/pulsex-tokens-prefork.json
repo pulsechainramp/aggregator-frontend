@@ -1,0 +1,121 @@
+[
+  {
+    "chainId": 369,
+    "address": "0x6B175474E89094C44Da98b954EedeAC495271d0F",
+    "symbol": "pDAI",
+    "name": "Dai Stablecoin",
+    "decimals": 18,
+    "origin": "prefork",
+    "originChainId": 1,
+    "originAddress": "0x6B175474E89094C44Da98b954EedeAC495271d0F",
+    "tier": "verified",
+    "status": "active",
+    "logoURI": "/token-logos/pulsex/369/0x6B175474E89094C44Da98b954EedeAC495271d0F.png",
+    "remoteLogoURIs": [
+      "https://raw.githubusercontent.com/PLS369/pulsechain-assets/main/blockchain/pulsechain/assets/0x6B175474E89094C44Da98b954EedeAC495271d0F/logo.png",
+      "https://raw.githubusercontent.com/piteasio/app-tokens/main/token-logo/0x6B175474E89094C44Da98b954EedeAC495271d0F.png"
+    ],
+    "sources": {
+      "piteas": true,
+      "pls369": true
+    },
+    "tags": [
+      "defi",
+      "stablecoin"
+    ]
+  },
+  {
+    "chainId": 369,
+    "address": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+    "symbol": "pUSDC",
+    "name": "USD Coin",
+    "decimals": 6,
+    "origin": "prefork",
+    "originChainId": 1,
+    "originAddress": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+    "tier": "verified",
+    "status": "active",
+    "logoURI": "/token-logos/pulsex/369/0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48.png",
+    "remoteLogoURIs": [
+      "https://raw.githubusercontent.com/PLS369/pulsechain-assets/main/blockchain/pulsechain/assets/0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48/logo.png",
+      "https://raw.githubusercontent.com/piteasio/app-tokens/main/token-logo/0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48.png"
+    ],
+    "sources": {
+      "piteas": true,
+      "pls369": true
+    },
+    "tags": [
+      "stablecoin"
+    ]
+  },
+  {
+    "chainId": 369,
+    "address": "0xdAC17F958D2ee523a2206206994597C13D831ec7",
+    "symbol": "pUSDT",
+    "name": "Tether USD",
+    "decimals": 6,
+    "origin": "prefork",
+    "originChainId": 1,
+    "originAddress": "0xdAC17F958D2ee523a2206206994597C13D831ec7",
+    "tier": "verified",
+    "status": "active",
+    "logoURI": "/token-logos/pulsex/369/0xdAC17F958D2ee523a2206206994597C13D831ec7.png",
+    "remoteLogoURIs": [
+      "https://raw.githubusercontent.com/PLS369/pulsechain-assets/main/blockchain/pulsechain/assets/0xdAC17F958D2ee523a2206206994597C13D831ec7/logo.png",
+      "https://raw.githubusercontent.com/piteasio/app-tokens/main/token-logo/0xdAC17F958D2ee523a2206206994597C13D831ec7.png"
+    ],
+    "sources": {
+      "piteas": true,
+      "pls369": true
+    },
+    "tags": [
+      "stablecoin"
+    ]
+  },
+  {
+    "chainId": 369,
+    "address": "0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599",
+    "symbol": "pWBTC",
+    "name": "Wrapped BTC",
+    "decimals": 8,
+    "origin": "prefork",
+    "originChainId": 1,
+    "originAddress": "0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599",
+    "tier": "verified",
+    "status": "active",
+    "logoURI": "/token-logos/pulsex/369/0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599.png",
+    "remoteLogoURIs": [
+      "https://raw.githubusercontent.com/PLS369/pulsechain-assets/main/blockchain/pulsechain/assets/0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599/logo.png",
+      "https://raw.githubusercontent.com/piteasio/app-tokens/main/token-logo/0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599.png"
+    ],
+    "sources": {
+      "piteas": true,
+      "pls369": true
+    },
+    "tags": [
+      "defi",
+      "wrapped"
+    ]
+  },
+  {
+    "chainId": 369,
+    "address": "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
+    "symbol": "pWETH",
+    "name": "Wrapped Ether",
+    "decimals": 18,
+    "origin": "prefork",
+    "originChainId": 1,
+    "originAddress": "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
+    "tier": "verified",
+    "status": "active",
+    "logoURI": "/token-logos/pulsex/369/0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2.png",
+    "remoteLogoURIs": [
+      "https://raw.githubusercontent.com/PLS369/pulsechain-assets/main/blockchain/pulsechain/assets/0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2/logo.png",
+      "https://raw.githubusercontent.com/piteasio/app-tokens/main/token-logo/0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2.png"
+    ],
+    "sources": {
+      "piteas": true,
+      "pls369": true
+    }
+  }
+]

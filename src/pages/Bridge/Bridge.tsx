@@ -5,6 +5,7 @@ import {
   setSelectedToken,
   setAmount,
   swapChains,
+  clearEstimate,
   bridgeTokens,
   fetchBridgeEstimate,
   fetchBalance,
@@ -112,6 +113,7 @@ const Bridge: React.FC = () => {
       !amount ||
       !hasPositiveAmount(amount, selectedToken.decimals)
     ) {
+      dispatch(clearEstimate());
       return;
     }
 

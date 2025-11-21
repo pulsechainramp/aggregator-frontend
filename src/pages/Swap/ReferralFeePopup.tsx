@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useSelector } from 'react-redux';
 import { RootState } from '../../store/store';
 import { useAppDispatch } from '../../store/hooks';
-import { updateReferralFeeBasisPoints, fetchReferralFeeBasisPoints } from '../../store/referralSlice';
+import { updateReferralFeeBasisPoints, fetchReferralFeeBasisPoints, fetchPromoConstants } from '../../store/referralSlice';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'react-toastify';
 import useWallet from '../../hooks/useWallet';
@@ -18,6 +18,7 @@ const ReferralFeePopup: React.FC<ReferralFeePopupProps> = ({ isOpen, onClose }) 
   const currentFeeBasisPoints = useSelector((state: RootState) => state.referral.referralFeeBasisPoints);
   const updatingFeeBasisPoints = useSelector((state: RootState) => state.referral.updatingFeeBasisPoints);
   const feeBasisPointsLoading = useSelector((state: RootState) => state.referral.feeBasisPointsLoading);
+  const maxPromoBps = useSelector((state: RootState) => state.referral.maxPromoBps);
   const error = useSelector((state: RootState) => state.referral.error);
   
   const [customFee, setCustomFee] = useState<string>('');
@@ -26,7 +27,9 @@ const ReferralFeePopup: React.FC<ReferralFeePopupProps> = ({ isOpen, onClose }) 
   const [inputError, setInputError] = useState<string>('');
   const [hasUserInteracted, setHasUserInteracted] = useState<boolean>(false);
 
-  const presetOptions = [10, 25, 50, 100, 150, 200]; // Basis points: 0.1%, 0.25%, 0.5%, 1%, 1.5%, 2%
+  const contractMaxBps = typeof maxPromoBps === "number" && Number.isFinite(maxPromoBps) ? maxPromoBps : 300;
+  const maxPercent = contractMaxBps / 100;
+  const presetOptions = [10, 25, 50, 100, 150, 200].filter((bps) => bps <= contractMaxBps); // Basis points
 
   // Reset state when popup opens
   useEffect(() => {
@@ -41,6 +44,7 @@ const ReferralFeePopup: React.FC<ReferralFeePopupProps> = ({ isOpen, onClose }) 
     if (isOpen && account) {
       // Always fetch user's fee when popup opens to ensure we have the latest
       dispatch(fetchReferralFeeBasisPoints(account));
+      dispatch(fetchPromoConstants());
     }
   }, [isOpen, account, dispatch]);
 
@@ -81,8 +85,8 @@ const ReferralFeePopup: React.FC<ReferralFeePopupProps> = ({ isOpen, onClose }) 
       setInputError('Please enter a valid number');
     } else if (numValue < 0.1) {
       setInputError('Fee must be at least 0.1%');
-    } else if (numValue > 3.0) {
-      setInputError('Fee cannot exceed 3%');
+    } else if (numValue > maxPercent) {
+      setInputError(`Fee cannot exceed ${maxPercent.toFixed(2)}% (contract max)`);
     } else {
       setInputError('');
     }
@@ -99,8 +103,12 @@ const ReferralFeePopup: React.FC<ReferralFeePopupProps> = ({ isOpen, onClose }) 
       
       if (selectedOption === 'custom' && customFee) {
         const numValue = parseFloat(customFee);
-        if (numValue >= 0.1 && numValue <= 3.0) {
-          feeBasisPoints = (numValue * 100).toString(); // Convert percentage to basis points
+        if (numValue >= 0.1 && numValue <= maxPercent) {
+          const bpsValue = Math.min(numValue, maxPercent) * 100; // cap to contract max
+          feeBasisPoints = bpsValue.toString();
+          if (bpsValue > contractMaxBps) {
+            toast.warn(`Fee capped to ${maxPercent.toFixed(2)}% (contract maximum).`);
+          }
         } else {
           setInputError('Invalid fee amount');
           return;
@@ -111,6 +119,12 @@ const ReferralFeePopup: React.FC<ReferralFeePopupProps> = ({ isOpen, onClose }) 
       } else {
         setInputError('Please select a fee amount');
         return;
+      }
+
+      const numericBps = Number(feeBasisPoints);
+      if (numericBps > contractMaxBps) {
+        feeBasisPoints = contractMaxBps.toString();
+        toast.warn(`Fee capped to ${maxPercent.toFixed(2)}% (contract maximum).`);
       }
 
       await dispatch(updateReferralFeeBasisPoints({ 
@@ -231,7 +245,7 @@ const ReferralFeePopup: React.FC<ReferralFeePopupProps> = ({ isOpen, onClose }) 
                   placeholder="0.00"
                   step="0.01"
                   min="0.1"
-                  max="3.0"
+                  max={maxPercent}
                   className={`w-full rounded-lg border px-4 py-3 bg-bg-surface text-base text-text placeholder:text-text-muted transition-all focus:outline-none focus:ring-2 ${
                     inputError
                       ? 'border-danger focus:border-danger focus:ring-danger/30'

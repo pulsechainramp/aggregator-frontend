@@ -1,6 +1,7 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { BridgeToken } from '../../../store/bridgeSlice';
+import React, { useState, useEffect, useRef } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { BridgeToken } from "../../../store/bridgeSlice";
+import TokenIcon from "../../../components/TokenIcon";
 
 interface TokenSelectorProps {
   selectedToken: string;
@@ -90,14 +91,16 @@ const TokenSelector: React.FC<TokenSelectorProps> = ({
   }, [isOpen]);
 
   const getNetworkLogo = (token: BridgeToken): string | undefined => {
-    // Use actual network logos for native tokens
+    if (token.logoURI) {
+      return token.logoURI;
+    }
     if (token.symbol === 'ETH' && token.address === '0x0000000000000000000000000000000000000000') {
       return 'https://api-assets.rubic.exchange/assets/rubic/eth/0x0000000000000000000000000000000000000000/logo_9LYU9u5.png';
     }
     if (token.symbol === 'PLS' && token.address === '0x0000000000000000000000000000000000000000') {
       return 'https://api-assets.rubic.exchange/assets/coingecko/pulsechain/0x0000000000000000000000000000000000000000/logo.png';
     }
-    return token.logoURI;
+    return undefined;
   };
 
   const selectedTokenData = tokens.find(token => token.symbol === selectedToken);
@@ -120,23 +123,14 @@ const TokenSelector: React.FC<TokenSelectorProps> = ({
         <div className="flex items-center gap-3">
           {selectedTokenData ? (
             <>
-              <div className="flex h-10 w-10 items-center justify-center rounded-full border border-border bg-primary-050 text-primary overflow-hidden">
-                {getNetworkLogo(selectedTokenData) ? (
-                  <img 
-                    src={getNetworkLogo(selectedTokenData)} 
-                    alt={selectedTokenData.symbol}
-                    className="h-6 w-6 rounded-full object-cover"
-                    onError={(e) => {
-                      const target = e.target as HTMLImageElement;
-                      target.style.display = 'none';
-                      target.nextElementSibling?.classList.remove('hidden');
-                    }}
-                  />
-                ) : null}
-                <span className={`text-sm font-semibold ${getNetworkLogo(selectedTokenData) ? 'hidden' : ''}`}>
-                  {selectedTokenData.symbol}
-                </span>
-              </div>
+              <TokenIcon
+                token={{
+                  symbol: selectedTokenData.symbol,
+                  logoURI: getNetworkLogo(selectedTokenData),
+                  image: getNetworkLogo(selectedTokenData),
+                }}
+                size={40}
+              />
               <div className="text-left">
                 <FlowingText 
                   text={selectedTokenData.symbol} 
@@ -212,23 +206,14 @@ const TokenSelector: React.FC<TokenSelectorProps> = ({
                         : 'border border-transparent text-text hover:border-primary hover:bg-primary-050/60'
                     }`}
                   >
-                    <div className="flex h-8 w-8 items-center justify-center rounded-full border border-border bg-primary-050 text-primary overflow-hidden">
-                      {getNetworkLogo(token) ? (
-                        <img 
-                          src={getNetworkLogo(token)} 
-                          alt={token.symbol}
-                          className="h-5 w-5 rounded-full object-cover"
-                          onError={(e) => {
-                            const target = e.target as HTMLImageElement;
-                            target.style.display = 'none';
-                            target.nextElementSibling?.classList.remove('hidden');
-                          }}
-                        />
-                      ) : null}
-                      <span className={`text-xs font-semibold ${getNetworkLogo(token) ? 'hidden' : ''}`}>
-                        {token.symbol}
-                      </span>
-                    </div>
+                    <TokenIcon
+                      token={{
+                        symbol: token.symbol,
+                        logoURI: getNetworkLogo(token),
+                        image: getNetworkLogo(token),
+                      }}
+                      size={32}
+                    />
                     <div className="min-w-0 flex-1 text-left">
                       <FlowingText 
                         text={token.symbol} 
@@ -239,7 +224,7 @@ const TokenSelector: React.FC<TokenSelectorProps> = ({
                         className="max-w-[100px] text-xs text-text-muted"
                       />
                     </div>
-                    {token.tags.includes('verified') && (
+                    {token.tags?.includes('verified') && (
                       <div className="h-2 w-2 rounded-full bg-success"></div>
                     )}
                   </motion.button>

@@ -12,7 +12,6 @@ import { toast } from "react-toastify";
 interface SwapCardProps {
   fromToken: TokenType | null;
   toToken: TokenType | null;
-  allChains: TokenType[];
   fromAmount: string;
   outputAmount: number;
   onFromTokenSelect: () => void;
@@ -28,7 +27,6 @@ interface SwapCardProps {
 const SwapCard: React.FC<SwapCardProps> = ({
   fromToken,
   toToken,
-  allChains,
   fromAmount,
   outputAmount,
   onFromTokenSelect,
@@ -111,7 +109,6 @@ const SwapCard: React.FC<SwapCardProps> = ({
         <div className="flex flex-col gap-2">
           <TokenSelector
             token={fromToken}
-            allChains={allChains}
             type="from"
             onSelect={onFromTokenSelect}
           />
@@ -181,7 +178,6 @@ const SwapCard: React.FC<SwapCardProps> = ({
         <div className="flex flex-col gap-2">
           <TokenSelector
             token={toToken}
-            allChains={allChains}
             type="to"
             onSelect={onToTokenSelect}
           />

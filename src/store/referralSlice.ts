@@ -790,7 +790,15 @@ const referralSlice = createSlice({
         state.feeBasisPointsLoading = false;
         state.error =
           action.error.message || "Failed to fetch referrer fee basis points";
-      });
+      })
+      .addMatcher(
+        (action) =>
+          action.type.startsWith("referral/") &&
+          action.type.endsWith("/rejected"),
+        (state) => {
+          state.updatingFeeBasisPoints = false;
+        }
+      );
   },
 });
 

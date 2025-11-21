@@ -3,8 +3,7 @@ import React, { useEffect, useState, useRef } from "react";
 import { AffiliateRouterAddress, ZeroAddress } from "../../const/swap";
 import { useAppDispatch, useAppSelector } from "../../store/hooks";
 import {
-  getAllChains,
-  getAvailableTokensFromChain,
+  loadPulsexTokens,
   getQuote,
   getTokenPrice,
   setFromAmount,
@@ -20,6 +19,10 @@ import {
   setToTokenBalance,
   setNativeBalance,
   refreshBalancesAfterSwap,
+  clearApprovalState,
+  selectDefaultPulsexTokens,
+  selectCoreFavoriteTokens,
+  selectAllPulsexTokens,
 } from "../../store/swapSlice";
 import TokenPopup from "./TokenPopup";
 import QuotePanel from "./QuotePanel";
@@ -60,22 +63,18 @@ const Swap: React.FC = () => {
 
   const [isTokenPopupOpen, setIsTokenPopupOpen] = useState(false);
   const [isSlippagePopupOpen, setIsSlippagePopupOpen] = useState(false);
-  const [chain, setChain] = useState<TokenType | null>(null);
   const [selectType, setSelectType] = useState<"from" | "to" | null>(null);
-  const [searchChain, setSearchChain] = useState<string>("");
   const [searchToken, setSearchToken] = useState<string>("");
   const [isRefreshingBalances, setIsRefreshingBalances] = useState(false);
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [pendingSwap, setPendingSwap] = useState<PendingSwap | null>(null);
 
   const {
-    allChains,
     fromToken,
     toToken,
     quote,
     fromAmount,
     slippage,
-    availableTokens,
     isApproving,
     isApproved,
     fromTokenBalance,
@@ -84,7 +83,12 @@ const Swap: React.FC = () => {
     isPulseXLoading,
     isPiteamsLoading,
     showBetterRouterMessage,
+    areTokensLoading,
+    availableTokens,
   } = useAppSelector((state) => state.swap);
+  const defaultTokens = useAppSelector(selectDefaultPulsexTokens);
+  const coreFavoriteTokens = useAppSelector(selectCoreFavoriteTokens);
+  const allTokens = useAppSelector(selectAllPulsexTokens);
   const { tailBps, maxPromoBps } = useAppSelector((state) => state.referral);
 
   const shouldBlockQuotes =
@@ -155,20 +159,22 @@ const Swap: React.FC = () => {
             amount: fromAmount,
             decimals: fromToken.decimals,
             account: account || "",
+            chainId: fromToken.chainId ?? PulseChainConfig.chainId,
           })
         )
           .unwrap()
           .then(() => {
             toast.success("Token approved successfully!");
             dispatch(
-              checkTokenAllowance({
-                tokenAddress: fromToken.address,
-                amount: fromAmount,
-                decimals: fromToken.decimals,
-                userAddress: account || "",
-              })
-            );
-          });
+                checkTokenAllowance({
+                  tokenAddress: fromToken.address,
+                  amount: fromAmount,
+                  decimals: fromToken.decimals,
+                  userAddress: account || "",
+                  chainId: fromToken.chainId ?? PulseChainConfig.chainId,
+                })
+              );
+            });
       } else {
         const value =
           fromToken.address === ZeroAddress
@@ -240,17 +246,30 @@ const Swap: React.FC = () => {
 
       if (swapAccount) {
         setIsRefreshingBalances(true);
-        setTimeout(() => {
-          dispatch(
-            refreshBalancesAfterSwap({
-              fromToken: pendingFromToken,
-              toToken: pendingToToken,
-              account: swapAccount,
-            })
-          ).catch(() => {
+        // Refresh immediately, then again shortly after to catch indexing lag
+        dispatch(
+          refreshBalancesAfterSwap({
+            fromToken: pendingFromToken,
+            toToken: pendingToToken,
+            account: swapAccount,
+          })
+        )
+          .catch(() => {
             handleBalanceRefreshError();
+          })
+          .finally(() => {
+            setTimeout(() => {
+              dispatch(
+                refreshBalancesAfterSwap({
+                  fromToken: pendingFromToken,
+                  toToken: pendingToToken,
+                  account: swapAccount,
+                })
+              ).catch(() => {
+                handleBalanceRefreshError();
+              });
+            }, 1200);
           });
-        }, 2000);
       }
     } catch (error) {
       console.error("Swap error:", error);
@@ -263,11 +282,6 @@ const Swap: React.FC = () => {
       setPendingSwap(null);
     }
   };
-
-  // Initialize chains
-  useEffect(() => {
-    dispatch(getAllChains());
-  }, [dispatch]);
 
   useEffect(() => {
     if (!tailBps || !maxPromoBps) {
@@ -282,23 +296,10 @@ const Swap: React.FC = () => {
   }, [dispatch, account]);
 
   useEffect(() => {
-    if (chain) {
-      dispatch(getAvailableTokensFromChain(chain));
+    if (!availableTokens.length) {
+      dispatch(loadPulsexTokens());
     }
-  }, [dispatch, chain]);
-
-  useEffect(() => {
-    if (allChains && allChains.length > 0 && !chain) {
-      const pulseChain = allChains.find(
-        (chain) => chain.blockchainNetwork === "pulsechain"
-      );
-      if (pulseChain) {
-        setChain(pulseChain);
-      } else {
-        setChain({ ...allChains[0] });
-      }
-    }
-  }, [allChains, dispatch, chain]);
+  }, [dispatch, availableTokens.length]);
 
   // Default swap tokens on PulseChain: WETH -> PLS
   useEffect(() => {
@@ -473,17 +474,32 @@ const Swap: React.FC = () => {
   ]);
 
   useEffect(() => {
-    if (fromToken?.address && fromAmount && fromToken?.decimals && account) {
-      dispatch(
-        checkTokenAllowance({
-          tokenAddress: fromToken?.address || "",
-          amount: fromAmount,
-          decimals: fromToken?.decimals || 0,
-          userAddress: account || "",
-        })
-      );
+    if (currentChainId && currentChainId !== PulseChainConfig.chainId) {
+      dispatch(clearApprovalState());
+      return;
     }
-  }, [dispatch, fromToken?.address, fromAmount, fromToken?.decimals, account]);
+
+    if (!fromToken?.address || !fromAmount || !fromToken?.decimals || !account) {
+      return;
+    }
+
+    dispatch(
+      checkTokenAllowance({
+        tokenAddress: fromToken.address,
+        amount: fromAmount,
+        decimals: fromToken.decimals,
+        userAddress: account,
+        chainId: fromToken.chainId ?? PulseChainConfig.chainId,
+      })
+    );
+  }, [
+    dispatch,
+    fromToken?.address,
+    fromAmount,
+    fromToken?.decimals,
+    account,
+    currentChainId,
+  ]);
 
   useEffect(() => {
     if (isRefreshingBalances) {
@@ -549,7 +565,6 @@ const Swap: React.FC = () => {
           <SwapCard
             fromToken={fromToken}
             toToken={toToken}
-            allChains={allChains}
             fromAmount={fromAmount}
             outputAmount={outputAmount}
             onFromTokenSelect={() => {
@@ -626,18 +641,13 @@ const Swap: React.FC = () => {
       <TokenPopup
         isOpen={isTokenPopupOpen}
         onClose={() => setIsTokenPopupOpen(false)}
-        chain={chain}
-        setChain={setChain}
         selectType={selectType}
-        searchChain={searchChain}
-        setSearchChain={setSearchChain}
         searchToken={searchToken}
         setSearchToken={setSearchToken}
-        availableTokens={availableTokens.filter(
-          (token) =>
-            token.symbol.toLowerCase().includes(searchToken.toLowerCase()) ||
-            token.address.toLowerCase().includes(searchToken.toLowerCase())
-        )}
+        tokens={defaultTokens}
+        allTokens={allTokens}
+        coreTokens={coreFavoriteTokens}
+        isLoading={areTokensLoading}
       />
 
       <SlippagePopup

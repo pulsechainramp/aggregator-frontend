@@ -8,6 +8,17 @@ import { AffiliateRouterAddress } from "../const/swap";
 import { BigNumberish, ethers, ZeroAddress } from "ethers";
 import { getPulsechainWeb3 } from "../rpc/pulsechainProviders";
 
+const RECEIPT_POLL_INTERVAL_MS = 1000;
+const DEFAULT_RECEIPT_TIMEOUT_MS = 120_000;
+const coerceTimeout = (raw: unknown, fallback: number) => {
+  const parsed = typeof raw === "string" ? Number(raw) : Number.NaN;
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
+};
+const RECEIPT_TIMEOUT_MS = coerceTimeout(
+  (import.meta as any)?.env?.VITE_TX_RECEIPT_TIMEOUT_MS,
+  DEFAULT_RECEIPT_TIMEOUT_MS
+);
+
 const AffiliateRouterABI =
   (AffiliateRouterArtifact as { abi: AbiItem[] }).abi ||
   (AffiliateRouterArtifact as unknown as AbiItem[]);
@@ -78,6 +89,76 @@ export const getProvider = () => {
   return new Web3(provider);
 };
 
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+const buildReceiptProviders = (): Web3[] => {
+  const providers: Web3[] = [];
+  try {
+    providers.push(getProvider());
+  } catch {
+    // Wallet provider not available (not connected) - fall back to public RPC
+  }
+  providers.push(getWeb3());
+  return providers;
+};
+
+const tryGetReceipt = async (
+  txHash: string,
+  providers: Web3[]
+): Promise<any | null> => {
+  let lastError: unknown;
+  let sawNotFound = false;
+  let sawTransient = false;
+
+  for (const web3 of providers) {
+    try {
+      const receipt = await web3.eth.getTransactionReceipt(txHash);
+      if (receipt) {
+        return receipt;
+      }
+      sawNotFound = true;
+    } catch (error: any) {
+      const message = error?.message ?? "";
+      const isNotFound =
+        typeof message === "string" &&
+        (message.includes("Transaction not found") ||
+          message.includes("not found"));
+      const isTransient =
+        typeof message === "string" &&
+        (/network|timeout|Failed to fetch|cooling down|429|502|503|504/i.test(message) ||
+          error?.code === "RPC_COOLDOWN");
+      if (isNotFound) {
+        sawNotFound = true;
+        continue;
+      }
+      if (isTransient) {
+        sawTransient = true;
+        continue;
+      }
+      if (!lastError) {
+        console.warn("getTransactionReceipt failed on provider", {
+          provider: (web3 as any)?._provider ?? "custom",
+          error,
+        });
+      }
+      lastError = error;
+    }
+  }
+
+  if (lastError && !sawNotFound && !sawTransient) {
+    throw lastError;
+  }
+
+  if (lastError) {
+    console.warn("Transaction receipt lookup encountered errors", {
+      txHash,
+      error: lastError,
+    });
+  }
+
+  return null;
+};
+
 /**
  * Initialize SwapManager instance
  */
@@ -144,7 +225,8 @@ export const getTokenAllowance = async (
   tokenAddress: string,
   owner: string,
   spender: string,
-  decimals: number
+  decimals: number,
+  providerOverride?: Web3
 ): Promise<string> => {
   try {
     // Native tokens don't need allowance
@@ -152,7 +234,7 @@ export const getTokenAllowance = async (
       return "0";
     }
 
-    const web3 = getWeb3(); // Use public RPC for read operations
+    const web3 = providerOverride ?? getWeb3(); // Prefer override (wallet) if provided
     const tokenContract = new web3.eth.Contract(
       ERC20ABI as unknown as AbiItem[],
       tokenAddress
@@ -175,7 +257,8 @@ export const needsApproval = async (
   owner: string,
   spender: string,
   amount: string,
-  decimals: number
+  decimals: number,
+  chainId?: number
 ): Promise<boolean> => {
   try {
     // Native tokens don't need approval
@@ -183,16 +266,54 @@ export const needsApproval = async (
       return false;
     }
 
-    const allowance: string = await getTokenAllowance(
-      tokenAddress,
-      owner,
-      spender,
-      decimals
-    );
-
     const requiredAllowanceWei = ethers.parseUnits(amount, decimals);
 
-    return BigInt(allowance) >= requiredAllowanceWei;
+    const providers: Web3[] = [];
+    try {
+      providers.push(getProvider());
+    } catch {
+      // wallet provider unavailable; rely on public RPC
+    }
+    providers.push(getWeb3());
+
+    let checked = false;
+    let lastError: unknown;
+
+    for (const provider of providers) {
+      try {
+        if (typeof chainId === "number") {
+          const providerChainId = await provider.eth
+            .getChainId()
+            .then((id) => Number(id))
+            .catch(() => NaN);
+          if (!Number.isFinite(providerChainId) || providerChainId !== chainId) {
+            continue;
+          }
+        }
+
+        const allowance: string = await getTokenAllowance(
+          tokenAddress,
+          owner,
+          spender,
+          decimals,
+          provider
+        );
+        checked = true;
+        if (BigInt(allowance) >= requiredAllowanceWei) {
+          return true;
+        }
+      } catch (error) {
+        lastError = error;
+        console.warn("needsApproval allowance check failed on provider", error);
+      }
+    }
+
+    // If no provider check succeeded, fail so caller can retry or show error
+    if (!checked) {
+      throw lastError ?? new Error("Allowance check failed");
+    }
+
+    return false;
   } catch (error) {
     console.error("Failed to check approval status:", error);
     throw new Error("Failed to check approval status");
@@ -224,7 +345,39 @@ export const approveToken = async (params: ApprovalParams): Promise<any> => {
         from: params.account,
       });
 
-    await waitForTransaction(transaction.transactionHash, 1);
+    try {
+      await waitForTransaction(transaction.transactionHash, 1);
+    } catch (err: any) {
+      const message = err?.message ?? "";
+      const timedOut = typeof message === "string" && message.includes("Timed out");
+      if (timedOut) {
+        // If we timed out waiting for the receipt, re-check allowance; if sufficient, treat as success.
+        let walletWeb3: Web3 | undefined;
+        try {
+          walletWeb3 = getProvider();
+        } catch {
+          walletWeb3 = undefined;
+        }
+        try {
+          const allowance = await getTokenAllowance(
+            params.tokenAddress,
+            params.account,
+            params.spenderAddress,
+            params.decimals,
+            walletWeb3
+          );
+          if (BigInt(allowance) >= amountInWei) {
+            return {
+              transactionHash: transaction.transactionHash,
+              blockNumber: Number(transaction.blockNumber ?? 0),
+            };
+          }
+        } catch (allowErr) {
+          console.warn("Allowance re-check failed after timeout", allowErr);
+        }
+      }
+      throw err;
+    }
 
     return {
       transactionHash: transaction.transactionHash,
@@ -267,7 +420,17 @@ export const executeSwap = async (params: SwapParams): Promise<any> => {
       .executeSwap(quote.calldata, referrerCode)
       .send(txParams);
 
-    await waitForTransaction(transaction.transactionHash, 1);
+    try {
+      await waitForTransaction(transaction.transactionHash, {
+        minConfirmations: 1,
+        allowUnconfirmed: false,
+      });
+    } catch (err: any) {
+      if (err?.code === "RECEIPT_TIMEOUT") {
+        throw new Error("Swap transaction timed out waiting for confirmation");
+      }
+      throw err;
+    }
 
     return transaction;
   } catch (error) {
@@ -293,6 +456,11 @@ export const updateFeeBasisPoints = async (
     const transaction = await swapManagerContract.methods
       .updateFeeBasisPoints(newFeeBasisPoints)
       .send({ from: account });
+
+    await waitForTransaction(transaction.transactionHash, {
+      minConfirmations: 1,
+      allowUnconfirmed: false,
+    });
 
     return {
       transactionHash: transaction.transactionHash,
@@ -528,7 +696,17 @@ export const withdrawReferralEarnings = async (
       .withdrawReferralEarnings(tokens)
       .send({ from: account });
 
-    await waitForTransaction(transaction.transactionHash, 1);
+    try {
+      await waitForTransaction(transaction.transactionHash, {
+        minConfirmations: 1,
+        allowUnconfirmed: false,
+      });
+    } catch (err: any) {
+      if (err?.code === "RECEIPT_TIMEOUT") {
+        throw new Error("Referral earnings withdrawal timed out waiting for confirmation");
+      }
+      throw err;
+    }
 
     return transaction;
   } catch (error) {
@@ -541,42 +719,91 @@ export const withdrawReferralEarnings = async (
  */
 export const getTransactionReceipt = async (txHash: string): Promise<any> => {
   try {
-    const web3 = getWeb3();
-    return await web3.eth.getTransactionReceipt(txHash);
+    const providers = buildReceiptProviders();
+    return await tryGetReceipt(txHash, providers);
   } catch (error: any) {
-    // If the error is 'Transaction not found', treat as not found yet
-    if (
-      error.message &&
-      (error.message.includes("Transaction not found") ||
-        error.message.includes("not found"))
-    ) {
-      return null; // Don't throw, just return null so polling continues
-    }
     console.error("Failed to get transaction receipt:", error);
     throw new Error("Failed to fetch transaction receipt");
   }
 };
+
+export interface WaitForTransactionOptions {
+  minConfirmations?: number;
+  timeoutMs?: number;
+  allowUnconfirmed?: boolean;
+}
 
 /**
  * Wait for transaction confirmation
  */
 export const waitForTransaction = async (
   txHash: string,
-  confirmations: number = 1
+  confirmationsOrOptions: number | WaitForTransactionOptions = 1
 ): Promise<any> => {
+  const opts =
+    typeof confirmationsOrOptions === "number"
+      ? { minConfirmations: confirmationsOrOptions }
+      : confirmationsOrOptions;
+
+  const minConfirmations = Math.max(1, opts.minConfirmations ?? 1);
+  const timeoutMs = opts.timeoutMs ?? RECEIPT_TIMEOUT_MS;
+  const allowUnconfirmed = opts.allowUnconfirmed ?? false;
+
   try {
     console.log("Waiting for transaction:", txHash);
-    // In web3 v4, we need to poll for transaction receipt
-    let receipt = null;
-    while (!receipt) {
-      receipt = await getTransactionReceipt(txHash);
-      if (!receipt) {
-        await new Promise((resolve) => setTimeout(resolve, 1000));
+    const providers = buildReceiptProviders();
+    const timeoutAt = Date.now() + timeoutMs;
+
+    while (Date.now() < timeoutAt) {
+      const receipt = await tryGetReceipt(txHash, providers);
+      if (receipt) {
+        if (receipt.status === false || receipt.status === "0x0" || receipt.status === 0) {
+          throw new Error("Transaction reverted");
+        }
+        if (minConfirmations <= 1 || !receipt.blockNumber) {
+          return receipt;
+        }
+
+        const receiptBlock =
+          typeof receipt.blockNumber === "string"
+            ? Number(receipt.blockNumber)
+            : Number(receipt.blockNumber ?? NaN);
+
+        let latestBlock: number | null = null;
+        try {
+          latestBlock = await providers[0].eth.getBlockNumber();
+        } catch (error) {
+          console.warn("Failed to fetch latest block for confirmations", error);
+        }
+
+        if (
+          Number.isFinite(receiptBlock) &&
+          Number.isFinite(latestBlock) &&
+          latestBlock !== null &&
+          latestBlock - receiptBlock + 1 >= minConfirmations
+        ) {
+          return receipt;
+        }
       }
+      await sleep(RECEIPT_POLL_INTERVAL_MS);
     }
-    return receipt;
+
+    const finalReceipt = allowUnconfirmed ? await tryGetReceipt(txHash, providers) : null;
+    if (finalReceipt) {
+      if (finalReceipt.status === false || finalReceipt.status === "0x0" || finalReceipt.status === 0) {
+        throw new Error("Transaction reverted");
+      }
+      return finalReceipt;
+    }
+
+    const timeoutError: any = new Error("Timed out waiting for transaction confirmation");
+    timeoutError.code = "RECEIPT_TIMEOUT";
+    throw timeoutError;
   } catch (error) {
     console.error("Failed to wait for transaction:", error);
+    if (error instanceof Error) {
+      throw error;
+    }
     throw new Error("Transaction confirmation failed");
   }
 };
@@ -613,8 +840,9 @@ export const createSwapManager = () => {
       owner: string,
       spender: string,
       amount: string,
-      decimals: number
-    ) => needsApproval(tokenAddress, owner, spender, amount, decimals),
+      decimals: number,
+      chainId?: number
+    ) => needsApproval(tokenAddress, owner, spender, amount, decimals, chainId),
 
     approveToken: (params: ApprovalParams) => approveToken(params),
 
