@@ -5,6 +5,15 @@ export const BridgeManagerAddress =
   "0x1715a3E4A142d8b698131108995174F37aEBA10D";
 export const BridgeManagerAddressForNative =
   "0x8AC4ae65b3656e26dC4e0e69108B392283350f55";
+const requireEnv = (key: string): string => {
+  const value = import.meta.env[key];
+  if (!value || typeof value !== "string" || value.trim().length === 0) {
+    throw new Error(`Missing required env var ${key}`);
+  }
+  return value;
+};
+
+export const MulticallAddress = requireEnv("VITE_MULTICALL_ADDRESS");
 
 const DEV_BACKEND_FALLBACK = "http://localhost:3000/";
 

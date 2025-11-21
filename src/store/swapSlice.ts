@@ -16,6 +16,7 @@ import {
   needsApproval,
   createSwapManager,
 } from "../contracts/SwapManager";
+import { createMulticall } from "../contracts/Multicall";
 import { RootState } from "./store";
 import { fetchReferralPromo } from "./referralSlice";
 import { fetchPiteasQuoteClient } from "../utils/piteasQuote";
@@ -58,6 +59,10 @@ interface SwapState {
   fromTokenBalance: string;
   toTokenBalance: string;
   nativeBalance: string;
+  tokenBalances: Record<string, string>;
+  tokenBalancesAccount: string | null;
+  tokenBalancesRequestId: string | null;
+  isTokenBalancesLoading: boolean;
   // Swap execution state
   isApproving: boolean;
   isSwapping: boolean;
@@ -99,6 +104,10 @@ const initialState: SwapState = {
   fromTokenBalance: "0",
   toTokenBalance: "0",
   nativeBalance: "0",
+  tokenBalances: {},
+  tokenBalancesAccount: null,
+  tokenBalancesRequestId: null,
+  isTokenBalancesLoading: false,
   // Swap execution state
   isApproving: false,
   isSwapping: false,
@@ -228,6 +237,49 @@ export const getNativeBalance = createAsyncThunk(
     } catch (error) {
       console.error("Error getting native balance:", error);
       return "0";
+    }
+  }
+);
+
+// Get token balances for multiple tokens using Multicall
+export const getTokenBalancesBatch = createAsyncThunk(
+  "swap/getTokenBalancesBatch",
+  async ({
+    tokens,
+    account,
+  }: {
+    tokens: TokenType[];
+    account: string;
+  }) => {
+    const normalizedAccount = account?.toLowerCase();
+    if (!normalizedAccount || tokens.length === 0) {
+      return { balances: {}, account: normalizedAccount };
+    }
+
+    try {
+      const multicallManager = createMulticall();
+
+      const chunkSize = 150;
+      const balanceMap: Record<string, string> = {};
+
+      for (let start = 0; start < tokens.length; start += chunkSize) {
+        const chunk = tokens.slice(start, start + chunkSize);
+        const chunkBalances = await multicallManager.getTokenBalances({
+          tokens: chunk,
+          account: normalizedAccount,
+        });
+
+        for (let i = 0; i < chunk.length; i++) {
+          const token = chunk[i];
+          const tokenAddress = (token.address ?? "").toLowerCase();
+          balanceMap[tokenAddress] = chunkBalances[i] ?? "0";
+        }
+      }
+
+      return { balances: balanceMap, account: normalizedAccount };
+    } catch (error) {
+      console.error("Error getting token balances batch:", error);
+      throw error;
     }
   }
 );
@@ -805,6 +857,17 @@ export const swapSlice = createSlice({
     setNativeBalance: (state, action) => {
       state.nativeBalance = action.payload;
     },
+    setTokenBalances: (state, action: PayloadAction<{ balances: Record<string, string>; account?: string | null }>) => {
+      state.tokenBalances = action.payload.balances;
+      state.tokenBalancesAccount = action.payload.account ?? null;
+      state.isTokenBalancesLoading = false;
+    },
+    clearTokenBalances: (state) => {
+      state.tokenBalances = {};
+      state.tokenBalancesAccount = null;
+      state.tokenBalancesRequestId = null;
+      state.isTokenBalancesLoading = false;
+    },
     // Set transaction hash
     setTransactionHash: (state, action) => {
       state.transactionHash = action.payload;
@@ -994,6 +1057,37 @@ export const swapSlice = createSlice({
       .addCase(refreshBalancesAfterSwap.rejected, (state, action) => {
         console.error("Failed to refresh balances after swap:", action.error);
       });
+
+    builder
+      .addCase(getTokenBalancesBatch.pending, (state, action) => {
+        state.isTokenBalancesLoading = true;
+        state.tokenBalancesRequestId = action.meta.requestId;
+        state.tokenBalancesAccount = action.meta.arg.account?.toLowerCase() ?? null;
+      })
+      .addCase(getTokenBalancesBatch.fulfilled, (state, action) => {
+        if (state.tokenBalancesRequestId !== action.meta.requestId) {
+          return;
+        }
+
+        const requestAccount = action.payload.account ?? null;
+        if (
+          state.tokenBalancesAccount &&
+          requestAccount &&
+          state.tokenBalancesAccount !== requestAccount
+        ) {
+          return;
+        }
+
+        state.tokenBalances = action.payload.balances;
+        state.tokenBalancesAccount = requestAccount;
+        state.isTokenBalancesLoading = false;
+      })
+      .addCase(getTokenBalancesBatch.rejected, (state, action) => {
+        if (state.tokenBalancesRequestId !== action.meta.requestId) {
+          return;
+        }
+        state.isTokenBalancesLoading = false;
+      });
   },
 });
 
@@ -1027,6 +1121,8 @@ export const {
   setFromTokenBalance,
   setToTokenBalance,
   setNativeBalance,
+  setTokenBalances,
+  clearTokenBalances,
   setTransactionHash,
   resetSwapState,
   clearApprovalState,

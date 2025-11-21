@@ -1,14 +1,30 @@
 import { describe, expect, it, beforeEach } from "vitest";
 import { rememberSiweNonce, validateSiweMessage } from "./siwe";
 
-const mockLocation = (host: string, origin: string) => {
-  Object.defineProperty(window, "location", {
-    value: {
-      host,
-      origin,
+const getGlobal = () => globalThis as any;
+
+const memoryStorage = () => {
+  const store = new Map<string, string>();
+  return {
+    getItem: (key: string) => store.get(key) ?? null,
+    setItem: (key: string, value: string) => {
+      store.set(key, value);
     },
-    writable: true,
-  });
+    removeItem: (key: string) => {
+      store.delete(key);
+    },
+    clear: () => store.clear(),
+  };
+};
+
+const mockLocation = (host: string, origin: string) => {
+  const g = getGlobal();
+  g.window = g.window ?? {};
+  g.window.location = {
+    hostname: host,
+    host,
+    origin,
+  };
 };
 
 const buildMessage = ({
@@ -40,9 +56,9 @@ Issued At: ${issuedAt}
 
 describe("validateSiweMessage", () => {
   beforeEach(() => {
+    const g = getGlobal();
+    g.localStorage = memoryStorage();
     mockLocation("app.localhost", "https://app.localhost");
-    // Clear stored nonce history between tests
-    localStorage.clear();
   });
 
   it("returns parsed data for a valid challenge", () => {
