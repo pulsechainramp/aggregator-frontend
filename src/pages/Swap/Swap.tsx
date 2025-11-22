@@ -109,16 +109,34 @@ const Swap: React.FC = () => {
     setIsPreviewOpen(false);
   };
 
+  const truncateToDecimals = (value: string, decimals: number) => {
+    if (!value || !value.includes('.')) return value;
+    const [integer, fraction] = value.split('.');
+    if (fraction.length > decimals) {
+      return `${integer}.${fraction.slice(0, decimals)}`;
+    }
+    return value;
+  };
+
   // Check if user has sufficient balance
   const hasSufficientBalance = () => {
     if (!fromToken || !fromAmount) return false;
 
     try {
-      const requiredAmountWei = ethers.parseUnits(fromAmount, fromToken.decimals);
-      
-      const currentBalanceWei = fromToken.address === ZeroAddress
-        ? ethers.parseUnits(nativeBalance, 18) // Convert native balance to Wei
-        : ethers.parseUnits(fromTokenBalance, fromToken.decimals); // Convert token balance to Wei
+      const safeFromAmount = truncateToDecimals(fromAmount, fromToken.decimals);
+      const requiredAmountWei = ethers.parseUnits(safeFromAmount, fromToken.decimals);
+
+      let currentBalanceWei: bigint;
+
+      if (fromToken.address === ZeroAddress) {
+        // Native balance is always 18 decimals
+        const safeBalance = truncateToDecimals(nativeBalance, 18);
+        currentBalanceWei = ethers.parseUnits(safeBalance, 18);
+      } else {
+        // Token balance might have excessive decimals if switching tokens
+        const safeBalance = truncateToDecimals(fromTokenBalance, fromToken.decimals);
+        currentBalanceWei = ethers.parseUnits(safeBalance, fromToken.decimals);
+      }
 
       return currentBalanceWei >= requiredAmountWei;
     } catch (error) {
@@ -143,6 +161,8 @@ const Swap: React.FC = () => {
         return;
       }
 
+      const safeFromAmount = truncateToDecimals(fromAmount, fromToken.decimals);
+
       // Check balance before proceeding
       if (!hasSufficientBalance()) {
         toast.error("Insufficient balance");
@@ -156,7 +176,7 @@ const Swap: React.FC = () => {
         await dispatch(
           approveTokenAction({
             tokenAddress: fromToken.address,
-            amount: fromAmount,
+            amount: safeFromAmount,
             decimals: fromToken.decimals,
             account: account || "",
             chainId: fromToken.chainId ?? PulseChainConfig.chainId,
@@ -166,21 +186,21 @@ const Swap: React.FC = () => {
           .then(() => {
             toast.success("Token approved successfully!");
             dispatch(
-                checkTokenAllowance({
-                  tokenAddress: fromToken.address,
-                  amount: fromAmount,
-                  decimals: fromToken.decimals,
-                  userAddress: account || "",
-                  chainId: fromToken.chainId ?? PulseChainConfig.chainId,
-                })
-              );
-            });
+              checkTokenAllowance({
+                tokenAddress: fromToken.address,
+                amount: safeFromAmount,
+                decimals: fromToken.decimals,
+                userAddress: account || "",
+                chainId: fromToken.chainId ?? PulseChainConfig.chainId,
+              })
+            );
+          });
       } else {
         const value =
           fromToken.address === ZeroAddress
             ? ethers
-                .parseUnits(fromAmount.toString(), fromToken.decimals)
-                .toString()
+              .parseUnits(safeFromAmount.toString(), fromToken.decimals)
+              .toString()
             : "0";
 
         try {
@@ -375,30 +395,40 @@ const Swap: React.FC = () => {
 
   // Get token prices
   useEffect(() => {
-    if (fromToken?.address && fromToken?.blockchainNetwork) {
+    const isPulseChainToken =
+      fromToken?.blockchainNetwork?.toLowerCase() === "pulsechain" ||
+      fromToken?.chainId === PulseChainConfig.chainId;
+
+    if (fromToken?.address && isPulseChainToken) {
       dispatch(
         getTokenPrice({
           address: fromToken.address,
           blockchainNetwork: fromToken.blockchainNetwork,
+          chainId: fromToken.chainId,
           type: "from",
         })
       );
       dispatch(setQuote(null));
     }
-  }, [dispatch, fromToken?.address, fromToken?.blockchainNetwork]);
+  }, [dispatch, fromToken?.address, fromToken?.blockchainNetwork, fromToken?.chainId]);
 
   useEffect(() => {
-    if (toToken?.address && toToken?.blockchainNetwork) {
+    const isPulseChainToken =
+      toToken?.blockchainNetwork?.toLowerCase() === "pulsechain" ||
+      toToken?.chainId === PulseChainConfig.chainId;
+
+    if (toToken?.address && isPulseChainToken) {
       dispatch(
         getTokenPrice({
           address: toToken.address,
           blockchainNetwork: toToken.blockchainNetwork,
+          chainId: toToken.chainId,
           type: "to",
         })
       );
       dispatch(setQuote(null));
     }
-  }, [dispatch, toToken?.address, toToken?.blockchainNetwork]);
+  }, [dispatch, toToken?.address, toToken?.blockchainNetwork, toToken?.chainId]);
 
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
@@ -530,21 +560,21 @@ const Swap: React.FC = () => {
   const previewData =
     pendingSwap && pendingSwap.validation
       ? {
-          router: AffiliateRouterAddress,
-          functionSignature: "executeSwap(bytes,address)",
-          tokenInSymbol: pendingSwap.fromToken.symbol,
-          tokenOutSymbol: pendingSwap.toToken.symbol,
-          amountIn: ethers.formatUnits(
-            pendingSwap.validation.decodedRoute.amountIn,
-            pendingSwap.fromToken.decimals
-          ),
-          minAmountOut: ethers.formatUnits(
-            pendingSwap.validation.decodedRoute.minAmountOut,
-            pendingSwap.toToken.decimals
-          ),
-          deadline: pendingSwap.validation.decodedRoute.deadline,
-          calldataHash: pendingSwap.quote.integrity.payload.calldataHash,
-        }
+        router: AffiliateRouterAddress,
+        functionSignature: "executeSwap(bytes,address)",
+        tokenInSymbol: pendingSwap.fromToken.symbol,
+        tokenOutSymbol: pendingSwap.toToken.symbol,
+        amountIn: ethers.formatUnits(
+          pendingSwap.validation.decodedRoute.amountIn,
+          pendingSwap.fromToken.decimals
+        ),
+        minAmountOut: ethers.formatUnits(
+          pendingSwap.validation.decodedRoute.minAmountOut,
+          pendingSwap.toToken.decimals
+        ),
+        deadline: pendingSwap.validation.decodedRoute.deadline,
+        calldataHash: pendingSwap.quote.integrity.payload.calldataHash,
+      }
       : null;
 
   return (
@@ -586,7 +616,7 @@ const Swap: React.FC = () => {
           />
 
           {quote && fromToken && toToken && fromAmount && <QuotePanel />}
-          
+
           {showBetterRouterMessage && (
             <div className="rounded-lg border border-primary bg-primary-050/60 p-3">
               <div className="flex items-center justify-center gap-2 text-sm text-primary">
