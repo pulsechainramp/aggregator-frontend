@@ -63,7 +63,7 @@ npm run dev
 | `VITE_RPC_COOLDOWN_MS` / `VITE_ETH_RPC_COOLDOWN_MS` | `30000` |  | Duration to keep a flapping RPC out of rotation once it fails a health check. |
 | `VITE_QUOTE_SIGNER_ADDRESS` | `0xf39F...` | yes | Address of the backend attestation signer. Used to verify `/quote/attest` signatures before enabling swaps. |
 | `VITE_SIWE_CHAIN_IDS` | `369,943` |  | Comma-separated list of chain IDs that SIWE challenges must match (default PulseChain mainnet only). |
-| `VITE_MULTICALL_ADDRESS` | `0xE7ceB56185A6d17BbA591B085f63d56Db035915E` |  | Multicall contract address (PulseChain). Leave empty to use the default. |
+| `VITE_MULTICALL_ADDRESS` | `0x60694a81c004FFd874abB63b46AF3aDA81D266fA` |  | Multicall contract address (PulseChain). Leave empty to use the default. |
 | `CONTACT_SMTP_*` | Gmail/SMTP creds | optional | Needed only when deploying the contact form API. |
 | `VITE_TX_RECEIPT_TIMEOUT_MS` | `120000` | optional | How long (ms) to wait for tx receipts before surfacing a timeout in approvals/swaps. |
 
