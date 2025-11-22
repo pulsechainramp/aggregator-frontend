@@ -9,7 +9,6 @@ import { ethers } from "ethers";
 import { isSelfReferral, getStoredReferralCode } from "../utils/referralUtils";
 import { ZeroAddress, AffiliateRouterAddress, BackendURL } from "../const/swap";
 import { PulsexConfig } from "../config/pulsex";
-import { PulseChainConfig } from "../config/chainConfig";
 import {
   approveToken,
   executeSwap,
@@ -24,7 +23,8 @@ import { fetchPiteasQuoteClient } from "../utils/piteasQuote";
 import { requestQuoteAttestation } from "../utils/quoteAttestation";
 import { validateQuoteIntegrity } from "../utils/quoteValidation";
 import { decodeSwapRouteSummary } from "../utils/routeEncoding";
-import { normalizeAmountInput, areAmountsEqual } from "../utils/amount";
+import { normalizeAmountInput, areAmountsEqual, truncateToDecimals } from "../utils/amount";
+import { isPulseChainToken } from "../utils/token";
 
 const getPublicAssetUrl = (assetPath: string) => {
   const baseUrl = import.meta.env.BASE_URL ?? "/";
@@ -531,13 +531,7 @@ export const getTokenPrice = createAsyncThunk<
 >(
   "swap/getTokenPrice",
   async ({ address, blockchainNetwork, chainId }, { rejectWithValue }) => {
-    const normalizedNetwork = blockchainNetwork?.toLowerCase();
-    const normalizedChainId = typeof chainId === "number" ? chainId : null;
-    const isPulseChain =
-      normalizedNetwork === "pulsechain" ||
-      normalizedChainId === PulseChainConfig.chainId;
-
-    if (!isPulseChain) {
+    if (!isPulseChainToken({ blockchainNetwork, chainId })) {
       return rejectWithValue("Price lookup only supported on PulseChain");
     }
 
@@ -586,14 +580,6 @@ export const getPulseXQuote = createAsyncThunk<
     fromDecimal,
   }) => {
     const normalizedAmount = normalizeAmountInput(amount);
-    const truncateToDecimals = (value: string, decimals: number) => {
-      if (!value || !value.includes(".")) return value;
-      const [integer, fraction] = value.split(".");
-      if (fraction.length > decimals) {
-        return `${integer}.${fraction.slice(0, decimals)}`;
-      }
-      return value;
-    };
     const safeAmount = truncateToDecimals(normalizedAmount, fromDecimal);
 
     const params = new URLSearchParams({

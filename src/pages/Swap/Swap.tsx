@@ -43,6 +43,8 @@ import {
 import { QuoteType, TokenType } from "../../types/Swap";
 import { PulseChainConfig } from "../../config/chainConfig";
 import { useQuoteSummary } from "../../hooks/useQuoteSummary";
+import { truncateToDecimals } from "../../utils/amount";
+import { isPulseChainToken } from "../../utils/token";
 
 const { toast } = toastify;
 const QUOTE_REFRESH_INTERVAL_MS = 10_000;
@@ -107,15 +109,6 @@ const Swap: React.FC = () => {
   const closePreview = () => {
     setPendingSwap(null);
     setIsPreviewOpen(false);
-  };
-
-  const truncateToDecimals = (value: string, decimals: number) => {
-    if (!value || !value.includes('.')) return value;
-    const [integer, fraction] = value.split('.');
-    if (fraction.length > decimals) {
-      return `${integer}.${fraction.slice(0, decimals)}`;
-    }
-    return value;
   };
 
   // Check if user has sufficient balance
@@ -395,11 +388,7 @@ const Swap: React.FC = () => {
 
   // Get token prices
   useEffect(() => {
-    const isPulseChainToken =
-      fromToken?.blockchainNetwork?.toLowerCase() === "pulsechain" ||
-      fromToken?.chainId === PulseChainConfig.chainId;
-
-    if (fromToken?.address && isPulseChainToken) {
+    if (fromToken?.address && isPulseChainToken(fromToken)) {
       dispatch(
         getTokenPrice({
           address: fromToken.address,
@@ -413,11 +402,7 @@ const Swap: React.FC = () => {
   }, [dispatch, fromToken?.address, fromToken?.blockchainNetwork, fromToken?.chainId]);
 
   useEffect(() => {
-    const isPulseChainToken =
-      toToken?.blockchainNetwork?.toLowerCase() === "pulsechain" ||
-      toToken?.chainId === PulseChainConfig.chainId;
-
-    if (toToken?.address && isPulseChainToken) {
+    if (toToken?.address && isPulseChainToken(toToken)) {
       dispatch(
         getTokenPrice({
           address: toToken.address,
