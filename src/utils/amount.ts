@@ -66,10 +66,14 @@ export function truncateToDecimals(value: string, decimals: number): string {
     return value;
   }
 
-  const integer = value.slice(0, dotIndex);
+  const integerRaw = value.slice(0, dotIndex);
+  const integer = integerRaw === "" ? "0" : integerRaw;
   const fraction = value.slice(dotIndex + 1);
+  if (fraction.length === 0) {
+    return integer;
+  }
   if (fraction.length <= safeDecimals) {
-    return value;
+    return `${integer}.${fraction}`;
   }
 
   return `${integer}.${fraction.slice(0, safeDecimals)}`;
