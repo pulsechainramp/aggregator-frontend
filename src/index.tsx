@@ -79,7 +79,6 @@ const web3Onboard = init({
   theme: "light",
   appMetadata: {
     name: "PulseChainRamp",
-    icon: "https://pulsechain.com/favicon128.png",
     description: "PulseChain - Swap & Bridge",
     recommendedInjectedWallets: [
       { name: "Rabby Wallet", url: "https://rabby.io/" },
