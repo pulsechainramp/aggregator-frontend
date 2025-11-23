@@ -94,12 +94,12 @@ export default function OnRampModal({ open, onClose, address }: Props) {
     <div className="fixed inset-0 z-50 grid place-items-center">
       <div className="absolute inset-0 bg-overlay" onClick={onClose} />
 
-      <div className="relative z-10 w-[92vw] max-w-xl rounded-2xl border border-border bg-bg-surface p-5 shadow-floating sm:p-6">
+      <div className="relative z-10 mt-20 w-[92vw] max-w-xl max-h-[75vh] overflow-y-auto rounded-2xl border border-border bg-bg-surface p-5 shadow-floating sm:mt-0 sm:max-h-[85vh] sm:p-6">
         <div className="mb-4 flex items-center justify-between">
           <h3 className="text-lg font-semibold text-text">Buy Ethereum (ETH)</h3>
           <button
             onClick={onClose}
-            className="touch-target inline-flex h-8 w-8 items-center justify-center rounded-full text-text-muted transition-colors hover:bg-primary-050 hover:text-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
+            className="touch-target inline-flex h-10 w-10 items-center justify-center rounded-full text-2xl text-text-muted transition-colors hover:bg-primary-050 hover:text-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
             aria-label="Close on-ramp modal"
           >
             {"\u00d7"}
@@ -217,11 +217,10 @@ export default function OnRampModal({ open, onClose, address }: Props) {
                               target="_blank"
                               rel="noreferrer"
                               aria-disabled={isDisabled}
-                              className={`touch-target inline-flex items-center justify-center rounded-lg border border-border bg-bg-surface px-3 py-2 text-sm font-semibold text-text transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus ${
-                                isDisabled
-                                  ? "pointer-events-none cursor-not-allowed opacity-60"
-                                  : "hover:border-primary hover:text-primary hover:underline"
-                              }`}
+                              className={`touch-target inline-flex items-center justify-center rounded-lg border border-border bg-bg-surface px-3 py-2 text-sm font-semibold text-text transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus ${isDisabled
+                                ? "pointer-events-none cursor-not-allowed opacity-60"
+                                : "hover:border-primary hover:text-primary hover:underline"
+                                }`}
                               onClick={(event) => {
                                 if (isDisabled) {
                                   event.preventDefault();

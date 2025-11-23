@@ -34,7 +34,7 @@ const RouteDetailsPopup = () => {
                         <span className="mx-1 text-text-subtle">-&gt;</span>
                         {path.tokens[1].symbol}
                       </span>
-                      <span className="mx-1 hidden truncate text-xs text-text-subtle sm:mx-2 sm:block">
+                      <span className="mx-1 truncate text-xs text-text-subtle sm:mx-2">
                         {path.exchange}
                       </span>
                       <span className="text-right text-xs font-semibold text-text">

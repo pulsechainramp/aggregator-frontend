@@ -566,10 +566,10 @@ const Swap: React.FC = () => {
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      className="flex flex-col items-center justify-start bg-bg-page px-4 pt-5 pb-8 text-text sm:px-6"
+      className="flex flex-col items-center justify-start bg-bg-page px-2 pt-0 pb-0 text-text sm:px-6 sm:pt-5 sm:pb-4"
     >
-      <motion.div className="mt-6 flex w-full max-w-4xl flex-col gap-6">
-        <div className="flex w-full flex-col gap-4 rounded-2xl border border-border bg-bg-surface p-4 shadow-floating sm:p-6">
+      <motion.div className="mt-2 flex w-full max-w-4xl flex-col gap-6 sm:mt-6">
+        <div className="flex w-full flex-col gap-2 rounded-2xl border border-border bg-bg-surface p-4 shadow-floating sm:gap-4 sm:p-6">
           <SwapHeader
             slippage={slippage}
             onSlippageClick={() => setIsSlippagePopupOpen(true)}

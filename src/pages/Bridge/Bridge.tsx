@@ -169,8 +169,8 @@ const Bridge: React.FC = () => {
     const amountInWei = hasUsableAmount
       ? convertToWei(amount, selectedToken.decimals)
       : selectedToken.address === ZeroAddress
-      ? MIN_NATIVE_ETH_AMOUNT_WEI.toString()
-      : "1";
+        ? MIN_NATIVE_ETH_AMOUNT_WEI.toString()
+        : "1";
 
     dispatch(
       fetchBridgeGasCost({
@@ -208,7 +208,7 @@ const Bridge: React.FC = () => {
           if (selectedToken.address !== ZeroAddress) {
             const { bridgeManagerAddress } = initializeBridgeManager(fromChainId, selectedToken.address);
             const amountInWei = convertToWei(amount, selectedToken.decimals);
-            
+
             const needsApproval = await checkTokenApproval(
               selectedToken.address,
               bridgeManagerAddress,
@@ -216,7 +216,7 @@ const Bridge: React.FC = () => {
               fromChainId,
               account
             );
-            
+
             dispatch(setNeedsApproval(needsApproval));
           } else {
             dispatch(setNeedsApproval(false));
@@ -271,9 +271,9 @@ const Bridge: React.FC = () => {
       );
       return;
     }
-    
+
     dispatch(clearTransactionHash());
-    
+
     dispatch(
       bridgeTokens({
         fromChainId,
@@ -295,16 +295,16 @@ const Bridge: React.FC = () => {
 
   const getCorrespondingToken = (selectedTokenSymbol: string, toChainId: number) => {
     if (!selectedToken || !tokenPairs.length || !selectedTokenSymbol) return "";
-    
-    const pair = tokenPairs.find(pair => 
-      pair.from.symbol === selectedTokenSymbol || 
+
+    const pair = tokenPairs.find(pair =>
+      pair.from.symbol === selectedTokenSymbol ||
       pair.to.symbol === selectedTokenSymbol
     );
-    
+
     if (!pair) {
       return selectedTokenSymbol;
     }
-    
+
     const correspondingToken = toChainId === 1 ? pair.from.symbol : pair.to.symbol;
     return correspondingToken;
   };
@@ -338,66 +338,66 @@ const Bridge: React.FC = () => {
   }, [isOnEthereum, gasEstimateEth]);
 
   return (
-    <div className="relative flex flex-col items-center bg-bg-page px-4 pt-3 pb-10 text-text sm:px-6 lg:px-8">
-      <div className="relative z-10 mx-auto w-full max-w-4xl pb-6">
-        <div className="w-full rounded-3xl border border-border bg-bg-surface p-6 shadow-floating sm:p-8 lg:p-10">
-            <BridgeHeader />
+    <div className="relative flex flex-col items-center bg-bg-page px-4 pt-2 pb-0 text-text sm:px-6 sm:pb-10 lg:px-8">
+      <div className="relative z-10 mx-auto w-full max-w-4xl pb-2 sm:pb-6">
+        <div className="w-full rounded-3xl border border-border bg-bg-surface p-4 shadow-floating sm:p-8 lg:p-10">
+          <BridgeHeader />
 
-            {/* On-Ramp suggestion (only when on Ethereum with low ETH) */}
-            {shouldRenderOnRamp && (
-              <OnRampBanner
-                currentEth={ethFloat}
-                thresholdEth={recommendedEthThreshold}
-                estimatedEth={gasEstimateEth}
-                loading={gasCostLoading}
-                onClickBuy={() => setOnrampOpen(true)}
-              />
-            )}
-
-            <div className="mt-6 sm:mt-8">
-              <BridgeCard
-                fromNetwork={getNetworkName(fromChainId)}
-                toNetwork={getNetworkName(toChainId)}
-                fromChainId={fromChainId}
-                toChainId={toChainId}
-                amount={amount}
-                selectedToken={selectedToken?.symbol || ""}
-                correspondingToken={correspondingToken}
-                onNetworkSwap={handleNetworkSwap}
-                onAmountChange={handleAmountChange}
-                onTokenSelect={handleTokenSelect}
-                tokens={tokens}
-                loading={loading}
-                error={error}
-                isBridging={isBridging}
-                onBridge={handleBridge}
-                estimate={estimate}
-                estimateLoading={estimateLoading}
-                estimateError={estimateError}
-                balance={balance}
-                balanceLoading={balanceLoading}
-                balanceError={balanceError}
-                onRefreshBalance={handleManualBalanceRefresh}
-                isRefreshingBalance={isBalanceRefreshing}
-                transactionHash={transactionHash}
-                isApproving={isApproving}
-                approvalTxHash={approvalTxHash}
-                needsApproval={needsApproval}
-                bridgeTransaction={bridgeTransaction}
-                bridgeTransactionLoading={bridgeTransactionLoading}
-                bridgeTransactionError={bridgeTransactionError}
-                isSourceNetworkSupported={isSourceChainSupported}
-                unsupportedReason={
-                  isSourceChainSupported ? undefined : unsupportedBridgeMessage
-                }
-              />
-            </div>
-
-            <OnRampModal
-              open={onrampOpen}
-              onClose={() => setOnrampOpen(false)}
-              address={account}
+          {/* On-Ramp suggestion (only when on Ethereum with low ETH) */}
+          {shouldRenderOnRamp && (
+            <OnRampBanner
+              currentEth={ethFloat}
+              thresholdEth={recommendedEthThreshold}
+              estimatedEth={gasEstimateEth}
+              loading={gasCostLoading}
+              onClickBuy={() => setOnrampOpen(true)}
             />
+          )}
+
+          <div className="mt-2 sm:mt-8">
+            <BridgeCard
+              fromNetwork={getNetworkName(fromChainId)}
+              toNetwork={getNetworkName(toChainId)}
+              fromChainId={fromChainId}
+              toChainId={toChainId}
+              amount={amount}
+              selectedToken={selectedToken?.symbol || ""}
+              correspondingToken={correspondingToken}
+              onNetworkSwap={handleNetworkSwap}
+              onAmountChange={handleAmountChange}
+              onTokenSelect={handleTokenSelect}
+              tokens={tokens}
+              loading={loading}
+              error={error}
+              isBridging={isBridging}
+              onBridge={handleBridge}
+              estimate={estimate}
+              estimateLoading={estimateLoading}
+              estimateError={estimateError}
+              balance={balance}
+              balanceLoading={balanceLoading}
+              balanceError={balanceError}
+              onRefreshBalance={handleManualBalanceRefresh}
+              isRefreshingBalance={isBalanceRefreshing}
+              transactionHash={transactionHash}
+              isApproving={isApproving}
+              approvalTxHash={approvalTxHash}
+              needsApproval={needsApproval}
+              bridgeTransaction={bridgeTransaction}
+              bridgeTransactionLoading={bridgeTransactionLoading}
+              bridgeTransactionError={bridgeTransactionError}
+              isSourceNetworkSupported={isSourceChainSupported}
+              unsupportedReason={
+                isSourceChainSupported ? undefined : unsupportedBridgeMessage
+              }
+            />
+          </div>
+
+          <OnRampModal
+            open={onrampOpen}
+            onClose={() => setOnrampOpen(false)}
+            address={account}
+          />
         </div>
       </div>
     </div>

@@ -250,8 +250,7 @@ const Referrals: React.FC = () => {
       ).unwrap();
 
       toast.success(
-        `Successfully claimed ${
-          fee.amount
+        `Successfully claimed ${fee.amount
         } tokens! Transaction: ${result.transactionHash.slice(0, 10)}...`
       );
 
@@ -433,13 +432,13 @@ const Referrals: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-bg-page text-text">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-8">
         {/* Header */}
         <motion.div
           initial={{ y: -20, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           transition={{ duration: 0.5 }}
-          className="text-center mb-8"
+          className="text-center mb-4 sm:mb-8"
         >
           <h1 className="text-4xl font-bold text-primary mb-4">
             Referral Dashboard
@@ -466,28 +465,28 @@ const Referrals: React.FC = () => {
             </p>
           ) : referralCode ? (
             <div className="flex flex-col gap-2">
-              <div className="flex gap-2">
-                <input
-                  className="flex-1 rounded-md bg-bg-surface border border-border px-3 py-2 text-text text-sm"
-                  readOnly
-                  value={referralLink || "Generating..."}
-                />
+              <div className="flex flex-col gap-2 sm:flex-row">
+                <div className="flex-1 rounded-md bg-bg-surface border border-border px-3 py-2 min-w-0">
+                  <p className="text-text text-sm break-all">
+                    {referralLink || "Generating..."}
+                  </p>
+                </div>
                 <button
                   onClick={copyReferralLink}
                   disabled={!referralLink}
-                  className="px-4 py-2 rounded-md bg-primary hover:bg-primary-600 text-white text-sm font-semibold disabled:opacity-50"
+                  className="px-4 py-2 rounded-md bg-primary hover:bg-primary-600 text-white text-sm font-semibold disabled:opacity-50 whitespace-nowrap"
                 >
-                  Copy
+                  Copy Link
                 </button>
               </div>
               <p className="text-xs text-text-muted">
                 {feeBasisPointsLoading
                   ? "Fetching your referral fee..."
                   : referralFeeBasisPoints
-                  ? `Current referral fee: ${formatFeeBasisPoints(
+                    ? `Current referral fee: ${formatFeeBasisPoints(
                       referralFeeBasisPoints
                     )}`
-                  : "Referral fee not set yet"}
+                    : "Referral fee not set yet"}
               </p>
               <div className="pt-1">
                 <button
@@ -507,10 +506,10 @@ const Referrals: React.FC = () => {
                 {creationFeeLoading
                   ? "Checking one-time creation fee..."
                   : creationFee
-                  ? requiresPayment
-                    ? `A one-time fee of ${creationFee.formatted} PLS is required to generate your referral code.`
-                    : "Sign in to generate your referral code."
-                  : "Unable to determine the referral creation fee. Please try again."}
+                    ? requiresPayment
+                      ? `A one-time fee of ${creationFee.formatted} PLS is required to generate your referral code.`
+                      : "Sign in to generate your referral code."
+                    : "Unable to determine the referral creation fee. Please try again."}
               </p>
               {paymentRequired && (
                 <div className="rounded-lg border border-border bg-bg-raised px-4 py-3 text-sm text-text">
@@ -532,10 +531,10 @@ const Referrals: React.FC = () => {
                     {!isPulseChainNetwork
                       ? "Switch to PulseChain"
                       : payingCreationFee
-                      ? "Paying..."
-                      : hasPaidCreationFee === true
-                      ? "Paid"
-                      : `Pay ${creationFee?.formatted ?? ""} PLS`}
+                        ? "Paying..."
+                        : hasPaidCreationFee === true
+                          ? "Paid"
+                          : `Pay ${creationFee?.formatted ?? ""} PLS`}
                   </button>
                 )}
                 <button
@@ -551,10 +550,10 @@ const Referrals: React.FC = () => {
                   {creatingReferralCode || siweLoading || authenticating
                     ? "Processing..."
                     : requiresPayment
-                    ? hasPaidCreationFee
-                      ? "Authenticate & Create"
-                      : "Pay fee to continue"
-                    : "Authenticate & Create"}
+                      ? hasPaidCreationFee
+                        ? "Authenticate & Create"
+                        : "Pay fee to continue"
+                      : "Authenticate & Create"}
                 </button>
               </div>
               {!isPulseChainNetwork && requiresPayment && (
@@ -588,9 +587,9 @@ const Referrals: React.FC = () => {
           transition={{ duration: 0.5, delay: 0.2 }}
           className="bg-bg-surface backdrop-blur-md border border-border rounded-xl p-6"
         >
-          <div className="flex items-center justify-between mb-6">
+          <div className="flex flex-col gap-4 mb-6 sm:flex-row sm:items-center sm:justify-between">
             <h2 className="text-2xl font-bold text-text">Claimable Tokens</h2>
-            <div className="flex items-center space-x-3">
+            <div className="flex items-center gap-3 flex-wrap">
               {filteredReferralFees.length > 0 && (
                 <button
                   onClick={handleBulkClaim}
@@ -607,8 +606,8 @@ const Referrals: React.FC = () => {
                   {!isPulseChainNetwork
                     ? "Switch to PulseChain"
                     : claimingAll
-                    ? "Claiming All..."
-                    : `Claim All (${filteredReferralFees.length})`}
+                      ? "Claiming All..."
+                      : `Claim All (${filteredReferralFees.length})`}
                 </button>
               )}
               <button
@@ -639,102 +638,204 @@ const Referrals: React.FC = () => {
               </p>
             </div>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead>
-                  <tr className="border-b border-border">
-                    <th className="text-left py-3 px-4 text-text-muted font-medium">
-                      Token
-                    </th>
-                    <th className="text-left py-3 px-4 text-text-muted font-medium">
-                      Amount
-                    </th>
-                    <th className="text-left py-3 px-4 text-text-muted font-medium">
-                      Created
-                    </th>
-                    <th className="text-left py-3 px-4 text-text-muted font-medium">
-                      Action
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredReferralFees.map((fee) => {
-                    const tokenMetadata = getTokenMetadata(fee.token);
-                    const isCurrentTokenClaiming = claimingToken === fee.token;
-                    const anotherClaimInFlight =
-                      claimingAll ||
-                      (claimingToken !== null && claimingToken !== fee.token) ||
-                      (claiming && claimingToken === null && !claimingAll);
-                    const disableClaimButton =
-                      isCurrentTokenClaiming ||
-                      anotherClaimInFlight ||
-                      !isPulseChainNetwork;
-                    const tokenChainId =
-                      tokenMetadata?.blockchainNetwork?.toLowerCase() === "ethereum"
-                        ? 1
-                        : 369;
+            <>
+              {/* Mobile card layout */}
+              <div className="block sm:hidden space-y-4">
+                {filteredReferralFees.map((fee) => {
+                  const tokenMetadata = getTokenMetadata(fee.token);
+                  const isCurrentTokenClaiming = claimingToken === fee.token;
+                  const anotherClaimInFlight =
+                    claimingAll ||
+                    (claimingToken !== null && claimingToken !== fee.token) ||
+                    (claiming && claimingToken === null && !claimingAll);
+                  const disableClaimButton =
+                    isCurrentTokenClaiming ||
+                    anotherClaimInFlight ||
+                    !isPulseChainNetwork;
+                  const tokenChainId =
+                    tokenMetadata?.blockchainNetwork?.toLowerCase() === "ethereum"
+                      ? 1
+                      : 369;
 
-                    return (
-                      <motion.tr
-                        key={fee.id}
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        className="border-b border-border transition-colors hover:bg-primary-050/40"
-                      >
-                        <td className="py-4 px-4">
-                          <div className="flex items-center gap-3">
-                            <TokenIcon
-                              token={
-                                tokenMetadata
-                                  ? {
+                  return (
+                    <motion.div
+                      key={fee.id}
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="rounded-xl border border-border bg-bg-surface p-4 space-y-3"
+                    >
+                      {/* Token Info */}
+                      <div className="flex items-center gap-3">
+                        <TokenIcon
+                          token={
+                            tokenMetadata
+                              ? {
+                                symbol: tokenMetadata.symbol,
+                                logoURI: tokenMetadata.logoURI ?? tokenMetadata.image,
+                                image: tokenMetadata.logoURI ?? tokenMetadata.image,
+                                remoteLogoURIs: tokenMetadata.remoteLogoURIs,
+                              }
+                              : { symbol: fee.token.slice(2, 6) }
+                          }
+                          size={40}
+                        />
+                        <div className="flex-1">
+                          {tokenMetadata ? (
+                            <>
+                              <p className="text-text font-semibold">{tokenMetadata.symbol}</p>
+                              <p className="text-sm text-text-muted">{tokenMetadata.name}</p>
+                            </>
+                          ) : (
+                            <>
+                              <p className="font-mono text-text font-semibold">
+                                {fee.token.slice(0, 6)}...{fee.token.slice(-4)}
+                              </p>
+                              <p className="text-sm text-text-muted">Token Address</p>
+                            </>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Amount */}
+                      <div className="flex items-center justify-between py-2 border-t border-border">
+                        <span className="text-sm text-text-muted">Amount</span>
+                        <span className="text-lg font-bold text-success">{fee.amount}</span>
+                      </div>
+
+                      {/* Created Date */}
+                      <div className="flex items-center justify-between py-2 border-t border-border">
+                        <span className="text-sm text-text-muted">Created</span>
+                        <span className="text-sm text-text">{formatDate(fee.createdAt)}</span>
+                      </div>
+
+                      {/* Actions */}
+                      <div className="flex items-center gap-3 pt-2">
+                        {tokenMetadata && (
+                          <AddToWalletButton
+                            token={{
+                              address: tokenMetadata.address,
+                              symbol: tokenMetadata.symbol,
+                              decimals: tokenMetadata.decimals,
+                              chainId: tokenChainId,
+                            }}
+                            variant="outline"
+                            size="sm"
+                          />
+                        )}
+                        <button
+                          onClick={() => handleClaim(fee)}
+                          disabled={disableClaimButton}
+                          className="flex-1 rounded-lg border border-success bg-success px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-success/80 disabled:cursor-not-allowed disabled:border-border disabled:bg-border disabled:text-text-muted"
+                        >
+                          {!isPulseChainNetwork
+                            ? "Switch to PulseChain"
+                            : isCurrentTokenClaiming
+                              ? "Claiming..."
+                              : "Claim"}
+                        </button>
+                      </div>
+                    </motion.div>
+                  );
+                })}
+              </div>
+
+              {/* Desktop table layout */}
+              <div className="hidden sm:block overflow-x-auto">
+                <table className="w-full">
+                  <thead>
+                    <tr className="border-b border-border">
+                      <th className="text-left py-3 px-4 text-text-muted font-medium">
+                        Token
+                      </th>
+                      <th className="text-left py-3 px-4 text-text-muted font-medium">
+                        Amount
+                      </th>
+                      <th className="text-left py-3 px-4 text-text-muted font-medium">
+                        Created
+                      </th>
+                      <th className="text-left py-3 px-4 text-text-muted font-medium">
+                        Action
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredReferralFees.map((fee) => {
+                      const tokenMetadata = getTokenMetadata(fee.token);
+                      const isCurrentTokenClaiming = claimingToken === fee.token;
+                      const anotherClaimInFlight =
+                        claimingAll ||
+                        (claimingToken !== null && claimingToken !== fee.token) ||
+                        (claiming && claimingToken === null && !claimingAll);
+                      const disableClaimButton =
+                        isCurrentTokenClaiming ||
+                        anotherClaimInFlight ||
+                        !isPulseChainNetwork;
+                      const tokenChainId =
+                        tokenMetadata?.blockchainNetwork?.toLowerCase() === "ethereum"
+                          ? 1
+                          : 369;
+
+                      return (
+                        <motion.tr
+                          key={fee.id}
+                          initial={{ opacity: 0, y: 10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          className="border-b border-border transition-colors hover:bg-primary-050/40"
+                        >
+                          <td className="py-4 px-4">
+                            <div className="flex items-center gap-3">
+                              <TokenIcon
+                                token={
+                                  tokenMetadata
+                                    ? {
                                       symbol: tokenMetadata.symbol,
                                       logoURI: tokenMetadata.logoURI ?? tokenMetadata.image,
                                       image: tokenMetadata.logoURI ?? tokenMetadata.image,
                                       remoteLogoURIs: tokenMetadata.remoteLogoURIs,
                                     }
-                                  : { symbol: fee.token.slice(2, 6) }
-                              }
-                              size={36}
-                            />
-                            <div>
-                              {tokenMetadata ? (
-                                <>
-                                  <p className="text-text font-medium">{tokenMetadata.symbol}</p>
-                                  <p className="text-sm text-text-muted">{tokenMetadata.name}</p>
-                                </>
-                              ) : (
-                                <>
-                                  <p className="font-mono text-text font-medium">
-                                    {fee.token.slice(0, 6)}...{fee.token.slice(-4)}
-                                  </p>
-                                  <p className="text-sm text-text-muted">Token Address</p>
-                                </>
-                              )}
-                            </div>
-                          </div>
-                        </td>
-                        <td className="py-4 px-4">
-                          <span className="text-lg font-bold text-success">
-                            {fee.amount}
-                          </span>
-                        </td>
-                        <td className="py-4 px-4 text-text-muted">
-                          {formatDate(fee.createdAt)}
-                        </td>
-                        <td className="py-4 px-4">
-                          <div className="flex items-center gap-3">
-                            {tokenMetadata && (
-                              <AddToWalletButton
-                                token={{
-                                  address: tokenMetadata.address,
-                                  symbol: tokenMetadata.symbol,
-                                  decimals: tokenMetadata.decimals,
-                                  chainId: tokenChainId,
-                                }}
-                                variant="outline"
-                                size="sm"
+                                    : { symbol: fee.token.slice(2, 6) }
+                                }
+                                size={36}
                               />
-                            )}
+                              <div>
+                                {tokenMetadata ? (
+                                  <>
+                                    <p className="text-text font-medium">{tokenMetadata.symbol}</p>
+                                    <p className="text-sm text-text-muted">{tokenMetadata.name}</p>
+                                  </>
+                                ) : (
+                                  <>
+                                    <p className="font-mono text-text font-medium">
+                                      {fee.token.slice(0, 6)}...{fee.token.slice(-4)}
+                                    </p>
+                                    <p className="text-sm text-text-muted">Token Address</p>
+                                  </>
+                                )}
+                              </div>
+                            </div>
+                          </td>
+                          <td className="py-4 px-4">
+                            <span className="text-lg font-bold text-success">
+                              {fee.amount}
+                            </span>
+                          </td>
+                          <td className="py-4 px-4 text-text-muted">
+                            {formatDate(fee.createdAt)}
+                          </td>
+                          <td className="py-4 px-4">
+                            <div className="flex items-center gap-3">
+                              {tokenMetadata && (
+                                <AddToWalletButton
+                                  token={{
+                                    address: tokenMetadata.address,
+                                    symbol: tokenMetadata.symbol,
+                                    decimals: tokenMetadata.decimals,
+                                    chainId: tokenChainId,
+                                  }}
+                                  variant="outline"
+                                  size="sm"
+                                />
+                              )}
                               <button
                                 onClick={() => handleClaim(fee)}
                                 disabled={disableClaimButton}
@@ -743,17 +844,18 @@ const Referrals: React.FC = () => {
                                 {!isPulseChainNetwork
                                   ? "Switch to PulseChain"
                                   : isCurrentTokenClaiming
-                                  ? "Claiming..."
-                                  : "Claim"}
+                                    ? "Claiming..."
+                                    : "Claim"}
                               </button>
-                          </div>
-                        </td>
-                      </motion.tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
+                            </div>
+                          </td>
+                        </motion.tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </>
           )}
         </motion.div>
 

@@ -474,11 +474,11 @@ const BridgeCard: React.FC<BridgeCardProps> = ({
   const buttonClasses = disabled
     ? "cursor-not-allowed border-2 border-gray-400/30 bg-gray-100/10 text-text-muted hover:bg-gray-100/15"
     : needsNetworkSwitch || isConnectState
-    ? "border border-primary bg-primary-050 text-primary hover:border-primary hover:bg-primary-050/80"
-    : "border border-transparent bg-primary text-white hover:bg-primary-600";
+      ? "border border-primary bg-primary-050 text-primary hover:border-primary hover:bg-primary-050/80"
+      : "border border-transparent bg-primary text-white hover:bg-primary-600";
 
   return (
-    <div className="relative flex flex-col gap-6 rounded-2xl border border-border bg-bg-surface p-6 shadow-floating sm:p-8">
+    <div className="relative flex flex-col gap-6 rounded-2xl border border-border bg-bg-surface p-4 shadow-floating sm:p-8">
       {!isSourceNetworkSupported && (
         <div className="rounded-lg border border-warning bg-warning/10 p-3 text-sm text-warning">
           {directionSupportMessage}
@@ -555,9 +555,8 @@ const BridgeCard: React.FC<BridgeCardProps> = ({
                   />
                 ) : null}
                 <span
-                  className={`text-sm font-semibold ${
-                    getNetworkLogo(fromNetwork) ? "hidden" : ""
-                  }`}
+                  className={`text-sm font-semibold ${getNetworkLogo(fromNetwork) ? "hidden" : ""
+                    }`}
                 >
                   {fromNetwork}
                 </span>
@@ -579,9 +578,8 @@ const BridgeCard: React.FC<BridgeCardProps> = ({
                 aria-label="Refresh balance"
               >
                 <ArrowPathIcon
-                  className={`h-4 w-4 ${
-                    isRefreshingBalance ? "animate-spin text-primary" : ""
-                  }`}
+                  className={`h-4 w-4 ${isRefreshingBalance ? "animate-spin text-primary" : ""
+                    }`}
                 />
               </button>
             )}
@@ -596,80 +594,80 @@ const BridgeCard: React.FC<BridgeCardProps> = ({
               loading={loading}
             />
             <div className="flex items-center gap-2">
-            <AmountInput
-              value={amount}
-              onChange={onAmountChange}
-              selectedToken={selectedToken}
-              balance={balance}
-              balanceLoading={balanceLoading}
-              tokenAddress={selectedTokenData?.address}
-              fromChainId={fromChainId}
-              selectedTokenData={selectedTokenData}
-              onCopyAddress={async () => {
-                try {
-                  await navigator.clipboard.writeText(
-                    selectedTokenData?.address || ""
-                  );
-                  toast.success("Token address copied to clipboard");
-                } catch (error) {
-                  console.error("Failed to copy address:", error);
-                }
-              }}
-              onAddToWallet={async () => {
-                if (!wallet || !selectedTokenData) return;
+              <AmountInput
+                value={amount}
+                onChange={onAmountChange}
+                selectedToken={selectedToken}
+                balance={balance}
+                balanceLoading={balanceLoading}
+                tokenAddress={selectedTokenData?.address}
+                fromChainId={fromChainId}
+                selectedTokenData={selectedTokenData}
+                onCopyAddress={async () => {
+                  try {
+                    await navigator.clipboard.writeText(
+                      selectedTokenData?.address || ""
+                    );
+                    toast.success("Token address copied to clipboard");
+                  } catch (error) {
+                    console.error("Failed to copy address:", error);
+                  }
+                }}
+                onAddToWallet={async () => {
+                  if (!wallet || !selectedTokenData) return;
 
-                try {
-                  if (!isOnCorrectNetwork()) {
-                    await switchToChain(fromChainId);
-                    try {
-                      await waitForChain(wallet!.provider as unknown as EIP1193Provider, fromChainId);
-                    } catch {
-                      // ignore
+                  try {
+                    if (!isOnCorrectNetwork()) {
+                      await switchToChain(fromChainId);
+                      try {
+                        await waitForChain(wallet!.provider as unknown as EIP1193Provider, fromChainId);
+                      } catch {
+                        // ignore
+                      }
                     }
-                  }
 
-                  const result = await addTokenToWallet(
-                    {
-                      address: selectedTokenData.address,
-                      symbol: cleanTokenSymbol(selectedToken),
-                      decimals: selectedTokenData.decimals,
-                      chainId: fromChainId,
-                      logoURI: selectedTokenData.logoURI,
-                      image: selectedTokenData.logoURI,
-                    },
-                    { provider: wallet.provider as any }
-                  );
+                    const result = await addTokenToWallet(
+                      {
+                        address: selectedTokenData.address,
+                        symbol: cleanTokenSymbol(selectedToken),
+                        decimals: selectedTokenData.decimals,
+                        chainId: fromChainId,
+                        logoURI: selectedTokenData.logoURI,
+                        image: selectedTokenData.logoURI,
+                      },
+                      { provider: wallet.provider as any }
+                    );
 
-                  if (!result.ok) {
-                    console.error(`Failed to add ${selectedTokenData.symbol}: ${result.reason}`);
+                    if (!result.ok) {
+                      console.error(`Failed to add ${selectedTokenData.symbol}: ${result.reason}`);
+                    }
+                  } catch (error) {
+                    console.error("Error adding token:", error);
                   }
-                } catch (error) {
-                  console.error("Error adding token:", error);
-                }
-              }}
-              showButtons={!!(selectedToken && selectedTokenData)}
-            />
+                }}
+                showButtons={!!(selectedToken && selectedTokenData)}
+              />
+            </div>
+          </div>
+
+          <div className="flex items-center justify-between text-sm">
+            <span className="text-text-subtle">Balance:</span>
+            <div className="flex items-center gap-2">
+              <span className="font-semibold text-text">
+                {balanceLoading ? (
+                  <div className="flex items-center gap-2">
+                    <div className="h-3 w-3 rounded-full border border-border border-t-transparent animate-spin"></div>
+                    <span className="text-text-subtle">Loading...</span>
+                  </div>
+                ) : balanceError ? (
+                  <span className="text-danger">Error</span>
+                ) : (
+                  `${formatBalance(balance)} ${selectedToken}`
+                )}
+              </span>
+            </div>
           </div>
         </div>
-
-        <div className="flex items-center justify-between text-sm">
-          <span className="text-text-subtle">Balance:</span>
-          <div className="flex items-center gap-2">
-            <span className="font-semibold text-text">
-              {balanceLoading ? (
-                <div className="flex items-center gap-2">
-                  <div className="h-3 w-3 rounded-full border border-border border-t-transparent animate-spin"></div>
-                  <span className="text-text-subtle">Loading...</span>
-                </div>
-              ) : balanceError ? (
-                <span className="text-danger">Error</span>
-              ) : (
-                `${formatBalance(balance)} ${selectedToken}`
-              )}
-            </span>
-        </div>
-      </div>
-      </div>
       )}
       <motion.button
         whileHover={{ scale: 1.01 }}
@@ -700,204 +698,194 @@ const BridgeCard: React.FC<BridgeCardProps> = ({
 
       {showBridgeForm && (
         <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div
-              className={`flex h-8 w-8 items-center justify-center rounded-full border border-border ${getNetworkBadgeClass(
-                toNetwork
-              )} overflow-hidden`}
-            >
-              {getNetworkLogo(toNetwork) ? (
-                <img
-                  src={getNetworkLogo(toNetwork)}
-                  alt={getNetworkName(toNetwork)}
-                  className="h-5 w-5 rounded-full object-cover"
-                  onError={(e) => {
-                    const target = e.target as HTMLImageElement;
-                    target.style.display = "none";
-                    target.nextElementSibling?.classList.remove("hidden");
-                  }}
-                />
-              ) : null}
-              <span
-                className={`text-sm font-semibold ${
-                  getNetworkLogo(toNetwork) ? "hidden" : ""
-                }`}
-              >
-                {toNetwork}
-              </span>
-            </div>
-            <div>
-              <h3 className="text-lg font-semibold text-text">
-                To {getNetworkName(toNetwork)}
-              </h3>
-              <p className="text-sm text-text-muted">Destination network</p>
-            </div>
-          </div>
-        </div>
-
-        <div className="rounded-xl border border-border bg-bg-surface p-4 shadow-sm">
           <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-3">
-              <TokenIcon
-                token={{
-                  symbol: correspondingToken,
-                  logoURI: correspondingTokenData?.logoURI,
-                  image: correspondingTokenData?.logoURI,
-                }}
-                size={40}
-              />
+            <div className="flex items-center gap-3">
+              <div
+                className={`flex h-8 w-8 items-center justify-center rounded-full border border-border ${getNetworkBadgeClass(
+                  toNetwork
+                )} overflow-hidden`}
+              >
+                {getNetworkLogo(toNetwork) ? (
+                  <img
+                    src={getNetworkLogo(toNetwork)}
+                    alt={getNetworkName(toNetwork)}
+                    className="h-5 w-5 rounded-full object-cover"
+                    onError={(e) => {
+                      const target = e.target as HTMLImageElement;
+                      target.style.display = "none";
+                      target.nextElementSibling?.classList.remove("hidden");
+                    }}
+                  />
+                ) : null}
+                <span
+                  className={`text-sm font-semibold ${getNetworkLogo(toNetwork) ? "hidden" : ""
+                    }`}
+                >
+                  {toNetwork}
+                </span>
+              </div>
               <div>
-                <div className="text-base font-semibold text-text">
-                  {correspondingToken}
-                </div>
-                <div className="text-sm text-text-muted">
-                  {getNetworkName(toNetwork)}
-                </div>
+                <h3 className="text-lg font-semibold text-text">
+                  To {getNetworkName(toNetwork)}
+                </h3>
+                <p className="text-sm text-text-muted">Destination network</p>
               </div>
             </div>
+          </div>
 
-            <div className="text-right">
-              {estimateLoading ? (
-                <div className="flex items-center justify-center space-x-2">
-                  <div className="h-4 w-4 rounded-full border-2 border-primary border-t-transparent animate-spin"></div>
-                  <span className="text-sm text-text-muted">
-                    Calculating...
-                  </span>
+          <div className="rounded-xl border border-border bg-bg-surface p-4 shadow-sm">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex items-center space-x-3">
+                <TokenIcon
+                  token={{
+                    symbol: correspondingToken,
+                    logoURI: correspondingTokenData?.logoURI,
+                    image: correspondingTokenData?.logoURI,
+                  }}
+                  size={40}
+                />
+                <div>
+                  <div className="text-base font-semibold text-text">
+                    {correspondingToken}
+                  </div>
+                  <div className="text-sm text-text-muted">
+                    {getNetworkName(toNetwork)}
+                  </div>
                 </div>
-              ) : estimate ? (
-                <div className="text-right">
-                  <div className="flex items-center justify-end space-x-2">
-                    <span className="text-lg font-semibold text-text">
-                      {estimate.estimatedAmount
-                        ? formatAmount(
+              </div>
+
+              <div className="text-right">
+                {estimateLoading ? (
+                  <div className="flex items-center justify-center space-x-2">
+                    <div className="h-4 w-4 rounded-full border-2 border-primary border-t-transparent animate-spin"></div>
+                    <span className="text-sm text-text-muted">
+                      Calculating...
+                    </span>
+                  </div>
+                ) : estimate ? (
+                  <div className="text-right">
+                    <div className="flex items-center justify-end space-x-2">
+                      <span className="text-lg font-semibold text-text">
+                        {estimate.estimatedAmount
+                          ? formatAmount(
                             estimate.estimatedAmount,
                             selectedTokenData?.decimals
                           )
-                        : amount || "0.00"}
-                    </span>
+                          : amount || "0.00"}
+                      </span>
 
-                    {correspondingToken && correspondingTokenData && account && (
-                      <>
-                        <motion.button
-                          whileHover={{ scale: 1.05 }}
-                          whileTap={{ scale: 0.95 }}
-                          onClick={async () => {
-                            try {
-                              await navigator.clipboard.writeText(
-                                correspondingTokenData.address || ""
-                              );
-                              toast.success("Token address copied to clipboard");
-                            } catch (error) {
-                              console.error("Failed to copy address:", error);
-                            }
-                          }}
-                          className="flex-shrink-0 rounded-lg border border-border bg-bg-page px-3 py-2 text-xs font-semibold text-text transition-colors hover:border-primary hover:text-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
-                          title="Copy token address"
-                        >
-                          <svg
-                            className="h-4 w-4"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
+                      {correspondingToken && correspondingTokenData && account && (
+                        <>
+                          <motion.button
+                            whileHover={{ scale: 1.05 }}
+                            whileTap={{ scale: 0.95 }}
+                            onClick={async () => {
+                              try {
+                                await navigator.clipboard.writeText(
+                                  correspondingTokenData.address || ""
+                                );
+                                toast.success("Token address copied to clipboard");
+                              } catch (error) {
+                                console.error("Failed to copy address:", error);
+                              }
+                            }}
+                            className="flex-shrink-0 rounded-lg border border-border bg-bg-page px-3 py-2 text-xs font-semibold text-text transition-colors hover:border-primary hover:text-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
+                            title="Copy token address"
                           >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"
-                            />
-                          </svg>
-                        </motion.button>
-                        <AddToWalletButton
-                          token={{
-                            address: correspondingTokenData.address,
-                            symbol: cleanTokenSymbol(correspondingToken),
-                            decimals: correspondingTokenData.decimals,
-                            chainId: toChainId,
-                            logoURI: correspondingTokenData.logoURI,
-                            image: correspondingTokenData.logoURI,
-                          }}
-                          variant="outline"
-                          size="sm"
-                        />
-                      </>
-                    )}
+                            <svg
+                              className="h-4 w-4"
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"
+                              />
+                            </svg>
+                          </motion.button>
+                          <AddToWalletButton
+                            token={{
+                              address: correspondingTokenData.address,
+                              symbol: cleanTokenSymbol(correspondingToken),
+                              decimals: correspondingTokenData.decimals,
+                              chainId: toChainId,
+                              logoURI: correspondingTokenData.logoURI,
+                              image: correspondingTokenData.logoURI,
+                            }}
+                            variant="outline"
+                            size="sm"
+                          />
+                        </>
+                      )}
+                    </div>
                   </div>
-                  <div className="text-sm text-text-muted">
-                    Fee:&nbsp;
-                    {estimate.fee
-                      ? formatAmount(estimate.fee, selectedTokenData?.decimals)
-                      : "0.00"}{" "}
-                    ({estimate.feePercentage || 0}%)
+                ) : estimateError ? (
+                  <div className="text-danger text-sm">
+                    Error loading estimate
                   </div>
-                  <div className="text-sm text-text-muted">Approx. $0.00</div>
-                </div>
-              ) : estimateError ? (
-                <div className="text-danger text-sm">
-                  Error loading estimate
-                </div>
-              ) : (
-                <div className="text-right">
-                  <div className="flex items-center justify-end space-x-2">
-                    <span className="text-lg font-semibold text-text">
-                      {amount || "0.00"}
-                    </span>
+                ) : (
+                  <div className="text-right">
+                    <div className="flex items-center justify-end space-x-2">
+                      <span className="text-lg font-semibold text-text">
+                        {amount || "0.00"}
+                      </span>
 
-                    {correspondingToken && correspondingTokenData && account && (
-                      <>
-                        <motion.button
-                          whileHover={{ scale: 1.05 }}
-                          whileTap={{ scale: 0.95 }}
-                          onClick={async () => {
-                            try {
-                              await navigator.clipboard.writeText(
-                                correspondingTokenData.address || ""
-                              );
-                              toast.success("Token address copied to clipboard");
-                            } catch (error) {
-                              console.error("Failed to copy address:", error);
-                            }
-                          }}
-                          className="flex-shrink-0 rounded-lg border border-border bg-bg-page px-3 py-2 text-xs font-semibold text-text transition-colors hover:border-primary hover:text-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
-                          title="Copy token address"
-                        >
-                          <svg
-                            className="w-4 h-4"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
+                      {correspondingToken && correspondingTokenData && account && (
+                        <>
+                          <motion.button
+                            whileHover={{ scale: 1.05 }}
+                            whileTap={{ scale: 0.95 }}
+                            onClick={async () => {
+                              try {
+                                await navigator.clipboard.writeText(
+                                  correspondingTokenData.address || ""
+                                );
+                                toast.success("Token address copied to clipboard");
+                              } catch (error) {
+                                console.error("Failed to copy address:", error);
+                              }
+                            }}
+                            className="flex-shrink-0 rounded-lg border border-border bg-bg-page px-3 py-2 text-xs font-semibold text-text transition-colors hover:border-primary hover:text-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
+                            title="Copy token address"
                           >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"
-                            />
-                          </svg>
-                        </motion.button>
-                    <AddToWalletButton
-                      token={{
-                        address: correspondingTokenData.address,
-                        symbol: cleanTokenSymbol(correspondingToken),
-                        decimals: correspondingTokenData.decimals,
-                        chainId: toChainId,
-                        logoURI: correspondingTokenData.logoURI,
-                        image: correspondingTokenData.logoURI,
-                      }}
-                      variant="outline"
-                      size="sm"
-                    />
-                      </>
-                    )}
+                            <svg
+                              className="w-4 h-4"
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"
+                              />
+                            </svg>
+                          </motion.button>
+                          <AddToWalletButton
+                            token={{
+                              address: correspondingTokenData.address,
+                              symbol: cleanTokenSymbol(correspondingToken),
+                              decimals: correspondingTokenData.decimals,
+                              chainId: toChainId,
+                              logoURI: correspondingTokenData.logoURI,
+                              image: correspondingTokenData.logoURI,
+                            }}
+                            variant="outline"
+                            size="sm"
+                          />
+                        </>
+                      )}
+                    </div>
                   </div>
-                  <div className="text-sm text-text-muted">≈ $0.00</div>
-                </div>
-              )}
+                )}
+              </div>
             </div>
           </div>
         </div>
-      </div>
       )}
 
       {showBridgeForm && (
@@ -906,7 +894,7 @@ const BridgeCard: React.FC<BridgeCardProps> = ({
           whileTap={{ scale: 0.99 }}
           onClick={handleButtonClick}
           disabled={disabled}
-          className={`mt-6 w-full rounded-xl py-4 text-lg font-semibold transition-all duration-300 shadow-sm ${buttonClasses}`}
+          className={`mt-2 sm:mt-4 w-full rounded-xl py-4 text-lg font-semibold transition-all duration-300 shadow-sm ${buttonClasses}`}
         >
           {isBridging || isApproving ? (
             <div className="flex items-center justify-center space-x-3">

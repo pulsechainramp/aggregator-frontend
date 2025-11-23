@@ -147,7 +147,7 @@ export default function Onramp() {
 
   return (
     <div className="bg-bg-page text-text">
-      <div className="mx-auto max-w-5xl px-4 py-10 sm:px-6 lg:px-8">
+      <div className="mx-auto max-w-5xl px-4 pt-6 pb-10 sm:px-6 sm:py-10 lg:px-8">
         <motion.div
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}

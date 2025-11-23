@@ -191,11 +191,10 @@ const Header = () => {
                   <Link
                     key={path}
                     to={path}
-                    className={`relative flex min-h-[44px] items-center rounded-lg border px-4 py-2 text-sm font-semibold transition-colors ${
-                      active
-                        ? "border-primary bg-primary-050 text-primary shadow-sm"
-                        : "border-transparent text-text-muted hover:border-primary hover:bg-primary-050/80 hover:text-primary"
-                    }`}
+                    className={`relative flex min-h-[44px] items-center rounded-lg border px-4 py-2 text-sm font-semibold transition-colors ${active
+                      ? "border-primary bg-primary-050 text-primary shadow-sm"
+                      : "border-transparent text-text-muted hover:border-primary hover:bg-primary-050/80 hover:text-primary"
+                      }`}
                   >
                     {label}
                   </Link>
@@ -275,8 +274,8 @@ const Header = () => {
                             {referralLoading
                               ? "Loading referral code..."
                               : referralCodeData?.referralCode
-                              ? `Code: ${referralCodeData.referralCode}`
-                              : "No referral code available"}
+                                ? `Code: ${referralCodeData.referralCode}`
+                                : "No referral code available"}
                           </span>
                         </button>
 
@@ -330,11 +329,10 @@ const Header = () => {
                 <Link
                   key={path}
                   to={path}
-                  className={`rounded-lg px-3 py-2 text-center text-base font-semibold transition-colors ${
-                    active
-                      ? "border border-primary bg-primary-050 text-primary shadow-sm"
-                      : "border border-transparent bg-bg-surface text-text-muted hover:border-primary hover:bg-primary-050/80 hover:text-primary"
-                  }`}
+                  className={`rounded-lg px-3 py-2 text-center text-base font-semibold transition-colors ${active
+                    ? "border border-primary bg-primary-050 text-primary shadow-sm"
+                    : "border border-transparent bg-bg-surface text-text-muted hover:border-primary hover:bg-primary-050/80 hover:text-primary"
+                    }`}
                 >
                   {label}
                 </Link>

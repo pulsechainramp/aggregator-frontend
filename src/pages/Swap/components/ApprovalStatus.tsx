@@ -20,7 +20,7 @@ const ApprovalStatus: React.FC<ApprovalStatusProps> = ({
 
   return (
     <div className="mt-3 rounded-xl border border-border bg-bg-surface p-3 sm:mt-4">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-0">
+      <div className="flex items-center justify-between gap-2">
         <span className="text-xs sm:text-sm text-text-subtle">Token Approval Status:</span>
         <div className="flex items-center gap-2">
           {isApproved ? (

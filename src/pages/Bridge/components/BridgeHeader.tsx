@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 
 const BridgeHeader: React.FC = () => {
   return (
-    <div className="mb-6 flex flex-row items-center justify-between gap-4 sm:mb-8">
+    <div className="mb-0 flex flex-row items-center justify-between gap-4 sm:mb-8">
       <h3 className="text-lg font-semibold text-text sm:text-xl">Bridge</h3>
 
       <Link

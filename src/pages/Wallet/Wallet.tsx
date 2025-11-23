@@ -31,19 +31,19 @@ const DESKTOP_WALLETS: WalletEntry[] = [
 
 const MOBILE_WALLETS: WalletEntry[] = [
   {
-    name: "Rabby Mobile",
+    name: "Rabby",
     description: "Pair to the Rabby extension via QR for mobile signing.",
     href: "https://rabby.io/mobile",
     icon: "/icons/rabby.svg",
   },
   {
-    name: "MetaMask Mobile",
+    name: "MetaMask",
     description: "Swipe-friendly MetaMask app for Android and iOS.",
     href: "https://metamask.io/download/",
     icon: "/icons/metamask.svg",
   },
   {
-    name: "Coinbase Wallet App",
+    name: "Coinbase",
     description: "Mobile self-custody wallet with in-app browser.",
     href: "https://www.coinbase.com/wallet",
     icon: "/icons/coinbase.svg",
@@ -70,14 +70,14 @@ const Wallet = () => {
   const deviceLabel = isMobile ? "mobile" : "desktop";
 
   return (
-    <div className="bg-bg-page px-4 py-10 text-text">
-      <div className="mx-auto flex max-w-6xl flex-col gap-8">
+    <div className="bg-bg-page px-4 py-4 sm:py-10 text-text">
+      <div className="mx-auto flex max-w-6xl flex-col gap-6 sm:gap-8">
         <section className="space-y-3 rounded-3xl border border-border bg-bg-surface p-6 shadow-floating sm:p-8">
           <p className="text-sm font-semibold uppercase tracking-wide text-primary">
             Wallet guide
           </p>
           <h1 className="text-3xl font-bold leading-tight sm:text-4xl">
-            Your keys. Your PulseChain journey.
+            Your keys. Your PulseChain.
           </h1>
           <p className="text-base text-text-muted">
             Exchanges hold your funds. A self-custody wallet puts you in charge, so you can bridge, swap, and sign
@@ -98,44 +98,47 @@ const Wallet = () => {
             </p>
           </div>
           <ul className="mt-4 space-y-3">
-            {wallets.map((wallet) => (
-              <li
-                key={wallet.name}
-                className="flex items-center justify-between rounded-2xl border border-border bg-bg-page/80 px-4 py-3"
-              >
-                <div className="flex items-center gap-3">
-                  <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
-                    {wallet.icon ? (
-                      <img
-                        src={wallet.icon}
-                        alt={`${wallet.name} icon`}
-                        className={`object-contain ${
-                          wallet.icon.includes("rabby") ? "h-12 w-12" : "h-8 w-8"
-                        }`}
-                        loading="lazy"
-                      />
-                    ) : (
-                      <span className="font-semibold text-primary">{wallet.name.charAt(0)}</span>
-                    )}
-                  </div>
-                  <div>
-                    <p className="font-semibold text-text">{wallet.name}</p>
-                    <p className="text-sm text-text-muted">{wallet.description}</p>
-                  </div>
-                </div>
-                <a
-                  href={wallet.href}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="inline-flex items-center gap-3 rounded-xl border border-primary bg-primary px-5 py-3 text-base font-semibold text-white transition-all hover:-translate-y-0.5 hover:bg-primary-600 hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
+            {wallets.map((wallet) => {
+              const isRabby = wallet.icon.includes("rabby");
+
+              return (
+                <li
+                  key={wallet.name}
+                  className="flex w-full items-center justify-between gap-3 sm:gap-4 rounded-2xl border border-border bg-bg-page/80 px-4 py-3"
                 >
-                  Visit site
-                  <span aria-hidden="true" className="text-lg">
-                    →
-                  </span>
-                </a>
-              </li>
-            ))}
+                  <div className="flex min-w-0 items-center gap-2 sm:gap-3">
+                    <div
+                      className={`flex ${isRabby ? "h-12 w-12 min-w-[3rem] sm:h-10 sm:w-10 sm:min-w-[2.5rem]" : "h-10 w-10 min-w-[2.5rem] sm:h-9 sm:w-9 sm:min-w-[2.25rem]"} items-center justify-center rounded-full bg-primary/10`}
+                    >
+                      {wallet.icon ? (
+                        <img
+                          src={wallet.icon}
+                          alt={`${wallet.name} icon`}
+                          className={`object-contain ${isRabby ? "h-11 w-11 sm:h-9 sm:w-9" : "h-8 w-8 sm:h-6 sm:w-6"}`}
+                          loading="lazy"
+                        />
+                      ) : (
+                        <span className="font-semibold text-primary">{wallet.name.charAt(0)}</span>
+                      )}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="truncate font-semibold text-text">{wallet.name}</p>
+                    </div>
+                  </div>
+                  <a
+                    className="ml-auto inline-flex shrink-0 items-center gap-2 rounded-xl border border-primary bg-primary px-4 py-2 text-sm font-semibold text-white transition-all hover:-translate-y-0.5 hover:bg-primary-600 hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus sm:px-5 sm:py-3 sm:text-base sm:gap-3"
+                    href={wallet.href}
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    Visit
+                    <span aria-hidden="true" className="text-lg">
+                      &rarr;
+                    </span>
+                  </a>
+                </li>
+              );
+            })}
           </ul>
         </section>
 

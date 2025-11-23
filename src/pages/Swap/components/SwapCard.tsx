@@ -103,7 +103,7 @@ const SwapCard: React.FC<SwapCardProps> = ({
   };
 
   return (
-    <motion.div className="relative flex flex-col gap-4 rounded-xl border border-border bg-bg-surface p-4 shadow-sm sm:p-6">
+    <motion.div className="relative flex flex-col gap-2 rounded-xl border border-border bg-bg-surface p-3 shadow-sm sm:gap-4 sm:p-6">
       {/* From Token Section */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div className="flex flex-col gap-2">
@@ -118,7 +118,7 @@ const SwapCard: React.FC<SwapCardProps> = ({
             </div>
           )}
         </div>
-        
+
         <div className="flex items-center">
           <AmountInput
             amount={fromAmount}
@@ -127,7 +127,7 @@ const SwapCard: React.FC<SwapCardProps> = ({
             isOutput={false}
             balance={
               fromToken?.address ===
-              "0x0000000000000000000000000000000000000000"
+                "0x0000000000000000000000000000000000000000"
                 ? nativeBalance
                 : fromTokenBalance
             }
@@ -144,7 +144,7 @@ const SwapCard: React.FC<SwapCardProps> = ({
               try {
                 if (!isOnPulseChain()) {
                   await switchToChain(369);
-                  try { await waitForChain(wallet.provider as unknown as EIP1193Provider, 369); } catch {}
+                  try { await waitForChain(wallet.provider as unknown as EIP1193Provider, 369); } catch { }
                 }
 
                 const result = await addTokenToWallet(
@@ -169,7 +169,7 @@ const SwapCard: React.FC<SwapCardProps> = ({
       </div>
 
       {/* Token Swap Button */}
-      <div className="flex justify-center">
+      <div className="flex justify-center relative z-10">
         <TokenSwapButton onSwap={onTokenSwap} />
       </div>
 
@@ -187,7 +187,7 @@ const SwapCard: React.FC<SwapCardProps> = ({
             </div>
           )}
         </div>
-        
+
         <div className="flex items-center">
           <AmountInput
             amount={fromAmount}
@@ -214,7 +214,7 @@ const SwapCard: React.FC<SwapCardProps> = ({
               try {
                 if (!isOnPulseChain()) {
                   await switchToChain(369);
-                  try { await waitForChain(wallet.provider as unknown as EIP1193Provider, 369); } catch {}
+                  try { await waitForChain(wallet.provider as unknown as EIP1193Provider, 369); } catch { }
                 }
 
                 const result = await addTokenToWallet(

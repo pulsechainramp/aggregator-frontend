@@ -165,7 +165,7 @@ const SwapButton: React.FC<SwapButtonProps> = ({
             onSwap();
           }
         }}
-        className={`mt-6 w-full rounded-xl border py-4 text-lg font-semibold transition-colors ${
+        className={`mt-2 w-full rounded-xl border py-4 text-lg font-semibold transition-colors ${
           isDisabled()
             ? "cursor-not-allowed border-border bg-bg-page text-text-muted"
             : isConnect || (account && !isOnPulseChain())

@@ -51,7 +51,7 @@ const AmountInput: React.FC<AmountInputProps> = ({
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (isOutput) return; // Output field is read-only
-    
+
     const value = e.target.value.replace(/[^0-9.]/g, "");
     const parts = value.split(".");
     if (parts.length > 2) {
@@ -63,7 +63,7 @@ const AmountInput: React.FC<AmountInputProps> = ({
 
   const handleMaxClick = () => {
     if (isOutput) return; // Don't allow max click on output field
-    
+
     // Use actual balance from props
     if (balance && !balanceLoading && parseFloat(balance) > 0) {
       onAmountChange(balance);
@@ -82,11 +82,11 @@ const AmountInput: React.FC<AmountInputProps> = ({
 
   const getPriceDisplay = () => {
     if (!token?.price) return "0.00$";
-    
-    const priceValue = isOutput 
+
+    const priceValue = isOutput
       ? Number(token.price) * Number(outputAmount)
       : Number(token.price) * Number(amount);
-    
+
     return `$${priceValue.toFixed(2)}`;
   };
 
@@ -117,14 +117,14 @@ const AmountInput: React.FC<AmountInputProps> = ({
             <motion.input
               whileFocus={{ scale: 1.02 }}
               type="text"
-              placeholder="Enter an Amount"
+              placeholder="Amount"
               value={getDisplayValue()}
               onChange={handleInputChange}
-              className="w-full rounded-xl border border-border bg-bg-surface px-4 py-3 text-right text-lg font-semibold text-text transition-colors placeholder-text-muted focus:border-primary focus:outline-none sm:text-xl"
+              className="w-full rounded-xl border border-border bg-bg-surface px-4 py-3 text-right text-xl font-semibold text-text transition-colors placeholder-text-muted focus:border-primary focus:outline-none sm:text-xl"
             />
           </div>
         )}
-        
+
         {/* Consistent Button Group - Always Show for Both Input and Output */}
         <div className="flex items-center gap-2">
           {/* MAX Button - Only for Input */}
@@ -181,7 +181,7 @@ const AmountInput: React.FC<AmountInputProps> = ({
           ) : null}
         </div>
       </div>
-      
+
       <div className="text-xs text-text-muted sm:text-sm">
         {isLoading ? (
           <div className="h-5 w-12 animate-pulse rounded-full bg-border opacity-60 sm:h-6 sm:w-16"></div>

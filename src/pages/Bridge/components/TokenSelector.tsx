@@ -17,27 +17,27 @@ const FlowingText: React.FC<{ text: string; className?: string }> = ({ text, cla
   const [isOverflowing, setIsOverflowing] = useState(false);
   const [animationDistance, setAnimationDistance] = useState(0);
   const containerRef = useRef<HTMLDivElement>(null);
-  
+
   const checkOverflow = () => {
     if (containerRef.current) {
       const containerWidth = containerRef.current.clientWidth;
       const textWidth = containerRef.current.scrollWidth;
       const isTextOverflowing = textWidth > containerWidth;
       setIsOverflowing(isTextOverflowing);
-      
+
       if (isTextOverflowing) {
         // Calculate the distance needed to show the full text
         setAnimationDistance(textWidth - containerWidth + 20); // Add 20px padding
       }
     }
   };
-  
+
   useEffect(() => {
     checkOverflow();
   }, [text]);
-  
+
   return (
-    <div 
+    <div
       ref={containerRef}
       className={`overflow-hidden ${className}`}
       onMouseEnter={() => isOverflowing && setIsHovered(true)}
@@ -46,8 +46,8 @@ const FlowingText: React.FC<{ text: string; className?: string }> = ({ text, cla
       <motion.div
         className="whitespace-nowrap inline-block"
         animate={isHovered && isOverflowing ? { x: [0, -animationDistance, 0] } : { x: 0 }}
-        transition={{ 
-          duration: isOverflowing ? 6 : 0, 
+        transition={{
+          duration: isOverflowing ? 6 : 0,
           repeat: isHovered && isOverflowing ? Infinity : 0,
           ease: "linear",
           delay: isHovered ? 0.5 : 0
@@ -106,7 +106,7 @@ const TokenSelector: React.FC<TokenSelectorProps> = ({
   const selectedTokenData = tokens.find(token => token.symbol === selectedToken);
 
   return (
-    <motion.div 
+    <motion.div
       initial={{ opacity: 0, x: -20 }}
       animate={{ opacity: 1, x: 0 }}
       transition={{ duration: 0.3 }}
@@ -118,7 +118,7 @@ const TokenSelector: React.FC<TokenSelectorProps> = ({
         whileTap={{ scale: 0.98 }}
         onClick={() => setIsOpen(!isOpen)}
         disabled={loading}
-        className="flex w-full items-center justify-between rounded-xl border border-border bg-bg-surface p-4 text-left shadow-sm transition-colors hover:border-primary hover:bg-primary-050/60 disabled:cursor-not-allowed disabled:opacity-60"
+        className="flex w-full items-center justify-between rounded-xl border border-border bg-bg-surface px-4 py-2 sm:py-4 text-left shadow-sm transition-colors hover:border-primary hover:bg-primary-050/60 disabled:cursor-not-allowed disabled:opacity-60"
       >
         <div className="flex items-center gap-3">
           {selectedTokenData ? (
@@ -132,12 +132,12 @@ const TokenSelector: React.FC<TokenSelectorProps> = ({
                 size={40}
               />
               <div className="text-left">
-                <FlowingText 
-                  text={selectedTokenData.symbol} 
+                <FlowingText
+                  text={selectedTokenData.symbol}
                   className="max-w-[120px] text-base font-semibold text-text"
                 />
-                <FlowingText 
-                  text={selectedTokenData.name} 
+                <FlowingText
+                  text={selectedTokenData.name}
                   className="max-w-[120px] text-sm text-text-muted"
                 />
               </div>
@@ -200,11 +200,10 @@ const TokenSelector: React.FC<TokenSelectorProps> = ({
                       onTokenSelect(token);
                       setIsOpen(false);
                     }}
-                    className={`flex w-full items-center gap-3 rounded-lg p-3 text-left transition-colors ${
-                      selectedToken === token.symbol
+                    className={`flex w-full items-center gap-3 rounded-lg p-3 text-left transition-colors ${selectedToken === token.symbol
                         ? 'border border-primary bg-primary-050 text-primary shadow-sm'
                         : 'border border-transparent text-text hover:border-primary hover:bg-primary-050/60'
-                    }`}
+                      }`}
                   >
                     <TokenIcon
                       token={{
@@ -215,12 +214,12 @@ const TokenSelector: React.FC<TokenSelectorProps> = ({
                       size={32}
                     />
                     <div className="min-w-0 flex-1 text-left">
-                      <FlowingText 
-                        text={token.symbol} 
+                      <FlowingText
+                        text={token.symbol}
                         className="max-w-[100px] text-sm font-semibold text-text"
                       />
-                      <FlowingText 
-                        text={token.name} 
+                      <FlowingText
+                        text={token.name}
                         className="max-w-[100px] text-xs text-text-muted"
                       />
                     </div>

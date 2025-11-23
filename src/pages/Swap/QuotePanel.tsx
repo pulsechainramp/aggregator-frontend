@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { ChevronDownIcon, ChevronUpIcon } from "@heroicons/react/24/solid";
+import { ChevronDownIcon, ChevronUpIcon, XMarkIcon } from "@heroicons/react/24/solid";
 import RouteDetailsPopup from "./RouteDetailPopup";
 import { motion } from "framer-motion";
 import { useQuoteSummary } from "../../hooks/useQuoteSummary";
@@ -150,13 +150,19 @@ const QuotePanel = () => {
           onClick={() => setShowRoute(false)}
         >
           <motion.div
-            className="max-w-full rounded-2xl border border-border bg-bg-surface p-6 text-text shadow-floating"
+            className="relative max-w-full rounded-2xl border border-border bg-bg-surface p-6 text-text shadow-floating"
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.95 }}
             transition={{ duration: 0.2 }}
             onClick={(e) => e.stopPropagation()}
           >
+            <button
+              onClick={() => setShowRoute(false)}
+              className="absolute right-4 top-4 text-text-muted hover:text-text"
+            >
+              <XMarkIcon className="h-6 w-6" />
+            </button>
             <RouteDetailsPopup />
           </motion.div>
         </div>
