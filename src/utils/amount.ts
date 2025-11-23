@@ -52,6 +52,33 @@ export function compareAmountStrings(
   return left > right ? 1 : -1;
 }
 
+export function truncateToDecimals(value: string, decimals: number): string {
+  if (value === "") return "";
+  const safeDecimals = Number.isFinite(decimals) ? Math.max(0, decimals) : 0;
+
+  if (safeDecimals === 0) {
+    const integer = value.split(".")[0];
+    return integer ?? "";
+  }
+
+  const dotIndex = value.indexOf(".");
+  if (dotIndex === -1) {
+    return value;
+  }
+
+  const integerRaw = value.slice(0, dotIndex);
+  const integer = integerRaw === "" ? "0" : integerRaw;
+  const fraction = value.slice(dotIndex + 1);
+  if (fraction.length === 0) {
+    return integer;
+  }
+  if (fraction.length <= safeDecimals) {
+    return `${integer}.${fraction}`;
+  }
+
+  return `${integer}.${fraction.slice(0, safeDecimals)}`;
+}
+
 export function formatWeiAmount(
   value: bigint | string,
   decimals: number

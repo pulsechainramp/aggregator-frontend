@@ -23,7 +23,8 @@ import { fetchPiteasQuoteClient } from "../utils/piteasQuote";
 import { requestQuoteAttestation } from "../utils/quoteAttestation";
 import { validateQuoteIntegrity } from "../utils/quoteValidation";
 import { decodeSwapRouteSummary } from "../utils/routeEncoding";
-import { normalizeAmountInput, areAmountsEqual } from "../utils/amount";
+import { normalizeAmountInput, areAmountsEqual, truncateToDecimals } from "../utils/amount";
+import { isPulseChainToken } from "../utils/token";
 
 const getPublicAssetUrl = (assetPath: string) => {
   const baseUrl = import.meta.env.BASE_URL ?? "/";
@@ -523,22 +524,39 @@ export const loadPulsexTokens = createAsyncThunk(
   }
 );
 
-export const getTokenPrice = createAsyncThunk(
+export const getTokenPrice = createAsyncThunk<
+  number,
+  { address: string; blockchainNetwork?: string; chainId?: number; type: "from" | "to" },
+  { rejectValue: string }
+>(
   "swap/getTokenPrice",
-  async ({
-    address,
-    blockchainNetwork,
-    type,
-  }: {
-    address: string;
-    blockchainNetwork: string;
-    type: "from" | "to";
-  }) => {
-    const response = await fetch(
-      `https://api.rubic.exchange/api/v2/tokens/price/${blockchainNetwork}/${address}`
-    );
-    const data = await response.json();
-    return data?.usd_price || 0;
+  async ({ address, blockchainNetwork, chainId }, { rejectWithValue }) => {
+    if (!isPulseChainToken({ blockchainNetwork, chainId })) {
+      return rejectWithValue("Price lookup only supported on PulseChain");
+    }
+
+    try {
+      const response = await fetch(`${BackendURL}token/price?address=${address}`);
+      if (!response.ok) {
+        return rejectWithValue(`Price request failed (${response.status})`);
+      }
+
+      const contentType = response.headers.get("content-type") ?? "";
+      if (!contentType.toLowerCase().includes("application/json")) {
+        return rejectWithValue("Unexpected price response format");
+      }
+
+      const data = await response.json();
+      if (typeof data?.usd_price !== "number") {
+        return rejectWithValue("Price response missing usd_price");
+      }
+
+      return data.usd_price;
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "Failed to fetch token price";
+      return rejectWithValue(message);
+    }
   }
 );
 
@@ -562,10 +580,12 @@ export const getPulseXQuote = createAsyncThunk<
     fromDecimal,
   }) => {
     const normalizedAmount = normalizeAmountInput(amount);
+    const safeAmount = truncateToDecimals(normalizedAmount, fromDecimal);
+
     const params = new URLSearchParams({
       tokenInAddress,
       tokenOutAddress,
-      amount: ethers.parseUnits(normalizedAmount, fromDecimal).toString(),
+      amount: ethers.parseUnits(safeAmount, fromDecimal).toString(),
       allowedSlippage: allowedSlippage.toString(),
       fromDecimal: fromDecimal.toString(),
     });
@@ -745,9 +765,9 @@ export const getQuote = createAsyncThunk<
         throw error;
       }
     };
-    
+
     // Check if this is a new quote request (different parameters)
-    const isNewQuoteRequest = !lastPulseXParams || 
+    const isNewQuoteRequest = !lastPulseXParams ||
       lastPulseXParams.tokenInAddress.toLowerCase() !== tokenInAddress.toLowerCase() ||
       lastPulseXParams.tokenOutAddress.toLowerCase() !== tokenOutAddress.toLowerCase() ||
       lastPulseXParams.amount !== normalizedAmount ||
@@ -996,7 +1016,7 @@ export const swapSlice = createSlice({
       });
 
     builder
-      .addCase(getTokenPrice.pending, (state) => {})
+      .addCase(getTokenPrice.pending, (state) => { })
       .addCase(getTokenPrice.fulfilled, (state, action) => {
         if (action.meta.arg.type === "from") {
           state.fromToken = {
@@ -1012,7 +1032,13 @@ export const swapSlice = createSlice({
         }
       })
       .addCase(getTokenPrice.rejected, (state, action) => {
-        console.error("Failed to get token price:", action.error);
+        console.error("Failed to get token price:", action.payload ?? action.error);
+        if (action.meta.arg.type === "from" && state.fromToken) {
+          state.fromToken = { ...state.fromToken, price: undefined };
+        }
+        if (action.meta.arg.type === "to" && state.toToken) {
+          state.toToken = { ...state.toToken, price: undefined };
+        }
       });
 
     builder
@@ -1034,7 +1060,7 @@ export const swapSlice = createSlice({
       });
 
     builder
-      .addCase(getTokenBalance.fulfilled, (state, action) => {})
+      .addCase(getTokenBalance.fulfilled, (state, action) => { })
       .addCase(getTokenBalance.rejected, (state, action) => {
         console.error("Failed to get token balance:", action.error);
       });
@@ -1048,7 +1074,7 @@ export const swapSlice = createSlice({
       });
 
     builder
-      .addCase(refreshBalancesAfterSwap.pending, (state) => {})
+      .addCase(refreshBalancesAfterSwap.pending, (state) => { })
       .addCase(refreshBalancesAfterSwap.fulfilled, (state, action) => {
         state.fromTokenBalance = action.payload.fromTokenBalance;
         state.toTokenBalance = action.payload.toTokenBalance;
