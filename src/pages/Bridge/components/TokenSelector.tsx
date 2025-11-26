@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { BridgeToken } from "../../../store/bridgeSlice";
 import TokenIcon from "../../../components/TokenIcon";
@@ -68,6 +68,23 @@ const TokenSelector: React.FC<TokenSelectorProps> = ({
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const selectorRef = useRef<HTMLDivElement>(null);
+  const priorityOrder = useMemo(
+    () => ["ETH", "USDC", "USDT", "DAI", "WBTC", "WETH"],
+    []
+  );
+  const sortedTokens = useMemo(() => {
+    const priorityIndex = new Map(priorityOrder.map((sym, idx) => [sym, idx]));
+    return [...tokens].sort((a, b) => {
+      const aPriority = priorityIndex.has(a.symbol)
+        ? priorityIndex.get(a.symbol)!
+        : priorityOrder.length;
+      const bPriority = priorityIndex.has(b.symbol)
+        ? priorityIndex.get(b.symbol)!
+        : priorityOrder.length;
+      if (aPriority !== bPriority) return aPriority - bPriority;
+      return a.symbol.localeCompare(b.symbol);
+    });
+  }, [tokens, priorityOrder]);
 
   useEffect(() => {
     if (!isOpen) {
@@ -95,10 +112,10 @@ const TokenSelector: React.FC<TokenSelectorProps> = ({
       return token.logoURI;
     }
     if (token.symbol === 'ETH' && token.address === '0x0000000000000000000000000000000000000000') {
-      return 'https://api-assets.rubic.exchange/assets/rubic/eth/0x0000000000000000000000000000000000000000/logo_9LYU9u5.png';
+      return '/token-logos/eth/0x0000000000000000000000000000000000000000.png';
     }
     if (token.symbol === 'PLS' && token.address === '0x0000000000000000000000000000000000000000') {
-      return 'https://api-assets.rubic.exchange/assets/coingecko/pulsechain/0x0000000000000000000000000000000000000000/logo.png';
+      return '/token-logos/pulsex/369/0x0000000000000000000000000000000000000000.png';
     }
     return undefined;
   };
@@ -191,7 +208,7 @@ const TokenSelector: React.FC<TokenSelectorProps> = ({
                   No tokens available
                 </div>
               ) : (
-                tokens.map((token, index) => (
+                sortedTokens.map((token, index) => (
                   <motion.button
                     key={index}
                     whileHover={{ scale: 1.02 }}

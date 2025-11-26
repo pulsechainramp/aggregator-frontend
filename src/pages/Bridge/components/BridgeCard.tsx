@@ -137,12 +137,13 @@ const BridgeCard: React.FC<BridgeCardProps> = ({
       : "bg-success/10 text-success";
   };
 
+  // Prefer our bundled static logos for native chain badges
   const getNetworkLogo = (network: "ETH" | "PLS"): string | undefined => {
     if (network === "ETH") {
-      return "https://api-assets.rubic.exchange/assets/rubic/eth/0x0000000000000000000000000000000000000000/logo_9LYU9u5.png";
+      return "/token-logos/eth/0x0000000000000000000000000000000000000000.png";
     }
     if (network === "PLS") {
-      return "https://api-assets.rubic.exchange/assets/coingecko/pulsechain/0x0000000000000000000000000000000000000000/logo.png";
+      return "/token-logos/pulsex/369/0x0000000000000000000000000000000000000000.png";
     }
     return undefined;
   };
