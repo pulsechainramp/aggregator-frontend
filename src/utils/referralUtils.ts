@@ -1,16 +1,24 @@
+import { formatPercentage } from "./numberFormat";
+
 /**
  * Format fee basis points to percentage
  * @param feeBasisPoints - The fee basis points as a string
+ * @param locale - Optional locale for formatting
  * @returns Formatted percentage string
  */
-export const formatFeeBasisPoints = (feeBasisPoints: string): string => {
+export const formatFeeBasisPoints = (
+  feeBasisPoints: string,
+  locale = "en-US"
+): string => {
   try {
-    const fee = parseInt(feeBasisPoints);
-    if (isNaN(fee)) return "0.00%";
-    return `${(fee / 100).toFixed(2)}%`;
+    const fee = parseInt(feeBasisPoints, 10);
+    if (Number.isNaN(fee)) {
+      return formatPercentage(0, { locale, fractionDigits: 2 });
+    }
+    return formatPercentage(fee / 10_000, { locale, fractionDigits: 2 });
   } catch (error) {
     console.error('Error formatting fee basis points:', error);
-    return "0.00%";
+    return formatPercentage(0, { locale, fractionDigits: 2 });
   }
 };
 

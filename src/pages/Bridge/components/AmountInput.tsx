@@ -1,14 +1,13 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import ProviderIcon from "../../../components/ProviderIcon";
 import useWallet from "../../../hooks/useWallet";
 import AddToWalletButton from "../../../components/AddToWalletButton";
 import { tryParseAmountToWei } from "../../../utils/amount";
 import { ZeroAddress } from "../../../const/swap";
 import {
   MIN_NATIVE_ETH_AMOUNT_WEI,
-  MIN_NATIVE_ETH_AMOUNT_DISPLAY,
 } from "../constants";
+import { useNumberFormat } from "../../../context/NumberFormatContext";
 
 interface AmountInputProps {
   value: string;
@@ -41,14 +40,53 @@ const AmountInput: React.FC<AmountInputProps> = ({
   const { wallet, account, currentChainId } = useWallet();
   const injected = (wallet as any)?.provider?.provider ?? (wallet as any)?.provider ?? null;
   const isConnected = !!account;
+  const { sanitizeInput, normalizeInput, formatNumber, parseInput } = useNumberFormat();
+  const [displayValue, setDisplayValue] = useState<string>(value ?? "");
+  const placeholder = formatNumber(0, {
+    minFractionDigits: 2,
+    maxFractionDigits: 2,
+  });
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const inputValue = e.target.value;
-    // Only allow numbers and decimals
-    if (/^\d*\.?\d*$/.test(inputValue) || inputValue === "") {
-      onChange(inputValue);
-    }
+    const sanitized = sanitizeInput(inputValue);
+    setDisplayValue(sanitized);
+    onChange(normalizeInput(sanitized));
   };
+
+  useEffect(() => {
+    if (value === undefined || value === null) {
+      setDisplayValue("");
+      return;
+    }
+
+    // Preserve in-progress decimal input (e.g., "0." from "0," in locales) without reformatting it away.
+    if (value === "-" || value === "." || value.endsWith(".")) {
+      return;
+    }
+
+    if (!value) {
+      setDisplayValue("");
+      return;
+    }
+
+    const numeric = parseInput(value);
+    if (!Number.isFinite(numeric)) {
+      setDisplayValue(value);
+      return;
+    }
+
+    const fractionLength = value.includes(".")
+      ? (value.split(".")[1]?.length ?? 0)
+      : 0;
+
+    setDisplayValue(
+      formatNumber(numeric, {
+        minFractionDigits: fractionLength,
+        maxFractionDigits: Math.max(6, fractionLength),
+      })
+    );
+  }, [value, formatNumber, parseInput]);
 
   const tokenDecimals = selectedTokenData?.decimals ?? 18;
 
@@ -57,6 +95,10 @@ const AmountInput: React.FC<AmountInputProps> = ({
     const balanceWei = tryParseAmountToWei(balance, tokenDecimals);
     if (balanceWei && balanceWei > 0n) {
       onChange(balance);
+      const numeric = parseFloat(balance);
+      if (Number.isFinite(numeric)) {
+        setDisplayValue(formatNumber(numeric, { maxFractionDigits: 18 }));
+      }
     }
   };
 
@@ -69,6 +111,11 @@ const AmountInput: React.FC<AmountInputProps> = ({
     amountWei !== null &&
     amountWei > 0n &&
     amountWei < MIN_NATIVE_ETH_AMOUNT_WEI;
+
+  const formattedMinEth = formatNumber(
+    Number(MIN_NATIVE_ETH_AMOUNT_WEI) / 1e18,
+    { maxFractionDigits: 6 }
+  );
 
   return (
     <motion.div
@@ -85,9 +132,9 @@ const AmountInput: React.FC<AmountInputProps> = ({
         <div className="mr-4 min-w-0 flex-1">
           <input
             type="text"
-            value={value}
+            value={displayValue}
             onChange={handleInputChange}
-            placeholder="0.00"
+            placeholder={placeholder}
             className={`w-full bg-transparent text-xl font-semibold placeholder-text-muted focus:outline-none ${
               isBelowMinimum ? "text-danger" : "text-text"
             }`}
@@ -156,7 +203,7 @@ const AmountInput: React.FC<AmountInputProps> = ({
             <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
               <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
             </svg>
-            <span>The PulseChain bridge requires a minimum of {MIN_NATIVE_ETH_AMOUNT_DISPLAY} ETH for this transaction.</span>
+            <span>The PulseChain bridge requires a minimum of {formattedMinEth} ETH for this transaction.</span>
           </div>
           
           {/* Tooltip Icon */}

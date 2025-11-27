@@ -109,7 +109,7 @@ describe("filterAndSortTokensByBalance", () => {
 describe("formatBalanceDisplay", () => {
   it("formats large, small, and zero balances", () => {
     expect(formatBalanceDisplay("0", 18)).toEqual("0");
-    expect(formatBalanceDisplay("100000000000000", 18)).toEqual("<0.0001");
-    expect(formatBalanceDisplay("1500000000000000000", 18)).toEqual("1.50");
+    expect(formatBalanceDisplay("100000000000000", 18)).toEqual("0.0001");
+    expect(formatBalanceDisplay("1500000000000000000", 18)).toEqual("1.5");
   });
 });

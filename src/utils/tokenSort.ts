@@ -1,5 +1,6 @@
 import { formatUnits } from "ethers";
 import { TokenType } from "../types/Swap";
+import { getSeparatorsForLocale } from "./numberFormat";
 
 type SortParams = {
   tokens: TokenType[];
@@ -78,38 +79,45 @@ export const filterAndSortTokensByBalance = ({
 
 export const formatBalanceDisplay = (
   rawBalance: string | undefined,
-  decimals: number
+  decimals: number,
+  locale?: string
 ) => {
   try {
     const raw = rawBalance ?? "0";
-    if (BigInt(raw) === 0n) return "0";
+    const asBigInt = BigInt(raw);
+    if (asBigInt === 0n) return "0";
 
-    const formatted = formatUnits(raw, decimals);
-    // Avoid Number overflow; use string-based thresholds
-    const parts = formatted.split(".");
-    const whole = parts[0];
-    const fraction = parts[1] ?? "";
+    const decimalString = formatUnits(asBigInt, decimals);
+    const localeToUse = locale ?? "en-US";
+    const numeric = Number(decimalString);
 
-    // Very small
-    if (whole === "0") {
-      const significant = (fraction + "0000").slice(0, 4);
-      return Number(`0.${significant}`) <= 0.0001 ? "<0.0001" : `0.${significant}`;
+    // Use Intl for values within safe range and that won't round to zero
+    if (
+      Number.isFinite(numeric) &&
+      Math.abs(numeric) >= 1e-10 &&
+      decimalString.replace(/^0+|\./g, "").length <= 15
+    ) {
+      return new Intl.NumberFormat(localeToUse, {
+        maximumFractionDigits: 6,
+      }).format(numeric);
     }
 
-    // Very large, shorten without Number coercion
-    if (whole.length > 9) {
-      const millions = whole.slice(0, whole.length - 6);
-      const tail = whole.slice(whole.length - 6, whole.length - 4);
-      return `${millions}.${tail}M`;
-    }
+    // Manual formatting to avoid precision loss for very large/small values
+    const { decimal, group } = getSeparatorsForLocale(localeToUse);
+    const isNegative = decimalString.startsWith("-");
+    const unsigned = isNegative ? decimalString.slice(1) : decimalString;
+    const [integerPartRaw, fractionRaw = ""] = unsigned.split(".");
+    const groupedInteger = integerPartRaw.replace(
+      /\B(?=(\d{3})+(?!\d))/g,
+      group
+    );
+    const trimmedFraction = fractionRaw.slice(0, 6).replace(/0+$/, "");
+    const formatted =
+      trimmedFraction.length > 0
+        ? `${groupedInteger}${decimal}${trimmedFraction}`
+        : groupedInteger;
 
-    const numeric = Number(formatted);
-
-    if (!Number.isFinite(numeric)) return formatted;
-    if (numeric < 1) return numeric.toFixed(4);
-    if (numeric < 1000) return numeric.toFixed(2);
-    if (numeric < 1_000_000) return (numeric / 1000).toFixed(2) + "K";
-    return (numeric / 1_000_000).toFixed(2) + "M";
+    return isNegative ? `-${formatted}` : formatted;
   } catch {
     return "0";
   }

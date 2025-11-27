@@ -1,21 +1,21 @@
-import { Cog6ToothIcon } from "@heroicons/react/24/solid";
-import { ArrowPathIcon } from "@heroicons/react/24/solid";
-import { CurrencyDollarIcon } from "@heroicons/react/24/solid";
+import { ArrowPathIcon, Cog6ToothIcon, GlobeAltIcon } from "@heroicons/react/24/solid";
 import { motion } from "framer-motion";
 import React from "react";
 import { Link } from "react-router-dom";
 
 interface SwapHeaderProps {
-  slippage: number;
+  slippageLabel: string;
   onSlippageClick: () => void;
   onRefreshClick: () => void;
   isRefreshing?: boolean;
+  onLocaleClick: () => void;
 }
 
 const SwapHeader: React.FC<SwapHeaderProps> = ({
-  slippage,
+  slippageLabel,
   onSlippageClick,
   onRefreshClick,
+  onLocaleClick,
   isRefreshing = false
 }) => {
   return (
@@ -23,7 +23,7 @@ const SwapHeader: React.FC<SwapHeaderProps> = ({
       <h3 className="font-semibold text-lg sm:text-xl">Swap</h3>
       <div className="flex items-center gap-1 sm:gap-2">
         <div className="text-xs text-text-muted rounded-full bg-primary-050 px-1.5 py-1 text-primary sm:px-2">
-          {slippage}% slippage
+          {slippageLabel} slippage
         </div>
         <motion.div
           whileHover={{ rotate: 360 }}
@@ -32,8 +32,14 @@ const SwapHeader: React.FC<SwapHeaderProps> = ({
           onClick={onRefreshClick}
         >
           <ArrowPathIcon
-            className={`h-6 w-6 text-text-muted hover:text-primary ${isRefreshing ? 'animate-spin' : ''
+          className={`h-6 w-6 text-text-muted hover:text-primary ${isRefreshing ? 'animate-spin' : ''
               }`}
+          />
+        </motion.div>
+        <motion.div whileHover={{ scale: 1.1 }} className="cursor-pointer">
+          <GlobeAltIcon
+            className="h-6 w-6 text-text-muted hover:text-primary"
+            onClick={onLocaleClick}
           />
         </motion.div>
         <motion.div

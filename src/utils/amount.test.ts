@@ -18,6 +18,11 @@ describe("normalizeAmountInput", () => {
     expect(() => ethers.parseUnits(normalized, 18)).not.toThrow();
   });
 
+  it("accepts comma decimals and normalizes to dot", () => {
+    expect(normalizeAmountInput("1,5")).toBe("1.5");
+    expect(normalizeAmountInput("1.234,56")).toBe("1234.56");
+  });
+
   it("rejects empty strings", () => {
     expect(() => normalizeAmountInput("   ")).toThrow(/required/i);
   });

@@ -1,9 +1,9 @@
 import { motion } from "framer-motion";
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { TokenType } from "../../../types/Swap";
-import ProviderIcon from "../../../components/ProviderIcon";
 import useWallet from "../../../hooks/useWallet";
 import AddToWalletButton from "../../../components/AddToWalletButton";
+import { useNumberFormat } from "../../../context/NumberFormatContext";
 
 interface AmountInputProps {
   amount: string;
@@ -30,6 +30,17 @@ const AmountInput: React.FC<AmountInputProps> = ({
   onCopyAddress,
   onAddToWallet,
 }) => {
+  const {
+    sanitizeInput,
+    normalizeInput,
+    formatNumber,
+    formatCurrency,
+    locale,
+    parseInput,
+  } = useNumberFormat();
+
+  const [displayValue, setDisplayValue] = useState<string>(amount ?? "");
+
   // Use the injected EIP-1193 provider from web3-onboard (unwrap if wrapped)
   const { wallet, account, currentChainId } = useWallet();
   const injected =
@@ -38,27 +49,37 @@ const AmountInput: React.FC<AmountInputProps> = ({
     null;
   const isConnected = !!account;
 
-  const formatAmount = (value: string) => {
-    if (!value) return "";
-    if (value.includes(".")) {
-      const parts = value.split(".");
-      return (
-        parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ",") + "." + parts[1]
-      );
+  useEffect(() => {
+    if (isOutput) {
+      const formattedOutput = Number.isFinite(outputAmount)
+        ? formatNumber(outputAmount, { maxFractionDigits: 8 })
+        : "0";
+      setDisplayValue(formattedOutput);
+      return;
     }
-    return Number(value).toLocaleString();
-  };
+    if (!amount) {
+      setDisplayValue("");
+      return;
+    }
+    const numeric = parseInput(amount);
+    if (!Number.isFinite(numeric)) {
+      setDisplayValue(amount);
+      return;
+    }
+    setDisplayValue(
+      formatNumber(numeric, {
+        maxFractionDigits: 18,
+      })
+    );
+  }, [amount, formatNumber, isOutput, outputAmount, locale, parseInput]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (isOutput) return; // Output field is read-only
 
-    const value = e.target.value.replace(/[^0-9.]/g, "");
-    const parts = value.split(".");
-    if (parts.length > 2) {
-      onAmountChange(parts[0] + "." + parts.slice(1).join(""));
-    } else {
-      onAmountChange(value);
-    }
+    const raw = e.target.value;
+    const sanitized = sanitizeInput(raw);
+    setDisplayValue(sanitized);
+    onAmountChange(normalizeInput(sanitized));
   };
 
   const handleMaxClick = () => {
@@ -67,27 +88,33 @@ const AmountInput: React.FC<AmountInputProps> = ({
     // Use actual balance from props
     if (balance && !balanceLoading && parseFloat(balance) > 0) {
       onAmountChange(balance);
+      setDisplayValue(
+        formatNumber(parseFloat(balance), { maxFractionDigits: 18 })
+      );
     }
   };
 
   const getDisplayValue = () => {
     if (isOutput) {
       if (outputAmount) {
-        return formatAmount(outputAmount.toString());
+        return formatNumber(outputAmount, { maxFractionDigits: 8 });
       }
       return "0.00";
     }
-    return formatAmount(amount);
+    return displayValue;
   };
 
   const getPriceDisplay = () => {
     if (!token?.price) return "0.00$";
 
-    const priceValue = isOutput
-      ? Number(token.price) * Number(outputAmount)
-      : Number(token.price) * Number(amount);
+    const baseAmount = isOutput ? Number(outputAmount) : parseInput(amount);
+    const priceValue = Number(token.price) * baseAmount;
 
-    return `$${priceValue.toFixed(2)}`;
+    const formatted = formatCurrency(priceValue, {
+      currency: "USD",
+      fractionDigits: 2,
+    });
+    return formatted ?? "$0.00";
   };
 
   // Only show Add-to-wallet for non-Ethereum networks (prefer PulseChain)

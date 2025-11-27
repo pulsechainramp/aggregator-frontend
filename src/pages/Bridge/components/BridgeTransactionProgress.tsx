@@ -8,6 +8,7 @@ import React, {
 import { motion } from "framer-motion";
 import { formatUnits } from "ethers";
 import { BridgeTransaction } from "../../../store/bridgeSlice";
+import { useNumberFormat } from "../../../context/NumberFormatContext";
 
 interface BridgeTransactionProgressProps {
   bridgeTransaction: BridgeTransaction | null;
@@ -54,22 +55,6 @@ const formatTimestamp = (timestamp?: string | null) => {
   }
 };
 
-const formatAmount = (amount: string, decimals: number) => {
-  try {
-    const formatted = parseFloat(formatUnits(amount, decimals));
-    if (Number.isNaN(formatted)) return "0";
-    if (formatted === 0) return "0";
-    if (formatted < 0.0001) {
-      return formatted.toExponential(2);
-    }
-    return formatted.toLocaleString(undefined, {
-      maximumFractionDigits: 6,
-    });
-  } catch {
-    return amount;
-  }
-};
-
 const formatEta = (
   msRemaining: number | null,
   isExecuted: boolean,
@@ -96,6 +81,7 @@ const formatDuration = (ms: number) => {
 const BridgeTransactionProgress: React.FC<
   BridgeTransactionProgressProps
 > = ({ bridgeTransaction, isPolling, onBridgeAnother, onSwap, pollingError }) => {
+  const { formatNumber } = useNumberFormat();
   const [currentTime, setCurrentTime] = useState(Date.now());
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [copyMessageId, setCopyMessageId] = useState(false);
@@ -216,10 +202,17 @@ const BridgeTransactionProgress: React.FC<
     blockProgress.overtimeRatio > 0.5 &&
     "It's taking longer than usual. Check troubleshooting.";
 
-  const depositAmount = formatAmount(
-    bridgeTransaction.amount,
-    bridgeTransaction.tokenDecimals
-  );
+  const depositAmount = (() => {
+    try {
+      const numeric = Number(formatUnits(bridgeTransaction.amount, bridgeTransaction.tokenDecimals));
+      if (!Number.isFinite(numeric)) return "0";
+      if (numeric === 0) return "0";
+      if (numeric < 0.0001) return numeric.toExponential(2);
+      return formatNumber(numeric, { maxFractionDigits: 6 });
+    } catch {
+      return bridgeTransaction.amount;
+    }
+  })();
 
   const progressAriaText = isFailed
     ? "Needs attention"

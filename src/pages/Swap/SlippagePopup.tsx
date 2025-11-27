@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { RootState } from '../../store/store';
 import { setSlippage } from '../../store/swapSlice';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useNumberFormat } from '../../context/NumberFormatContext';
 
 interface SlippagePopupProps {
   isOpen: boolean;
@@ -12,27 +13,37 @@ interface SlippagePopupProps {
 const SlippagePopup: React.FC<SlippagePopupProps> = ({ isOpen, onClose }) => {
   const dispatch = useDispatch();
   const currentSlippage = useSelector((state: RootState) => state.swap.slippage);
-  
+  const { sanitizeInput, parseInput, formatNumber } = useNumberFormat();
+
   const [customSlippage, setCustomSlippage] = useState<string>('');
   const [selectedOption, setSelectedOption] = useState<'preset' | 'custom'>('preset');
   const [error, setError] = useState<string>('');
 
-  const presetOptions = [0.1, 0.5, 1.0, 2.0];
+  const presetOptions = useMemo(() => [0.1, 0.5, 1.0, 2.0], []);
+
+  const renderPercent = (value: number) =>
+    `${formatNumber(value, {
+      maxFractionDigits: value < 1 ? 2 : 2,
+      minFractionDigits: value < 1 ? 2 : 0,
+    })}%`;
 
   useEffect(() => {
-    if (isOpen) {
-      // Check if current slippage matches any preset
-      const matchingPreset = presetOptions.find(option => option === currentSlippage);
-      if (matchingPreset) {
-        setSelectedOption('preset');
-        setCustomSlippage('');
-      } else {
-        setSelectedOption('custom');
-        setCustomSlippage(currentSlippage.toString());
-      }
-      setError('');
+    if (!isOpen) return;
+    // Check if current slippage matches any preset
+    const matchingPreset = presetOptions.find((option) => option === currentSlippage);
+    if (matchingPreset) {
+      setSelectedOption('preset');
+      setCustomSlippage('');
+    } else {
+      setSelectedOption('custom');
+      const formatted = formatNumber(currentSlippage, {
+        maxFractionDigits: 4,
+        minFractionDigits: currentSlippage < 1 ? 2 : 0,
+      });
+      setCustomSlippage(formatted);
     }
-  }, [isOpen, currentSlippage, presetOptions]);
+    setError('');
+  }, [isOpen, currentSlippage, presetOptions, formatNumber]);
 
   const handlePresetSelect = (value: number) => {
     setSelectedOption('preset');
@@ -42,32 +53,41 @@ const SlippagePopup: React.FC<SlippagePopupProps> = ({ isOpen, onClose }) => {
   };
 
   const handleCustomInputChange = (value: string) => {
-    setCustomSlippage(value);
+    const sanitized = sanitizeInput(value);
+    setCustomSlippage(sanitized);
     setError('');
-    
-    const numValue = parseFloat(value);
-    if (value === '') {
+
+    if (sanitized === '') {
       setError('');
-    } else if (isNaN(numValue)) {
-      setError('Please enter a valid number');
-    } else if (numValue < 0.01) {
-      setError('Slippage must be at least 0.01%');
-    } else if (numValue > 50) {
-      setError('Slippage cannot exceed 50%');
-    } else {
-      setError('');
-      dispatch(setSlippage(numValue));
+      return;
     }
+
+    const numValue = parseInput(sanitized);
+    if (!Number.isFinite(numValue)) {
+      setError('Please enter a valid number');
+      return;
+    }
+    if (numValue < 0.01) {
+      setError(`Slippage must be at least ${renderPercent(0.01)}`);
+      return;
+    }
+    if (numValue > 50) {
+      setError('Slippage cannot exceed 50%');
+      return;
+    }
+    // Don't dispatch yet; wait until user saves to avoid clobbering the in-progress input.
   };
 
   const handleSave = () => {
     if (selectedOption === 'custom' && customSlippage) {
-      const numValue = parseFloat(customSlippage);
-      if (numValue >= 0.01 && numValue <= 50) {
+      const numValue = parseInput(customSlippage);
+      if (Number.isFinite(numValue) && numValue >= 0.01 && numValue <= 50) {
         dispatch(setSlippage(numValue));
         onClose();
       }
-    } else if (selectedOption === 'preset') {
+      return;
+    }
+    if (selectedOption === 'preset') {
       onClose();
     }
   };
@@ -131,7 +151,7 @@ const SlippagePopup: React.FC<SlippagePopupProps> = ({ isOpen, onClose }) => {
                         : 'border-border bg-bg-page text-text hover:border-primary hover:bg-primary-050/60'
                     }`}
                   >
-                    {option}%
+                    {renderPercent(option)}
                   </button>
                 ))}
               </div>
@@ -144,14 +164,12 @@ const SlippagePopup: React.FC<SlippagePopupProps> = ({ isOpen, onClose }) => {
               </label>
               <div className="relative">
                 <input
-                  type="number"
+                  type="text"
+                  inputMode="decimal"
                   value={customSlippage}
                   onChange={(e) => handleCustomInputChange(e.target.value)}
                   onFocus={() => setSelectedOption('custom')}
                   placeholder="0.00"
-                  step="0.01"
-                  min="0.01"
-                  max="50"
                   className={`w-full rounded-lg border px-4 py-3 text-text transition-colors placeholder-text-muted focus:outline-none ${
                     selectedOption === 'custom' ? 'border-primary bg-primary-050/40' : 'border-border bg-bg-page'
                   } ${error ? 'border-danger' : ''}`}
@@ -175,7 +193,7 @@ const SlippagePopup: React.FC<SlippagePopupProps> = ({ isOpen, onClose }) => {
                   <div>
                     <p className="text-sm font-semibold text-warning">High Slippage Warning</p>
                     <p className="mt-1 text-sm text-warning">
-                      A slippage of {currentSlippage}% is quite high. This may result in significant price impact.
+                      A slippage of {renderPercent(currentSlippage)} is quite high. This may result in significant price impact.
                     </p>
                   </div>
                 </div>

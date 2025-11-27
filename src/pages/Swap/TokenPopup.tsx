@@ -14,6 +14,7 @@ import {
   filterAndSortTokensByBalance,
   formatBalanceDisplay,
 } from "../../utils/tokenSort";
+import { useNumberFormat } from "../../context/NumberFormatContext";
 
 interface TokenPopupProps {
   isOpen: boolean;
@@ -43,6 +44,7 @@ const TokenPopup: React.FC<TokenPopupProps> = ({
     (state) => state.swap
   );
   const { account, currentChainId } = useWallet();
+  const { locale } = useNumberFormat();
   const previousAccount = useRef<string | null>(null);
   const normalizedSearch = searchToken.trim().toLowerCase();
 
@@ -264,7 +266,8 @@ const TokenPopup: React.FC<TokenPopupProps> = ({
                         rawBalance === undefined;
                       const formattedBalance = formatBalanceDisplay(
                         rawBalance,
-                        token.decimals
+                        token.decimals,
+                        locale
                       );
 
                       return (

@@ -289,8 +289,9 @@ export const fetchBridgeGasCost = createAsyncThunk<
     chainId: number;
     userAddress: string;
   }
->("bridge/fetchBridgeGasCost", async (params) => {
-  const cost = await estimateBridgeGasCost(params);
+>("bridge/fetchBridgeGasCost", async ({ amount, ...rest }) => {
+  const normalizedAmount = normalizeAmountInput(amount);
+  const cost = await estimateBridgeGasCost({ ...rest, amount: normalizedAmount });
   return cost.toString();
 });
 // Fetch tokens for a specific chain (for backward compatibility)
@@ -454,10 +455,11 @@ export const fetchBridgeEstimate = createAsyncThunk(
     amount: string;
   }) => {
     try {
+      const normalizedAmount = normalizeAmountInput(amount);
       const params = new URLSearchParams({
         tokenAddress,
         networkId: networkId.toString(),
-        amount,
+        amount: normalizedAmount,
       });
       const response = await fetch(
         `${BackendURL}exchange/omnibridge/estimate?${params.toString()}`
