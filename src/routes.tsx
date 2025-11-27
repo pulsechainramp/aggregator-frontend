@@ -8,6 +8,8 @@ import Terms from "./pages/Terms";
 import Privacy from "./pages/Privacy";
 import Onramp from "./pages/Onramp/Onramp";
 import Docs from "./pages/Docs/Docs";
+import Learn from "./pages/Learn/Learn";
+import Earn from "./pages/Earn/Earn";
 import Start from "./pages/Start";
 import Wallet from "./pages/Wallet";
 
@@ -67,6 +69,8 @@ const AppRoutes = () => {
         <Route path="/activity" element={<Activity />} />
         <Route path="/referrals" element={<Referrals />} />
         <Route path="/docs" element={<Docs />} />
+        <Route path="/learn" element={<Learn />} />
+        <Route path="/earn" element={<Earn />} />
         <Route path="/terms" element={<Terms />} />
         <Route path="/privacy" element={<Privacy />} />
         <Route path="*" element={<Navigate to="/" replace />} />

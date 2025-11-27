@@ -26,6 +26,12 @@ const NEW_TO_CRYPTO_STEPS = [
     href: "/swap",
     cta: "Swap Assets",
   },
+  {
+    title: "5. Earn More (Optional)",
+    body: "Browse staking and farming options (up to ~10% APY) once you're settled in.",
+    href: "/earn",
+    cta: "Explore Earning",
+  },
 ];
 
 const Start = () => {
@@ -42,15 +48,26 @@ const Start = () => {
   }, []);
 
   return (
-    <div className="bg-bg-page px-4 py-10 text-text">
+    <div className="bg-bg-page px-4 py-6 text-text sm:py-10">
       <div className="mx-auto flex max-w-6xl flex-col gap-8">
-        <section className="space-y-4 rounded-3xl border border-border bg-bg-surface p-6 shadow-floating sm:p-8">
+        <section className="space-y-4 rounded-3xl border border-border bg-bg-surface p-5 shadow-floating sm:p-8">
           <p className="text-sm font-semibold uppercase tracking-wide text-primary">
             Get started
           </p>
           <h1 className="text-3xl font-bold leading-tight sm:text-4xl">
             Get on PulseChain, the simple way.
           </h1>
+          <div className="flex flex-wrap gap-3">
+            <Link
+              to="/learn"
+              className="inline-flex items-center justify-center rounded-full border border-primary bg-primary px-4 py-2 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-primary-600 hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
+            >
+              What is PulseChain?
+            </Link>
+            <span className="text-sm text-text-muted">
+              Optional: start with a quick overview before you dive in.
+            </span>
+          </div>
         </section>
 
         <section className="grid gap-4 md:grid-cols-2">

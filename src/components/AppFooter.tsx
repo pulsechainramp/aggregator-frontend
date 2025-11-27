@@ -55,6 +55,12 @@ export default function AppFooter() {
             >
               Docs
             </Link>
+            <Link
+              to="/learn"
+              className="text-sm font-medium text-text-muted transition-colors hover:text-primary"
+            >
+              Learn
+            </Link>
             <button
               onClick={() => setShowContactModal(true)}
               className="text-sm font-medium text-text-muted transition-colors hover:text-primary underline underline-offset-4"
