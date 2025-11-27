@@ -4,12 +4,14 @@ import RouteDetailsPopup from "./RouteDetailPopup";
 import { motion } from "framer-motion";
 import { useQuoteSummary } from "../../hooks/useQuoteSummary";
 import { useAppSelector } from "../../store/hooks";
+import { useNumberFormat } from "../../context/NumberFormatContext";
 
 const QuotePanel = () => {
   const { fromToken, toToken } = useAppSelector((state) => state.swap);
   const [showRoute, setShowRoute] = useState(false);
   const [open, setOpen] = useState(false);
   const summary = useQuoteSummary();
+  const { formatNumber, formatCurrency, formatPercentage } = useNumberFormat();
 
   const {
     netToTokenAmount,
@@ -25,37 +27,29 @@ const QuotePanel = () => {
   const toSymbol = toToken?.symbol ?? "--";
   const fromSymbol = fromToken?.symbol ?? "--";
 
-  const formatTokenAmount = (value: number, digits = 6) => {
-    if (!Number.isFinite(value)) {
-      return "0";
-    }
-    if (value === 0) {
-      return "0";
-    }
-    return Number(value.toFixed(digits)).toLocaleString();
-  };
-
-  const formatUsd = (value: number | null, digits = 2) => {
-    if (value === null || !Number.isFinite(value)) {
-      return null;
-    }
-    return `$${value.toFixed(digits)}`;
-  };
-
   const feePercent =
-    referralFeeBps > 0 ? `-${(referralFeeBps / 100).toFixed(2)}%` : "0%";
+    referralFeeBps > 0
+      ? formatPercentage(-referralFeeBps / 10000, { fractionDigits: 2 })
+      : formatPercentage(0, { fractionDigits: 2 });
   const priceImpactDisplay = Number.isFinite(priceImpact)
-    ? `${priceImpact.toFixed(2)}%`
+    ? formatPercentage(priceImpact / 100, { fractionDigits: 2 })
     : "--";
+  const slippageDisplay = `${formatNumber(slippage, {
+    maxFractionDigits: slippage < 1 ? 2 : 2,
+    minFractionDigits: slippage < 1 ? 2 : 0,
+  })}%`;
   const fromToToRate =
     fromAmountNumber > 0 ? netToTokenAmount / fromAmountNumber : 0;
   const fromToToDisplay =
     fromToToRate > 0
-      ? `${formatTokenAmount(fromToToRate, 8)} ${toSymbol}`
+      ? `${formatNumber(fromToToRate, { maxFractionDigits: 8 })} ${toSymbol}`
       : `0 ${toSymbol}`;
   const usdPriceDisplay =
     typeof fromTokenUsdPrice === "number"
-      ? `($${fromTokenUsdPrice.toFixed(4)})`
+      ? `(${formatCurrency(fromTokenUsdPrice, {
+          currency: "USD",
+          fractionDigits: 4,
+        })})`
       : "";
 
   return (
@@ -87,7 +81,10 @@ const QuotePanel = () => {
               <span className="text-text-muted">Network fee</span>
               <span className="font-medium text-text">
                 {networkFeeUsd !== null
-                  ? formatUsd(networkFeeUsd, 3) ?? "--"
+                  ? formatCurrency(networkFeeUsd, {
+                      currency: "USD",
+                      fractionDigits: 3,
+                    }) ?? "--"
                   : "--"}
               </span>
             </div>
@@ -99,7 +96,7 @@ const QuotePanel = () => {
             </div>
             <div className="flex items-center justify-between">
               <span className="text-text-muted">Slippage tolerance</span>
-              <span className="font-medium text-text">{slippage}%</span>
+              <span className="font-medium text-text">{slippageDisplay}</span>
             </div>
             <div className="flex items-center justify-between">
               <span className="text-text-muted">Referral fee</span>
@@ -108,13 +105,13 @@ const QuotePanel = () => {
             <div className="flex items-center justify-between">
               <span className="text-text-muted">Minimum output</span>
               <span className="font-mono font-medium text-text">
-                {formatTokenAmount(netMinOutput, 8)} {toSymbol}
+                {formatNumber(netMinOutput, { maxFractionDigits: 8 })} {toSymbol}
               </span>
             </div>
             <div className="flex items-center justify-between">
               <span className="text-text-muted">Expected output</span>
               <span className="font-mono font-medium text-text">
-                {formatTokenAmount(netToTokenAmount, 8)} {toSymbol}
+                {formatNumber(netToTokenAmount, { maxFractionDigits: 8 })} {toSymbol}
               </span>
             </div>
           </div>

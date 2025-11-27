@@ -8,6 +8,7 @@ import TokenSwapButton from "./TokenSwapButton";
 import { addTokenToWallet, waitForChain, EIP1193Provider } from "../../../utils/walletUtils";
 import useWallet from "../../../hooks/useWallet";
 import { toast } from "react-toastify";
+import { useNumberFormat } from "../../../context/NumberFormatContext";
 
 interface SwapCardProps {
   fromToken: TokenType | null;
@@ -40,6 +41,7 @@ const SwapCard: React.FC<SwapCardProps> = ({
 }) => {
   const { wallet, switchToChain } = useWallet();
   const [currentChainId, setCurrentChainId] = useState<number | null>(null);
+  const { formatNumber } = useNumberFormat();
 
   useEffect(() => {
     const getCurrentChainId = async () => {
@@ -83,9 +85,9 @@ const SwapCard: React.FC<SwapCardProps> = ({
 
   const formatBalance = (balance: string) => {
     const num = parseFloat(balance);
-    if (num === 0) return "0";
+    if (!Number.isFinite(num) || num === 0) return "0";
     if (num < 0.0001) return "< 0.0001";
-    return num.toFixed(4);
+    return formatNumber(num, { maxFractionDigits: 4 });
   };
 
   const getFromTokenBalance = () => {

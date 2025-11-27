@@ -305,11 +305,12 @@ export const checkTokenAllowance = createAsyncThunk(
       return { hasAllowance: true, allowance: "0" };
     }
 
+    const normalizedAmount = normalizeAmountInput(amount);
     const isApproved = await needsApproval(
       tokenAddress,
       userAddress,
       AffiliateRouterAddress,
-      amount,
+      normalizedAmount,
       decimals,
       chainId
     );
@@ -783,7 +784,7 @@ export const getQuote = createAsyncThunk<
         const pulseXResult = await dispatch(getPulseXQuote({
           tokenInAddress,
           tokenOutAddress,
-          amount,
+          amount: normalizedAmount,
           allowedSlippage,
           fromDecimal,
         })).unwrap();
@@ -816,7 +817,7 @@ export const getQuote = createAsyncThunk<
         const pulseXResult = await dispatch(getPulseXQuote({
           tokenInAddress,
           tokenOutAddress,
-          amount,
+          amount: normalizedAmount,
           allowedSlippage,
           fromDecimal,
         })).unwrap();

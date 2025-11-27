@@ -1,14 +1,16 @@
 import { ethers } from "ethers";
+import { normalizeNumberInput } from "./numberInput";
 
 export function normalizeAmountInput(amount: string): string {
-  const normalized = amount?.trim() ?? "";
-  if (!normalized) {
+  const normalized = normalizeNumberInput(amount);
+  const trimmed = normalized?.trim() ?? "";
+  if (!trimmed) {
     throw new Error("Amount is required");
   }
-  if (normalized === "." || normalized === "-") {
+  if (trimmed === "." || trimmed === "-") {
     throw new Error("Invalid amount");
   }
-  return normalized;
+  return trimmed;
 }
 
 export function areAmountsEqual(a: string | null | undefined, b: string): boolean {

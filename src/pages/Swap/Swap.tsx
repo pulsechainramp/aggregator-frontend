@@ -27,6 +27,7 @@ import {
 import TokenPopup from "./TokenPopup";
 import QuotePanel from "./QuotePanel";
 import SlippagePopup from "./SlippagePopup";
+import LocalePopup from "./LocalePopup";
 import { SwapHeader, SwapCard, ApprovalStatus, SwapButton } from "./components";
 import { ethers } from "ethers";
 import * as toastify from "react-toastify";
@@ -45,6 +46,7 @@ import { PulseChainConfig } from "../../config/chainConfig";
 import { useQuoteSummary } from "../../hooks/useQuoteSummary";
 import { truncateToDecimals } from "../../utils/amount";
 import { isPulseChainToken } from "../../utils/token";
+import { useNumberFormat } from "../../context/NumberFormatContext";
 
 const { toast } = toastify;
 const QUOTE_REFRESH_INTERVAL_MS = 10_000;
@@ -62,9 +64,11 @@ type PendingSwap = {
 const Swap: React.FC = () => {
   const dispatch = useAppDispatch();
   const { account, wallet, currentChainId } = useWallet();
+  const { formatNumber } = useNumberFormat();
 
   const [isTokenPopupOpen, setIsTokenPopupOpen] = useState(false);
   const [isSlippagePopupOpen, setIsSlippagePopupOpen] = useState(false);
+  const [isLocalePopupOpen, setIsLocalePopupOpen] = useState(false);
   const [selectType, setSelectType] = useState<"from" | "to" | null>(null);
   const [searchToken, setSearchToken] = useState<string>("");
   const [isRefreshingBalances, setIsRefreshingBalances] = useState(false);
@@ -542,25 +546,21 @@ const Swap: React.FC = () => {
     }
   };
 
-  const previewData =
-    pendingSwap && pendingSwap.validation
-      ? {
-        router: AffiliateRouterAddress,
-        functionSignature: "executeSwap(bytes,address)",
-        tokenInSymbol: pendingSwap.fromToken.symbol,
-        tokenOutSymbol: pendingSwap.toToken.symbol,
-        amountIn: ethers.formatUnits(
-          pendingSwap.validation.decodedRoute.amountIn,
-          pendingSwap.fromToken.decimals
-        ),
-        minAmountOut: ethers.formatUnits(
-          pendingSwap.validation.decodedRoute.minAmountOut,
-          pendingSwap.toToken.decimals
-        ),
-        deadline: pendingSwap.validation.decodedRoute.deadline,
-        calldataHash: pendingSwap.quote.integrity.payload.calldataHash,
-      }
-      : null;
+const previewData =
+  pendingSwap && pendingSwap.validation
+    ? {
+      router: AffiliateRouterAddress,
+      functionSignature: "executeSwap(bytes,address)",
+      tokenInSymbol: pendingSwap.fromToken.symbol,
+      tokenOutSymbol: pendingSwap.toToken.symbol,
+      amountInRaw: pendingSwap.validation.decodedRoute.amountIn,
+      minAmountOutRaw: pendingSwap.validation.decodedRoute.minAmountOut,
+      tokenInDecimals: pendingSwap.fromToken.decimals,
+      tokenOutDecimals: pendingSwap.toToken.decimals,
+      deadline: pendingSwap.validation.decodedRoute.deadline,
+      calldataHash: pendingSwap.quote.integrity.payload.calldataHash,
+    }
+    : null;
 
   return (
     <motion.div
@@ -571,9 +571,13 @@ const Swap: React.FC = () => {
       <motion.div className="mt-2 flex w-full max-w-4xl flex-col gap-6 sm:mt-6">
         <div className="flex w-full flex-col gap-2 rounded-2xl border border-border bg-bg-surface p-4 shadow-floating sm:gap-4 sm:p-6">
           <SwapHeader
-            slippage={slippage}
+            slippageLabel={`${formatNumber(slippage, {
+              maxFractionDigits: slippage < 1 ? 2 : 2,
+              minFractionDigits: slippage < 1 ? 2 : 0,
+            })}%`}
             onSlippageClick={() => setIsSlippagePopupOpen(true)}
             onRefreshClick={refreshBalances}
+            onLocaleClick={() => setIsLocalePopupOpen(true)}
             isRefreshing={isRefreshingBalances}
           />
 
@@ -668,6 +672,11 @@ const Swap: React.FC = () => {
       <SlippagePopup
         isOpen={isSlippagePopupOpen}
         onClose={() => setIsSlippagePopupOpen(false)}
+      />
+
+      <LocalePopup
+        isOpen={isLocalePopupOpen}
+        onClose={() => setIsLocalePopupOpen(false)}
       />
 
       <SwapPreviewModal

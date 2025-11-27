@@ -1,4 +1,5 @@
 import React from "react";
+import { useNumberFormat } from "../../context/NumberFormatContext";
 
 const InfoIcon = () => (
   <svg className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
@@ -21,27 +22,43 @@ export default function OnRampBanner({
   estimatedEth,
   loading = false,
 }: Props) {
+  const { formatNumber } = useNumberFormat();
   const needsEth = currentEth < thresholdEth;
   if (!needsEth) return null;
 
   const formatEstimatedFee = () => {
     if (loading) return "calculating...";
     if (estimatedEth === undefined || estimatedEth === null) {
-      return `${thresholdEth.toFixed(4)} ETH`;
+      return `${formatNumber(thresholdEth, {
+        minFractionDigits: 4,
+        maxFractionDigits: 4,
+      })} ETH`;
     }
 
     if (estimatedEth >= 0.001) {
-      return `${estimatedEth.toFixed(4)} ETH`;
+      return `${formatNumber(estimatedEth, {
+        minFractionDigits: 4,
+        maxFractionDigits: 4,
+      })} ETH`;
     }
 
     if (estimatedEth >= 0.0001) {
-      return `${estimatedEth.toFixed(5)} ETH`;
+      return `${formatNumber(estimatedEth, {
+        minFractionDigits: 5,
+        maxFractionDigits: 5,
+      })} ETH`;
     }
 
-    return "<0.0001 ETH";
+    return `<${formatNumber(0.0001, {
+      minFractionDigits: 4,
+      maxFractionDigits: 4,
+    })} ETH`;
   };
 
   const feeDisplay = formatEstimatedFee();
+  const formattedBalance = formatNumber(currentEth, {
+    maxFractionDigits: 6,
+  });
 
   return (
     <div className="mt-6 rounded-lg border border-border bg-primary-050/60 p-4 shadow-sm">
@@ -54,7 +71,7 @@ export default function OnRampBanner({
             <p className="font-semibold text-text">Add a little more ETH for fees</p>
             <p className="text-sm text-text-muted">
               Estimated fee: <span className="font-mono">{feeDisplay}</span>. Wallet balance:{" "}
-              <span className="font-mono">{currentEth.toFixed(6)} ETH</span>. Add a small amount so
+              <span className="font-mono">{formattedBalance} ETH</span>. Add a small amount so
               the bridge can complete smoothly.
             </p>
           </div>

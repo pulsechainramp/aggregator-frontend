@@ -1,13 +1,16 @@
 import { motion } from "framer-motion";
 import React from "react";
+import { useNumberFormat } from "../../../context/NumberFormatContext";
 
 type PreviewData = {
   router: string;
   functionSignature: string;
   tokenInSymbol: string;
   tokenOutSymbol: string;
-  amountIn: string;
-  minAmountOut: string;
+  amountInRaw: bigint | string;
+  minAmountOutRaw: bigint | string;
+  tokenInDecimals: number;
+  tokenOutDecimals: number;
   deadline: number;
   calldataHash: string;
 };
@@ -25,11 +28,23 @@ const SwapPreviewModal: React.FC<SwapPreviewModalProps> = ({
   onCancel,
   onConfirm,
 }) => {
+  const { formatTokenAmount, locale } = useNumberFormat();
+
   if (!isOpen || !data) {
     return null;
   }
 
-  const deadline = new Date(data.deadline * 1000).toLocaleString();
+  const deadline = new Date(data.deadline * 1000).toLocaleString(locale);
+  const formattedAmountIn = formatTokenAmount(
+    data.amountInRaw,
+    data.tokenInDecimals,
+    { locale }
+  );
+  const formattedMinAmountOut = formatTokenAmount(
+    data.minAmountOutRaw,
+    data.tokenOutDecimals,
+    { locale }
+  );
 
   return (
     <div
@@ -61,13 +76,13 @@ const SwapPreviewModal: React.FC<SwapPreviewModalProps> = ({
           <div className="flex justify-between">
             <dt className="text-text-muted">Send</dt>
             <dd className="font-semibold text-text">
-              {data.amountIn} {data.tokenInSymbol}
+              {formattedAmountIn} {data.tokenInSymbol}
             </dd>
           </div>
           <div className="flex justify-between">
             <dt className="text-text-muted">Minimum receive</dt>
             <dd className="font-semibold text-text">
-              {data.minAmountOut} {data.tokenOutSymbol}
+              {formattedMinAmountOut} {data.tokenOutSymbol}
             </dd>
           </div>
           <div className="flex justify-between">

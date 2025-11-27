@@ -35,10 +35,12 @@ import ReferralFeePopup from "../Swap/ReferralFeePopup";
 import { formatFeeBasisPoints } from "../../utils/referralUtils";
 import { BackendURL } from "../../const/swap";
 import { formatEther } from "ethers";
+import { useNumberFormat } from "../../context/NumberFormatContext";
 
 const Referrals: React.FC = () => {
   const { account, isOnPulseChain } = useWallet();
   const dispatch = useAppDispatch();
+  const { formatNumber, locale } = useNumberFormat();
   const referralCode = useReferralCode();
   const referralFees = useReferralFees();
   const loading = useReferralLoading();
@@ -210,7 +212,9 @@ const Referrals: React.FC = () => {
           );
         } else {
           try {
-            const feeDisplay = formatEther(BigInt(err.fee));
+            const feeDisplay = formatNumber(formatEther(BigInt(err.fee)), {
+              maxFractionDigits: 6,
+            });
             toast.error(`Pay ${feeDisplay} PLS to unlock referrals`);
           } catch (parseError) {
             toast.error("Referral creation fee payment required");
@@ -250,8 +254,9 @@ const Referrals: React.FC = () => {
       ).unwrap();
 
       toast.success(
-        `Successfully claimed ${fee.amount
-        } tokens! Transaction: ${result.transactionHash.slice(0, 10)}...`
+        `Successfully claimed ${formatNumber(fee.amount, {
+          maxFractionDigits: 8,
+        })} tokens! Transaction: ${result.transactionHash.slice(0, 10)}...`
       );
 
       if (account) {
@@ -324,7 +329,7 @@ const Referrals: React.FC = () => {
   };
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString("en-US", {
+    return new Date(dateString).toLocaleDateString(locale, {
       year: "numeric",
       month: "short",
       day: "numeric",
@@ -483,10 +488,11 @@ const Referrals: React.FC = () => {
                 {feeBasisPointsLoading
                   ? "Fetching your referral fee..."
                   : referralFeeBasisPoints
-                    ? `Current referral fee: ${formatFeeBasisPoints(
-                      referralFeeBasisPoints
+                  ? `Current referral fee: ${formatFeeBasisPoints(
+                      referralFeeBasisPoints,
+                      locale
                     )}`
-                    : "Referral fee not set yet"}
+                  : "Referral fee not set yet"}
               </p>
               <div className="pt-1">
                 <button
@@ -507,13 +513,19 @@ const Referrals: React.FC = () => {
                   ? "Checking one-time creation fee..."
                   : creationFee
                     ? requiresPayment
-                      ? `A one-time fee of ${creationFee.formatted} PLS is required to generate your referral code.`
+                      ? `A one-time fee of ${formatNumber(creationFee.formatted, {
+                          maxFractionDigits: 6,
+                        })} PLS is required to generate your referral code.`
                       : "Sign in to generate your referral code."
                     : "Unable to determine the referral creation fee. Please try again."}
               </p>
               {paymentRequired && (
                 <div className="rounded-lg border border-border bg-bg-raised px-4 py-3 text-sm text-text">
-                  Wallet payment required. Pay {paymentRequiredDisplay ?? paymentRequired.fee} PLS to {paymentRequired.contractAddress} and try again.
+                  Wallet payment required. Pay{" "}
+                  {paymentRequiredDisplay
+                    ? formatNumber(paymentRequiredDisplay, { maxFractionDigits: 6 })
+                    : paymentRequired.fee}{" "}
+                  PLS to {paymentRequired.contractAddress} and try again.
                 </div>
               )}
               <div className="flex flex-col gap-3 sm:flex-row">
@@ -532,9 +544,13 @@ const Referrals: React.FC = () => {
                       ? "Switch to PulseChain"
                       : payingCreationFee
                         ? "Paying..."
-                        : hasPaidCreationFee === true
-                          ? "Paid"
-                          : `Pay ${creationFee?.formatted ?? ""} PLS`}
+                    : hasPaidCreationFee === true
+                    ? "Paid"
+                    : `Pay ${
+                        creationFee
+                          ? formatNumber(creationFee.formatted, { maxFractionDigits: 6 })
+                          : ""
+                      } PLS`}
                   </button>
                 )}
                 <button
@@ -699,7 +715,9 @@ const Referrals: React.FC = () => {
                       {/* Amount */}
                       <div className="flex items-center justify-between py-2 border-t border-border">
                         <span className="text-sm text-text-muted">Amount</span>
-                        <span className="text-lg font-bold text-success">{fee.amount}</span>
+                        <span className="text-lg font-bold text-success">
+                          {formatNumber(fee.amount, { maxFractionDigits: 8 })}
+                        </span>
                       </div>
 
                       {/* Created Date */}
@@ -816,7 +834,7 @@ const Referrals: React.FC = () => {
                           </td>
                           <td className="py-4 px-4">
                             <span className="text-lg font-bold text-success">
-                              {fee.amount}
+                              {formatNumber(fee.amount, { maxFractionDigits: 8 })}
                             </span>
                           </td>
                           <td className="py-4 px-4 text-text-muted">

@@ -29,6 +29,7 @@ import {
 } from "../../utils/amount";
 import { formatEther } from "ethers";
 import { MIN_NATIVE_ETH_AMOUNT_WEI } from "./constants";
+import LocalePopup from "../Swap/LocalePopup";
 
 const Bridge: React.FC = () => {
   const dispatch = useAppDispatch();
@@ -63,6 +64,7 @@ const Bridge: React.FC = () => {
   const unsupportedBridgeMessage =
     "PulseBridge currently supports bridging from Ethereum to PulseChain only. Switch the source network to Ethereum to continue.";
   const [isBalanceRefreshing, setIsBalanceRefreshing] = useState(false);
+  const [isLocalePopupOpen, setIsLocalePopupOpen] = useState(false);
 
   useEffect(() => {
     dispatch(fetchTokenPairs());
@@ -341,7 +343,7 @@ const Bridge: React.FC = () => {
     <div className="relative flex flex-col items-center bg-bg-page px-4 pt-2 pb-0 text-text sm:px-6 sm:pb-10 lg:px-8">
       <div className="relative z-10 mx-auto w-full max-w-4xl pb-2 sm:pb-6">
         <div className="w-full rounded-3xl border border-border bg-bg-surface p-4 shadow-floating sm:p-8 lg:p-10">
-          <BridgeHeader />
+          <BridgeHeader onLocaleClick={() => setIsLocalePopupOpen(true)} />
 
           {/* On-Ramp suggestion (only when on Ethereum with low ETH) */}
           {shouldRenderOnRamp && (
@@ -400,6 +402,10 @@ const Bridge: React.FC = () => {
           />
         </div>
       </div>
+      <LocalePopup
+        isOpen={isLocalePopupOpen}
+        onClose={() => setIsLocalePopupOpen(false)}
+      />
     </div>
   );
 };

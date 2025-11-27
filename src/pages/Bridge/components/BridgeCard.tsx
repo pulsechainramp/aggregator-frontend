@@ -22,11 +22,9 @@ import { TokenInfo } from "../../../utils/walletUtils";
 import { toast } from "react-toastify";
 import { tryParseAmountToWei } from "../../../utils/amount";
 import { ZeroAddress } from "../../../const/swap";
-import {
-  MIN_NATIVE_ETH_AMOUNT_WEI,
-  MIN_NATIVE_ETH_AMOUNT_DISPLAY,
-} from "../constants";
+import { MIN_NATIVE_ETH_AMOUNT_WEI } from "../constants";
 import TokenIcon from "../../../components/TokenIcon";
+import { useNumberFormat } from "../../../context/NumberFormatContext";
 
 interface BridgeCardProps {
   fromNetwork: "ETH" | "PLS";
@@ -100,6 +98,7 @@ const BridgeCard: React.FC<BridgeCardProps> = ({
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
   const { account, connectWallet, switchToChain, wallet } = useWallet();
+  const { formatNumber } = useNumberFormat();
   const {
     bridgeTransaction: polledBridgeTransaction,
     isPolling,
@@ -168,6 +167,10 @@ const BridgeCard: React.FC<BridgeCardProps> = ({
     amountWei > 0n &&
     amountWei < MIN_NATIVE_ETH_AMOUNT_WEI;
 
+  const formattedMinEth = formatNumber(Number(MIN_NATIVE_ETH_AMOUNT_WEI) / 1e18, {
+    maxFractionDigits: 6,
+  });
+
   // Find the corresponding token using the new token pair structure
   const correspondingTokenData = tokens.find(
     (token) =>
@@ -181,47 +184,10 @@ const BridgeCard: React.FC<BridgeCardProps> = ({
     }
   }, [selectedToken, selectedTokenData, dispatch]);
 
-  // Helper function to format amount from wei to human readable
-  const formatAmount = (weiAmount: number, decimals: number = 18) => {
-    const num = weiAmount / Math.pow(10, decimals);
-    // Convert to string with fixed precision first
-    const formatted = num.toFixed(6);
-
-    // Remove trailing zeros
-    let result = formatted;
-    while (result.includes(".") && result.endsWith("0")) {
-      result = result.slice(0, -1);
-    }
-    // Remove trailing decimal point if it exists
-    if (result.endsWith(".")) {
-      result = result.slice(0, -1);
-    }
-
-    return result;
-  };
-
-  // Helper function to format balance string (already in human readable format)
-  const formatBalance = (balance: string) => {
-    if (!balance || balance === "0.00" || balance === "0") return "0";
-
-    // Convert to number and format
-    const num = parseFloat(balance);
-    if (isNaN(num)) return "0";
-
-    // Convert to string with fixed precision first
-    const formatted = num.toFixed(6);
-
-    // Remove trailing zeros
-    let result = formatted;
-    while (result.includes(".") && result.endsWith("0")) {
-      result = result.slice(0, -1);
-    }
-    // Remove trailing decimal point if it exists
-    if (result.endsWith(".")) {
-      result = result.slice(0, -1);
-    }
-
-    return result;
+  const formatBalance = (raw: string) => {
+    const num = parseFloat(raw);
+    if (!Number.isFinite(num) || num === 0) return "0";
+    return formatNumber(num, { maxFractionDigits: 6 });
   };
 
   // Get current progress step for bridge transaction
@@ -451,7 +417,7 @@ const BridgeCard: React.FC<BridgeCardProps> = ({
 
     // Check for Ethereum native token minimum amount (0.018 ETH)
     if (isBelowMinimum) {
-      return `Amount must be greater than ${MIN_NATIVE_ETH_AMOUNT_DISPLAY} ETH`;
+      return `Amount must be greater than ${formattedMinEth} ETH`;
     }
 
     // Check if approval is needed (for non-native tokens)
@@ -768,11 +734,16 @@ const BridgeCard: React.FC<BridgeCardProps> = ({
                     <div className="flex items-center justify-end space-x-2">
                       <span className="text-lg font-semibold text-text">
                         {estimate.estimatedAmount
-                          ? formatAmount(
-                            estimate.estimatedAmount,
-                            selectedTokenData?.decimals
+                          ? formatNumber(
+                            estimate.estimatedAmount /
+                              Math.pow(10, selectedTokenData?.decimals ?? 18),
+                            { maxFractionDigits: 6 }
                           )
-                          : amount || "0.00"}
+                          : amount
+                          ? formatNumber(parseFloat(amount) || 0, {
+                              maxFractionDigits: 6,
+                            })
+                          : "0.00"}
                       </span>
 
                       {correspondingToken && correspondingTokenData && account && (
@@ -831,7 +802,11 @@ const BridgeCard: React.FC<BridgeCardProps> = ({
                   <div className="text-right">
                     <div className="flex items-center justify-end space-x-2">
                       <span className="text-lg font-semibold text-text">
-                        {amount || "0.00"}
+                        {amount
+                          ? formatNumber(parseFloat(amount) || 0, {
+                              maxFractionDigits: 6,
+                            })
+                          : formatNumber(0, { maxFractionDigits: 2 })}
                       </span>
 
                       {correspondingToken && correspondingTokenData && account && (

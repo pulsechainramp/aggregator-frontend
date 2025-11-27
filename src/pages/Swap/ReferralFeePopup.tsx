@@ -6,6 +6,7 @@ import { updateReferralFeeBasisPoints, fetchReferralFeeBasisPoints, fetchPromoCo
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'react-toastify';
 import useWallet from '../../hooks/useWallet';
+import { useNumberFormat } from '../../context/NumberFormatContext';
 
 interface ReferralFeePopupProps {
   isOpen: boolean;
@@ -20,6 +21,7 @@ const ReferralFeePopup: React.FC<ReferralFeePopupProps> = ({ isOpen, onClose }) 
   const feeBasisPointsLoading = useSelector((state: RootState) => state.referral.feeBasisPointsLoading);
   const maxPromoBps = useSelector((state: RootState) => state.referral.maxPromoBps);
   const error = useSelector((state: RootState) => state.referral.error);
+  const { sanitizeInput, parseInput, formatNumber } = useNumberFormat();
   
   const [customFee, setCustomFee] = useState<string>('');
   const [selectedOption, setSelectedOption] = useState<'preset' | 'custom'>('preset');
@@ -30,6 +32,10 @@ const ReferralFeePopup: React.FC<ReferralFeePopupProps> = ({ isOpen, onClose }) 
   const contractMaxBps = typeof maxPromoBps === "number" && Number.isFinite(maxPromoBps) ? maxPromoBps : 300;
   const maxPercent = contractMaxBps / 100;
   const presetOptions = [10, 25, 50, 100, 150, 200].filter((bps) => bps <= contractMaxBps); // Basis points
+  const minPercent = 0.1;
+
+  const renderPercentValue = (value: number) =>
+    `${formatNumber(value, { minFractionDigits: value < 1 ? 1 : 1, maxFractionDigits: 2 })}%`;
 
   // Reset state when popup opens
   useEffect(() => {
@@ -58,11 +64,17 @@ const ReferralFeePopup: React.FC<ReferralFeePopupProps> = ({ isOpen, onClose }) 
         setCustomFee('');
       } else {
         setSelectedOption('custom');
-        setCustomFee((parseInt(currentFeeBasisPoints) / 100).toString());
+        const percentValue = parseInt(currentFeeBasisPoints) / 100;
+        setCustomFee(
+          formatNumber(percentValue, {
+            maxFractionDigits: 4,
+            minFractionDigits: percentValue < 1 ? 1 : 0,
+          })
+        );
       }
       setInputError('');
     }
-  }, [isOpen, currentFeeBasisPoints, presetOptions, hasUserInteracted]);
+  }, [isOpen, currentFeeBasisPoints, presetOptions, hasUserInteracted, formatNumber]);
 
   const handlePresetSelect = (basisPoints: number) => {
     setSelectedOption('preset');
@@ -73,20 +85,25 @@ const ReferralFeePopup: React.FC<ReferralFeePopupProps> = ({ isOpen, onClose }) 
   };
 
   const handleCustomInputChange = (value: string) => {
-    setCustomFee(value);
+    const sanitized = sanitizeInput(value);
+    setCustomFee(sanitized);
     setSelectedOption('custom'); // Ensure we're in custom mode when typing
     setInputError('');
     setHasUserInteracted(true);
     
-    const numValue = parseFloat(value);
-    if (value === '') {
+    if (sanitized === '') {
       setInputError('');
-    } else if (isNaN(numValue)) {
+      return;
+    }
+
+    const numValue = parseInput(sanitized);
+    if (!Number.isFinite(numValue)) {
       setInputError('Please enter a valid number');
-    } else if (numValue < 0.1) {
-      setInputError('Fee must be at least 0.1%');
+    } else if (numValue < minPercent) {
+      setInputError(`Fee must be at least ${renderPercentValue(minPercent)}`);
     } else if (numValue > maxPercent) {
-      setInputError(`Fee cannot exceed ${maxPercent.toFixed(2)}% (contract max)`);
+      const maxDisplay = formatNumber(maxPercent, { minFractionDigits: 2, maxFractionDigits: 2 });
+      setInputError(`Fee cannot exceed ${maxDisplay}% (contract max)`);
     } else {
       setInputError('');
     }
@@ -102,12 +119,14 @@ const ReferralFeePopup: React.FC<ReferralFeePopupProps> = ({ isOpen, onClose }) 
       let feeBasisPoints: string;
       
       if (selectedOption === 'custom' && customFee) {
-        const numValue = parseFloat(customFee);
-        if (numValue >= 0.1 && numValue <= maxPercent) {
-          const bpsValue = Math.min(numValue, maxPercent) * 100; // cap to contract max
+        const numValue = parseInput(customFee);
+        if (Number.isFinite(numValue) && numValue >= 0.1 && numValue <= maxPercent) {
+          const clampedPercent = Math.min(numValue, maxPercent);
+          const bpsValue = Math.round(clampedPercent * 100);
           feeBasisPoints = bpsValue.toString();
           if (bpsValue > contractMaxBps) {
-            toast.warn(`Fee capped to ${maxPercent.toFixed(2)}% (contract maximum).`);
+            const maxDisplay = formatNumber(maxPercent, { minFractionDigits: 2, maxFractionDigits: 2 });
+            toast.warn(`Fee capped to ${maxDisplay}% (contract maximum).`);
           }
         } else {
           setInputError('Invalid fee amount');
@@ -124,7 +143,8 @@ const ReferralFeePopup: React.FC<ReferralFeePopupProps> = ({ isOpen, onClose }) 
       const numericBps = Number(feeBasisPoints);
       if (numericBps > contractMaxBps) {
         feeBasisPoints = contractMaxBps.toString();
-        toast.warn(`Fee capped to ${maxPercent.toFixed(2)}% (contract maximum).`);
+        const maxDisplay = formatNumber(maxPercent, { minFractionDigits: 2, maxFractionDigits: 2 });
+        toast.warn(`Fee capped to ${maxDisplay}% (contract maximum).`);
       }
 
       await dispatch(updateReferralFeeBasisPoints({ 
@@ -143,8 +163,11 @@ const ReferralFeePopup: React.FC<ReferralFeePopupProps> = ({ isOpen, onClose }) 
     onClose();
   };
 
+  const isCustomInputMissing = selectedOption === 'custom' && !customFee;
+
   const formatBasisPointsToPercentage = (basisPoints: number): string => {
-    return `${(basisPoints / 100).toFixed(2)}%`;
+    const percentValue = basisPoints / 100;
+    return `${formatNumber(percentValue, { minFractionDigits: 2, maxFractionDigits: 2 })}%`;
   };
 
   return (
@@ -235,7 +258,8 @@ const ReferralFeePopup: React.FC<ReferralFeePopupProps> = ({ isOpen, onClose }) 
               </label>
               <div className="relative">
                 <input
-                  type="number"
+                  type="text"
+                  inputMode="decimal"
                   value={customFee}
                   onChange={(e) => handleCustomInputChange(e.target.value)}
                   onFocus={() => {
@@ -243,9 +267,6 @@ const ReferralFeePopup: React.FC<ReferralFeePopupProps> = ({ isOpen, onClose }) 
                     setHasUserInteracted(true);
                   }}
                   placeholder="0.00"
-                  step="0.01"
-                  min="0.1"
-                  max={maxPercent}
                   className={`w-full rounded-lg border px-4 py-3 bg-bg-surface text-base text-text placeholder:text-text-muted transition-all focus:outline-none focus:ring-2 ${
                     inputError
                       ? 'border-danger focus:border-danger focus:ring-danger/30'
@@ -266,6 +287,11 @@ const ReferralFeePopup: React.FC<ReferralFeePopupProps> = ({ isOpen, onClose }) 
                   Fee will be set to: {customFee}%
                 </p>
               )}
+              {isCustomInputMissing && (
+                <p className="mt-2 text-sm text-text-muted">
+                  Enter a percentage to set your custom fee.
+                </p>
+              )}
             </div>
 
             {/* Info Box */}
@@ -277,7 +303,7 @@ const ReferralFeePopup: React.FC<ReferralFeePopupProps> = ({ isOpen, onClose }) 
                 <div>
                   <p className="text-sm font-medium text-text">Fee Range</p>
                   <p className="mt-1 text-sm text-text-muted">
-                    Your referral fee must be between 0.1% and 3.0%. Higher fees may reduce user adoption.
+                    Your referral fee must be between {renderPercentValue(minPercent)} and {renderPercentValue(maxPercent)}. Higher fees may reduce user adoption.
                   </p>
                 </div>
               </div>
@@ -301,7 +327,12 @@ const ReferralFeePopup: React.FC<ReferralFeePopupProps> = ({ isOpen, onClose }) 
               </button>
               <button
                 onClick={handleSave}
-                disabled={!!inputError || updatingFeeBasisPoints || !account}
+                disabled={
+                  !!inputError ||
+                  updatingFeeBasisPoints ||
+                  !account ||
+                  isCustomInputMissing
+                }
                 className="flex-1 flex items-center justify-center gap-2 rounded-lg bg-primary px-4 py-3 text-white font-semibold transition-colors hover:bg-primary-600 disabled:cursor-not-allowed disabled:bg-border disabled:text-text-muted focus-visible:ring-2 focus-visible:ring-focus focus-visible:outline-none"
               >
                 {updatingFeeBasisPoints ? (

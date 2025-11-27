@@ -11,6 +11,7 @@ import {
 } from "../../../utils/walletUtils";
 import useWallet from "../../../hooks/useWallet";
 import TokenIcon from "../../../components/TokenIcon";
+import { useNumberFormat } from "../../../context/NumberFormatContext";
 
 interface TransactionCardProps {
   transaction: BridgeTransaction;
@@ -25,6 +26,7 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
   const [currentChainId, setCurrentChainId] = useState<number | null>(null);
   const dispatch = useAppDispatch();
   const { wallet, switchToChain } = useWallet();
+  const { formatNumber, formatTokenAmount } = useNumberFormat();
   
   // Get token pairs from bridge store to find corresponding tokens
   const { tokenPairs } = useAppSelector((state) => state.bridge);
@@ -228,11 +230,25 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
 
   const formatAmount = (amount: string, decimals: number) => {
     try {
-      const num = parseFloat(amount) / Math.pow(10, decimals);
-      return num.toFixed(6);
+      return formatTokenAmount(amount, decimals, { maxFractionDigits: 6 });
     } catch {
-      return amount;
+      try {
+        const num = Number(amount) / Math.pow(10, decimals);
+        if (!Number.isFinite(num)) return amount;
+        return formatNumber(num, { maxFractionDigits: 6 });
+      } catch {
+        return amount;
+      }
     }
+  };
+
+  const formatHumanReadableAmount = (raw?: string) => {
+    if (!raw) return null;
+    const numeric = Number(raw);
+    if (Number.isFinite(numeric)) {
+      return formatNumber(numeric, { maxFractionDigits: 6 });
+    }
+    return raw;
   };
 
   const formatDate = (dateString: string) => {
@@ -276,6 +292,10 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
   };
 
   const statusInfo = getStatusInfo(transaction.status);
+  const humanReadableFormatted = formatHumanReadableAmount(transaction.humanReadableAmount);
+  const primaryAmount =
+    humanReadableFormatted ??
+    formatAmount(transaction.amount, transaction.tokenDecimals);
 
   return (
     <motion.div
@@ -294,8 +314,7 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
           <div>
             <div className="flex items-center space-x-2 mb-1">
               <span className="text-lg font-semibold">
-                {transaction.humanReadableAmount ||
-                  formatAmount(transaction.amount, transaction.tokenDecimals)}
+                {primaryAmount}
               </span>
               <div className="flex items-center space-x-2">
                 <span className="text-text-muted">{transaction.tokenSymbol}</span>
@@ -521,12 +540,7 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
                 <div className="flex justify-between">
                   <span className="text-text-muted">Amount:</span>
                   <span className="font-medium">
-                    {transaction.humanReadableAmount ||
-                      formatAmount(
-                        transaction.amount,
-                        transaction.tokenDecimals
-                      )}{" "}
-                    {transaction.tokenSymbol}
+                    {primaryAmount} {transaction.tokenSymbol}
                   </span>
                 </div>
 
