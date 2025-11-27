@@ -39,6 +39,7 @@ const TokenPopup: React.FC<TokenPopupProps> = ({
   isLoading = false,
 }) => {
   const dispatch = useAppDispatch();
+  const searchInputRef = useRef<HTMLInputElement | null>(null);
   const { tokenBalances, isTokenBalancesLoading } = useAppSelector(
     (state) => state.swap
   );
@@ -56,7 +57,7 @@ const TokenPopup: React.FC<TokenPopupProps> = ({
     [coreTokens]
   );
   const corePriority = useMemo(
-    () => ["PLS", "PLSX", "HEX", "INC", "WETH", "WBTC", "USDC", "USDT", "DAI"],
+    () => ["PLS", "PLSX", "HEX", "INC", "USDC", "USDT"],
     []
   );
 
@@ -77,7 +78,7 @@ const TokenPopup: React.FC<TokenPopupProps> = ({
   );
 
   const quickCoreTokens = useMemo(() => {
-    const coreOrder = ["PLS", "PLSX", "HEX", "INC", "WETH", "WBTC", "USDC", "USDT", "DAI"];
+    const coreOrder = ["PLS", "PLSX", "HEX", "INC", "USDC", "USDT"];
     const tokenPool = [
       ...coreTokens,
       ...pulseTokens.filter(
@@ -196,9 +197,10 @@ const TokenPopup: React.FC<TokenPopupProps> = ({
               <div className="mb-4">
                 <div className="relative">
                   <input
+                    ref={searchInputRef}
                     type="text"
                     placeholder="Search name or address"
-                    className="w-full rounded-lg border border-border bg-bg-page px-4 py-2 pl-10 text-sm text-text focus:outline-none focus:ring-2 focus:ring-primary/40"
+                    className="w-full rounded-lg border border-border bg-bg-page px-4 py-2 pl-10 pr-10 text-sm text-text focus:outline-none focus:ring-2 focus:ring-primary/40"
                     value={searchToken}
                     onChange={(event) => setSearchToken(event.target.value)}
                   />
@@ -215,6 +217,31 @@ const TokenPopup: React.FC<TokenPopupProps> = ({
                       d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
                     />
                   </svg>
+                  {searchToken && (
+                    <button
+                      type="button"
+                      aria-label="Clear search"
+                      onClick={() => {
+                        setSearchToken("");
+                        searchInputRef.current?.focus();
+                      }}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full p-1 text-text-muted transition-colors hover:text-text"
+                    >
+                      <svg
+                        className="h-4 w-4"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M6 18L18 6M6 6l12 12"
+                        />
+                      </svg>
+                    </button>
+                  )}
                 </div>
                 <p className="mt-2 text-xs text-text-muted">
                   Sorted by your balance, then core tokens. Only verified tokens are listed by default.

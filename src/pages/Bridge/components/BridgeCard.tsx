@@ -25,6 +25,7 @@ import { ZeroAddress } from "../../../const/swap";
 import {
   MIN_NATIVE_ETH_AMOUNT_WEI,
   MIN_NATIVE_ETH_AMOUNT_DISPLAY,
+  MIN_BRIDGE_USD_AMOUNT,
 } from "../constants";
 import TokenIcon from "../../../components/TokenIcon";
 
@@ -152,6 +153,11 @@ const BridgeCard: React.FC<BridgeCardProps> = ({
     (token) => token.symbol === selectedToken
   );
 
+  const stableSymbols = ["USDC", "USDT", "DAI"];
+  const fallbackUsdPriceBySymbol: Record<string, number> = {
+    WBTC: 60000, // approximate BTC peg for minimum warning only
+  };
+
   const tokenDecimals = selectedTokenData?.decimals ?? 18;
   const amountWei = tryParseAmountToWei(amount, tokenDecimals);
   const balanceWei = tryParseAmountToWei(balance, tokenDecimals);
@@ -167,6 +173,31 @@ const BridgeCard: React.FC<BridgeCardProps> = ({
     amountWei !== null &&
     amountWei > 0n &&
     amountWei < MIN_NATIVE_ETH_AMOUNT_WEI;
+
+  const computeUsdEstimate = (): number | null => {
+    if (!selectedTokenData) return null;
+    const amountNum = Number(amount || "0");
+    if (!Number.isFinite(amountNum) || amountNum <= 0) return null;
+
+    const symbol = (selectedTokenData.symbol || "").toUpperCase();
+    if (stableSymbols.includes(symbol)) {
+      return amountNum; // assume $1 per unit for stablecoins
+    }
+
+    const fallbackPrice = fallbackUsdPriceBySymbol[symbol];
+    if (fallbackPrice) {
+      return amountNum * fallbackPrice;
+    }
+
+    // For native ETH we rely on the explicit ETH minimum instead of USD
+    return null;
+  };
+
+  const usdEstimate = computeUsdEstimate();
+  const isBelowUsdMinimum =
+    usdEstimate !== null &&
+    usdEstimate > 0 &&
+    usdEstimate < MIN_BRIDGE_USD_AMOUNT;
 
   // Find the corresponding token using the new token pair structure
   const correspondingTokenData = tokens.find(
@@ -346,10 +377,10 @@ const BridgeCard: React.FC<BridgeCardProps> = ({
     // Check for insufficient balance
     if (insufficientBalance) return true;
 
-    // Check for Ethereum native token minimum amount (0.018 ETH)
+    // Check for Ethereum native token minimum amount (0.018 ETH) or USD guideline
     if (
       selectedTokenData &&
-      isBelowMinimum
+      (isBelowMinimum || isBelowUsdMinimum)
     ) {
       return true;
     }
@@ -452,6 +483,10 @@ const BridgeCard: React.FC<BridgeCardProps> = ({
     // Check for Ethereum native token minimum amount (0.018 ETH)
     if (isBelowMinimum) {
       return `Amount must be greater than ${MIN_NATIVE_ETH_AMOUNT_DISPLAY} ETH`;
+    }
+
+    if (isBelowUsdMinimum) {
+      return `Amount must be at least $${MIN_BRIDGE_USD_AMOUNT}`;
     }
 
     // Check if approval is needed (for non-native tokens)
@@ -604,6 +639,9 @@ const BridgeCard: React.FC<BridgeCardProps> = ({
                 tokenAddress={selectedTokenData?.address}
                 fromChainId={fromChainId}
                 selectedTokenData={selectedTokenData}
+                usdValue={usdEstimate}
+                usdMinimum={MIN_BRIDGE_USD_AMOUNT}
+                isBelowUsdMinimum={isBelowUsdMinimum}
                 onCopyAddress={async () => {
                   try {
                     await navigator.clipboard.writeText(

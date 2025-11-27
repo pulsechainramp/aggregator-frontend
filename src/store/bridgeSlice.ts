@@ -513,7 +513,12 @@ export const submitBridgeTransaction = createAsyncThunk(
       }
 
       const token = await thunkAPI
-        .dispatch(ensureSiweSessionAction(userAddress))
+        .dispatch(
+          ensureSiweSessionAction({
+            address: userAddress,
+            purpose: "bridge-submit",
+          })
+        )
         .unwrap();
       const response = await fetch(
         `${BackendURL}exchange/omnibridge/transaction`,

@@ -122,7 +122,14 @@ const Wallet = () => {
                       )}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="truncate font-semibold text-text">{wallet.name}</p>
+                      <a
+                        href={wallet.href}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="truncate font-semibold text-text transition-colors hover:text-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
+                      >
+                        {wallet.name}
+                      </a>
                     </div>
                   </div>
                   <a

@@ -189,7 +189,12 @@ const Referrals: React.FC = () => {
       let token = authToken;
 
       if (!token) {
-        token = await dispatch(ensureSiweSessionAction(account)).unwrap();
+        token = await dispatch(
+          ensureSiweSessionAction({
+            address: account,
+            purpose: "referral-create",
+          })
+        ).unwrap();
       }
 
       if (!token) {

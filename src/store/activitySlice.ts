@@ -27,7 +27,12 @@ export const fetchUserTransactions = createAsyncThunk(
       }
 
       const token = await thunkAPI
-        .dispatch(ensureSiweSessionAction(userAddress))
+        .dispatch(
+          ensureSiweSessionAction({
+            address: userAddress,
+            purpose: "bridge-activity",
+          })
+        )
         .unwrap();
       const params = new URLSearchParams({
         userAddress,

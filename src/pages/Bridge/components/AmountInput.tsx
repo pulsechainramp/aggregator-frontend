@@ -22,6 +22,9 @@ interface AmountInputProps {
   showButtons?: boolean;
   fromChainId?: number;
   selectedTokenData?: any;
+  usdValue?: number | null;
+  usdMinimum?: number;
+  isBelowUsdMinimum?: boolean;
 }
 
 const AmountInput: React.FC<AmountInputProps> = ({
@@ -36,6 +39,9 @@ const AmountInput: React.FC<AmountInputProps> = ({
   showButtons = false,
   fromChainId,
   selectedTokenData,
+  usdValue = null,
+  usdMinimum,
+  isBelowUsdMinimum = false,
 }) => {
   const [showTooltip, setShowTooltip] = useState(false);
   const { wallet, account, currentChainId } = useWallet();
@@ -70,6 +76,8 @@ const AmountInput: React.FC<AmountInputProps> = ({
     amountWei > 0n &&
     amountWei < MIN_NATIVE_ETH_AMOUNT_WEI;
 
+  const shouldHighlight = isBelowMinimum || isBelowUsdMinimum;
+
   return (
     <motion.div
       initial={{ opacity: 0, x: 20 }}
@@ -79,7 +87,7 @@ const AmountInput: React.FC<AmountInputProps> = ({
     >
       <div
         className={`flex items-center justify-between rounded-xl border p-4 shadow-sm transition-colors ${
-          isBelowMinimum ? "border-danger" : "border-border hover:border-primary"
+          shouldHighlight ? "border-danger" : "border-border hover:border-primary"
         } bg-bg-surface`}
       >
         <div className="mr-4 min-w-0 flex-1">
@@ -89,7 +97,7 @@ const AmountInput: React.FC<AmountInputProps> = ({
             onChange={handleInputChange}
             placeholder="0.00"
             className={`w-full bg-transparent text-xl font-semibold placeholder-text-muted focus:outline-none ${
-              isBelowMinimum ? "text-danger" : "text-text"
+              shouldHighlight ? "text-danger" : "text-text"
             }`}
           />
         </div>
@@ -146,7 +154,7 @@ const AmountInput: React.FC<AmountInputProps> = ({
       </div>
 
       {/* Live Validation Message */}
-      {isBelowMinimum && (
+      {(isBelowMinimum || isBelowUsdMinimum) && (
         <motion.div
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
@@ -156,7 +164,13 @@ const AmountInput: React.FC<AmountInputProps> = ({
             <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
               <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
             </svg>
-            <span>The PulseChain bridge requires a minimum of {MIN_NATIVE_ETH_AMOUNT_DISPLAY} ETH for this transaction.</span>
+            <span>
+              {isBelowMinimum
+                ? `The PulseChain bridge requires a minimum of ${MIN_NATIVE_ETH_AMOUNT_DISPLAY} ETH for this transaction.`
+                : usdMinimum
+                  ? `The PulseChain bridge requires a minimum of $${usdMinimum} for this transaction${usdValue !== null ? ` (≈ $${usdValue.toFixed(2)} entered).` : "."}`
+                  : "Bridge amount may be below the recommended minimum."}
+            </span>
           </div>
           
           {/* Tooltip Icon */}

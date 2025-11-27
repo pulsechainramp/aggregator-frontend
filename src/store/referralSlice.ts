@@ -51,6 +51,13 @@ interface SiweChallenge {
   nonce: string;
 }
 
+type SiwePurpose =
+  | "referral-create"
+  | "referral-view"
+  | "bridge-activity"
+  | "bridge-submit";
+type EnsureSiweSessionArgs = string | { address: string; purpose?: SiwePurpose };
+
 type CreateReferralCodeError =
   | ({ type: "PAYMENT_REQUIRED" } & ReferralCreationFeeInfo)
   | { type: "UNAUTHORIZED"; message: string }
@@ -102,6 +109,21 @@ interface ReferralState {
   creatingReferralCode: boolean;
   paymentRequired: ReferralCreationFeeInfo | null;
 }
+
+const getSiweStatementForPurpose = (purpose?: SiwePurpose): string | undefined => {
+  switch (purpose) {
+    case "referral-create":
+      return "Sign in to create a referral code";
+    case "referral-view":
+      return "Sign in to view your referrals";
+    case "bridge-activity":
+      return "Sign in to view your bridge progress";
+    case "bridge-submit":
+      return "Sign in to submit and track your bridge transaction";
+    default:
+      return undefined;
+  }
+};
 
 const initialState: ReferralState = {
   referralCode: null,
@@ -260,9 +282,12 @@ export const submitReferralCreationFeePayment = createAsyncThunk<
 
 export const requestSiweChallenge = createAsyncThunk<
   SiweChallenge,
-  { address: string; clientId: string }
->("referral/requestSiweChallenge", async ({ address, clientId }) => {
+  { address: string; clientId: string; purpose?: SiwePurpose }
+>("referral/requestSiweChallenge", async ({ address, clientId, purpose }) => {
   const params = new URLSearchParams({ address, clientId });
+  if (purpose) {
+    params.set("purpose", purpose);
+  }
   const response = await fetch(
     `${BackendURL}auth/challenge?${params.toString()}`
   );
@@ -294,9 +319,12 @@ export const verifySiweSignature = createAsyncThunk<
 });
 
 const ensureSiweSessionInternal = async (
-  address: string,
+  args: EnsureSiweSessionArgs,
   thunkAPI: ReferralThunkAPI
 ): Promise<string> => {
+  const { address, purpose } =
+    typeof args === "string" ? { address: args, purpose: undefined } : args;
+
   if (!address) {
     throw new Error("Connect your wallet to continue");
   }
@@ -316,14 +344,17 @@ const ensureSiweSessionInternal = async (
 
   const clientId = getOrCreateSiweClientId();
   const challenge = await thunkAPI
-    .dispatch(requestSiweChallenge({ address, clientId }))
+    .dispatch(requestSiweChallenge({ address, clientId, purpose }))
     .unwrap();
 
   const { fields, preview } = validateSiweMessage(
     challenge.message,
     address.toLowerCase()
   );
-  await confirmSiweChallenge(preview);
+  const statementOverride = getSiweStatementForPurpose(purpose);
+  await confirmSiweChallenge(
+    statementOverride ? { ...preview, statement: statementOverride } : preview
+  );
 
   const signature = await signSiweMessage(challenge.message);
   const verification = await thunkAPI
@@ -342,10 +373,10 @@ const ensureSiweSessionInternal = async (
 
 export const ensureSiweSessionAction = createAsyncThunk<
   string,
-  string,
+  EnsureSiweSessionArgs,
   { state: { referral: ReferralState } }
->("referral/ensureSiweSessionAction", async (address, thunkAPI) =>
-  ensureSiweSessionInternal(address, thunkAPI)
+>("referral/ensureSiweSessionAction", async (payload, thunkAPI) =>
+  ensureSiweSessionInternal(payload, thunkAPI)
 );
 
 export const createReferralCodeSecure = createAsyncThunk<
@@ -429,7 +460,12 @@ export const fetchReferralFees = createAsyncThunk(
     }
 
     const token = await thunkAPI
-      .dispatch(ensureSiweSessionAction(referrerAddress))
+      .dispatch(
+        ensureSiweSessionAction({
+          address: referrerAddress,
+          purpose: "referral-view",
+        })
+      )
       .unwrap();
     const encodedReferrer = encodeURIComponent(referrerAddress);
     const response = await fetch(
