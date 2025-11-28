@@ -53,6 +53,14 @@ const Start = () => {
   const location = useLocation();
   const startProgress = useStartProgress();
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const requestBalanceCheckRef = useRef<() => void>(() => {});
+
+  const {
+    loading: balancesLoading,
+    complete: balancesComplete,
+    error: balancesError,
+    lastChecked: balancesLastChecked,
+  } = startProgress.balances;
 
   const getInitialIsMobile = () => {
     if (typeof window === "undefined") return false;
@@ -61,7 +69,6 @@ const Start = () => {
 
   const [isMobile, setIsMobile] = useState(getInitialIsMobile);
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
-  const [collapseAccountKey, setCollapseAccountKey] = useState<string>("");
 
   useEffect(() => {
     try {
@@ -76,36 +83,47 @@ const Start = () => {
   useEffect(() => {
     dispatch(setStartAccount(account || null));
     setCollapsed({});
-    setCollapseAccountKey((account || "").toLowerCase());
   }, [account, dispatch]);
 
   const MIN_CHECK_INTERVAL_MS = 60_000;
   const DEBOUNCE_MS = 400;
 
+  useEffect(() => {
+    requestBalanceCheckRef.current = () => {
+      if (!account) return;
+      if (balancesLoading || balancesComplete) return;
+
+      const now = Date.now();
+      if (balancesLastChecked && now - balancesLastChecked < MIN_CHECK_INTERVAL_MS) return;
+      if (balancesError && balancesLastChecked && now - balancesLastChecked < MIN_CHECK_INTERVAL_MS) return;
+
+      dispatch(checkStartBalances({ account }));
+    };
+  }, [
+    account,
+    balancesLoading,
+    balancesComplete,
+    balancesError,
+    balancesLastChecked,
+    dispatch,
+  ]);
+
   const requestBalanceCheck = useCallback(() => {
-    if (!account) return;
-    const { loading, complete, error, lastChecked } = startProgress.balances;
-    if (loading || complete) return;
-
-    const now = Date.now();
-    if (lastChecked && now - lastChecked < MIN_CHECK_INTERVAL_MS) return;
-    if (error && lastChecked && now - lastChecked < MIN_CHECK_INTERVAL_MS) return;
-
-    dispatch(checkStartBalances({ account }));
-  }, [account, dispatch, startProgress.balances]);
+    requestBalanceCheckRef.current();
+  }, []);
 
   const scheduleDebouncedCheck = useCallback(() => {
     if (debounceRef.current) {
       clearTimeout(debounceRef.current);
     }
     debounceRef.current = setTimeout(() => {
-      requestBalanceCheck();
+      requestBalanceCheckRef.current();
     }, DEBOUNCE_MS);
-  }, [requestBalanceCheck]);
+  }, []);
 
   useEffect(() => {
     requestBalanceCheck();
-  }, [requestBalanceCheck]);
+  }, [account, requestBalanceCheck]);
 
   useEffect(() => {
     if (typeof document === "undefined") return;
@@ -229,7 +247,7 @@ const Start = () => {
       });
       return changed ? next : prev;
     });
-  }, [isMobile, walletComplete, fundingComplete, bridgeComplete, swapComplete, steps, collapseAccountKey]);
+  }, [isMobile, walletComplete, fundingComplete, bridgeComplete, swapComplete, steps]);
 
   return (
     <div className="bg-bg-page px-4 py-6 text-text sm:py-10">
@@ -284,6 +302,14 @@ const Start = () => {
                     }));
                   }}
                   disabled={!isCollapsible}
+                  {...(isCollapsible
+                    ? {
+                        "aria-expanded": !isCollapsed,
+                        "aria-label": isCollapsed
+                          ? `Expand step: ${step.title}`
+                          : `Collapse step: ${step.title}`,
+                      }
+                    : {})}
                 >
                   {isDone ? (
                     <CheckIcon />
@@ -311,7 +337,7 @@ const Start = () => {
                       viewBox="0 0 24 24"
                       fill="none"
                       stroke="currentColor"
-                      className={`h-4 w-4 text-text-muted transition-transform ${isCollapsed ? "-rotate-90" : "rotate-90"}`}
+                      className={`h-4 w-4 text-text-muted transition-transform ${isCollapsed ? "rotate-90" : "-rotate-90"}`}
                     >
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                     </svg>
