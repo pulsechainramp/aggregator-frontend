@@ -166,35 +166,6 @@ const startProgressSlice = createSlice({
       });
 
     builder
-      .addCase(fetchUserTransactions.pending, (state, action) => {
-        const account = normalizeAccount(action.meta.arg as string);
-        if (state.account !== account) return;
-        state.bridge.loading = true;
-        state.bridge.error = null;
-      })
-      .addCase(fetchUserTransactions.fulfilled, (state, action) => {
-        const account = normalizeAccount(action.meta.arg as string);
-        if (state.account !== account) return;
-        const hasExecuted = Array.isArray(action.payload)
-          ? action.payload.some((tx) => tx.status === "executed")
-          : false;
-        state.bridge.loading = false;
-        state.bridge.complete = hasExecuted;
-        state.bridge.lastChecked = Date.now();
-        if (hasExecuted) {
-          writeStoredProgress(account, { hasBridge: true });
-        }
-      })
-      .addCase(fetchUserTransactions.rejected, (state, action) => {
-        const account = normalizeAccount(action.meta.arg as string);
-        if (state.account !== account) return;
-        state.bridge.loading = false;
-        state.bridge.error =
-          action.error?.message ?? "Failed to check bridge history";
-        state.bridge.lastChecked = Date.now();
-      });
-
-    builder
       .addCase(executeSwapAction.fulfilled, (state, action) => {
         const account = normalizeAccount(action.meta.arg.account);
         if (!account) return;
