@@ -71,7 +71,7 @@ const Wallet = () => {
 
   return (
     <div className="bg-bg-page px-4 py-4 sm:py-10 text-text">
-      <div className="mx-auto flex max-w-6xl flex-col gap-6 sm:gap-8">
+      <div className="mx-auto flex max-w-4xl flex-col gap-6 sm:gap-8">
         <section className="space-y-3 rounded-3xl border border-border bg-bg-surface p-6 shadow-floating sm:p-8">
           <p className="text-sm font-semibold uppercase tracking-wide text-primary">
             Wallet guide
