@@ -35,6 +35,7 @@ import ReferralFeePopup from "../Swap/ReferralFeePopup";
 import { formatFeeBasisPoints } from "../../utils/referralUtils";
 import { BackendURL } from "../../const/swap";
 import { formatEther } from "ethers";
+import CustomDomainCollapsible from "./components/CustomDomainCollapsible";
 
 const Referrals: React.FC = () => {
   const { account, isOnPulseChain } = useWallet();
@@ -387,6 +388,7 @@ const Referrals: React.FC = () => {
   }, [creationFeeInfo]);
 
   const requiresPayment = creationFee ? creationFee.value > 0n : false;
+  const shouldShowPrivacyBanner = requiresPayment && hasPaidCreationFee !== true;
   const paymentRequiredDisplay = useMemo(() => {
     if (!paymentRequired?.fee) {
       return null;
@@ -457,6 +459,21 @@ const Referrals: React.FC = () => {
           <div className="mb-6 rounded-xl border border-warning/50 bg-warning/10 px-4 py-3 text-sm text-warning">
             Switch to PulseChain to update your referral fee or claim your referral
             earnings.
+          </div>
+        )}
+
+        {shouldShowPrivacyBanner && (
+          <div className="mb-6 rounded-xl border border-border bg-bg-surface p-5 shadow-sm">
+            <div className="flex flex-col gap-3 text-left">
+              <div>
+                <p className="text-base font-semibold text-text">Use a separate wallet for referrals</p>
+                <p className="mt-1 text-sm text-text-muted leading-relaxed">
+                  For your privacy, we recommend using a different wallet just for referrals.
+                  If you use your main wallet, people who know your referral link can look up that wallet on the block explorer and see its other activity.
+                </p>
+              </div>
+
+            </div>
           </div>
         )}
 
@@ -584,6 +601,10 @@ const Referrals: React.FC = () => {
             </div>
           )}
         </section>
+
+        {referralLink && (
+          <CustomDomainCollapsible referralUrl={referralLink} />
+        )}
 
         {/* Referral Fees List */}
         <motion.div
