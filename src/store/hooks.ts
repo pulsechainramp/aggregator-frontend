@@ -22,3 +22,6 @@ export const useReferrerFeeBasisPoints = () => useSelector((state: RootState) =>
 export const useReferralLoading = () => useSelector((state: RootState) => state.referral.loading);
 export const useReferralError = () => useSelector((state: RootState) => state.referral.error);
 export const useReferralClaiming = () => useSelector((state: RootState) => state.referral.claiming); 
+
+// Start progress selectors
+export const useStartProgress = () => useSelector((state: RootState) => state.startProgress);
