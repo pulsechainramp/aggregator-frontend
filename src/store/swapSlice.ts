@@ -216,11 +216,13 @@ export const updateBestQuote = (
   candidate: QuoteType,
   source: QuoteSource
 ): { quote: QuoteType; source: QuoteSource } => {
-  if (!current.quote) {
+  if (!current.quote || !current.source) {
     return { quote: candidate, source };
   }
   const winner = compareQuotes(candidate, current.quote);
-  return winner === "a" ? { quote: candidate, source } : current;
+  return winner === "a"
+    ? { quote: candidate, source }
+    : { quote: current.quote, source: current.source };
 };
 
 // Get token balance
