@@ -58,6 +58,7 @@ interface SwapState {
   toToken: TokenType | null;
   fromAmount: string;
   quote: QuoteType | null;
+  quoteSource: QuoteSource | null;
   slippage: number;
   // Balance state
   fromTokenBalance: string;
@@ -76,7 +77,6 @@ interface SwapState {
   // Quote loading states
   isPulseXLoading: boolean;
   isPiteamsLoading: boolean;
-  showBetterRouterMessage: boolean;
   hasCalledPulseXOnce: boolean;
   // Parameter tracking for PulseX calls
   lastPulseXParams: {
@@ -97,12 +97,15 @@ type QuoteRequestSnapshot = {
   fromDecimal: number;
 };
 
+export type QuoteSource = "pulsex" | "piteas";
+
 const initialState: SwapState = {
   availableTokens: [],
   fromToken: null,
   toToken: null,
   fromAmount: "",
   quote: null,
+  quoteSource: null,
   slippage: 0.5,
   // Balance state
   fromTokenBalance: "0",
@@ -121,7 +124,6 @@ const initialState: SwapState = {
   // Quote loading states
   isPulseXLoading: false,
   isPiteamsLoading: false,
-  showBetterRouterMessage: false,
   hasCalledPulseXOnce: false,
   // Parameter tracking for PulseX calls
   lastPulseXParams: null,
@@ -136,6 +138,9 @@ const resetSwapTransientState = (state: SwapState) => {
   state.hasCalledPulseXOnce = false;
   state.lastPulseXParams = null;
   state.latestAllowanceRequestId = null;
+   // Clear any lingering quote/source when inputs change to avoid stale UI
+  state.quote = null;
+  state.quoteSource = null;
 };
 
 const isNativeAddress = (address: string) => {
@@ -185,6 +190,37 @@ const doesQuoteMatchSnapshot = (
   if (state.slippage !== snapshot.allowedSlippage) return false;
 
   return areAmountsEqual(state.fromAmount, snapshot.amount);
+};
+
+export const compareQuotes = (
+  a: QuoteType,
+  b: QuoteType
+): "a" | "b" | "tie" => {
+  const outputA = BigInt(a.outputAmount);
+  const outputB = BigInt(b.outputAmount);
+
+  if (outputA > outputB) return "a";
+  if (outputB > outputA) return "b";
+
+  const minOutA = BigInt(a.minAmountOut);
+  const minOutB = BigInt(b.minAmountOut);
+
+  if (minOutA > minOutB) return "a";
+  if (minOutB > minOutA) return "b";
+
+  return "tie";
+};
+
+export const updateBestQuote = (
+  current: { quote: QuoteType | null; source: QuoteSource | null },
+  candidate: QuoteType,
+  source: QuoteSource
+): { quote: QuoteType; source: QuoteSource } => {
+  if (!current.quote) {
+    return { quote: candidate, source };
+  }
+  const winner = compareQuotes(candidate, current.quote);
+  return winner === "a" ? { quote: candidate, source } : current;
 };
 
 // Get token balance
@@ -742,7 +778,6 @@ export const getQuote = createAsyncThunk<
       fromDecimal,
     };
     const state = getState();
-    const lastPulseXParams = state.swap.lastPulseXParams;
     const validationContext = {
       fromToken: state.swap.fromToken,
       toToken: state.swap.toToken,
@@ -765,73 +800,87 @@ export const getQuote = createAsyncThunk<
       }
     };
 
-    // Check if this is a new quote request (different parameters)
-    const isNewQuoteRequest = !lastPulseXParams ||
-      lastPulseXParams.tokenInAddress.toLowerCase() !== tokenInAddress.toLowerCase() ||
-      lastPulseXParams.tokenOutAddress.toLowerCase() !== tokenOutAddress.toLowerCase() ||
-      lastPulseXParams.amount !== normalizedAmount ||
-      lastPulseXParams.allowedSlippage !== allowedSlippage;
-
-    if (isNewQuoteRequest) {
-      // New parameters: Call PulseX only (Piteas temporarily disabled)
-      dispatch(setPulseXLoading(true));
-      dispatch(setPiteamsLoading(false));
-      dispatch(setShowBetterRouterMessage(false));
-
-      try {
-        const pulseXResult = await dispatch(getPulseXQuote({
+    const quotePromises = [
+      {
+        source: "pulsex" as const,
+        promise: dispatch(getPulseXQuote({
           tokenInAddress,
           tokenOutAddress,
           amount,
           allowedSlippage,
           fromDecimal,
-        })).unwrap();
-
-        dispatch(setLastPulseXParams({
-          tokenInAddress,
-          tokenOutAddress,
-          amount: normalizedAmount,
-          allowedSlippage,
-        }));
-
-        if ("error" in pulseXResult) {
-          throw pulseXResult.error instanceof Error
-            ? pulseXResult.error
-            : new Error('PulseX quote API failed');
-        }
-
-        return ensureValidQuote(pulseXResult);
-      } catch (error) {
-        console.error('PulseX quote failed:', error);
-        throw error;
-      }
-    } else {
-      // Same parameters: reuse PulseX quote path
-      dispatch(setPulseXLoading(true));
-      dispatch(setPiteamsLoading(false));
-      dispatch(setShowBetterRouterMessage(false));
-
-      try {
-        const pulseXResult = await dispatch(getPulseXQuote({
+        })).unwrap(),
+      },
+      {
+        source: "piteas" as const,
+        promise: dispatch(getPiteamsQuote({
           tokenInAddress,
           tokenOutAddress,
           amount,
           allowedSlippage,
           fromDecimal,
-        })).unwrap();
+          account,
+        })).unwrap(),
+      },
+    ];
 
-        if ("error" in pulseXResult) {
-          throw pulseXResult.error instanceof Error
-            ? pulseXResult.error
-            : new Error('PulseX quote API failed');
+    let best = { quote: null as QuoteType | null, source: null as QuoteSource | null };
+
+    const considerQuote = (quote: QuoteType, source: QuoteSource) => {
+      const validated = ensureValidQuote(quote);
+      const nextBest = updateBestQuote(best, validated, source);
+      if (nextBest.quote !== best.quote) {
+        best = nextBest;
+        if (nextBest.source) {
+          dispatch(
+            applyQuoteIfCurrent({
+              quote: validated,
+              params: requestSnapshot,
+              source: nextBest.source,
+            })
+          );
         }
-
-        return ensureValidQuote(pulseXResult);
-      } catch (error) {
-        console.error('PulseX quote failed:', error);
-        throw error;
       }
+    };
+
+    let hasSuccess = false;
+
+    await Promise.all(
+      quotePromises.map(({ promise, source }) =>
+        promise
+          .then((quote) => {
+            if ("error" in quote) {
+              const err =
+                quote.error instanceof Error
+                  ? quote.error
+                  : new Error("Quote API failed");
+              throw err;
+            }
+            try {
+              considerQuote(quote as QuoteType, source);
+              hasSuccess = true;
+            } catch (error) {
+              console.error("Quote validation failed:", error);
+            }
+          })
+          .catch((error) => {
+            console.error("Quote provider failed:", error);
+          })
+      )
+    );
+
+    dispatch(setLastPulseXParams({
+      tokenInAddress,
+      tokenOutAddress,
+      amount: normalizedAmount,
+      allowedSlippage,
+    }));
+
+    if (!hasSuccess || !best.quote) {
+      throw new Error("All quote providers failed");
     }
+
+    return best.quote;
   }
 );
 
@@ -853,13 +902,17 @@ export const swapSlice = createSlice({
     },
     setQuote: (state, action) => {
       state.quote = action.payload;
+      if (!action.payload) {
+        state.quoteSource = null;
+      }
     },
     applyQuoteIfCurrent: (
       state,
-      action: PayloadAction<{ quote: QuoteType; params: QuoteRequestSnapshot }>
+      action: PayloadAction<{ quote: QuoteType; params: QuoteRequestSnapshot; source: QuoteSource }>
     ) => {
       if (doesQuoteMatchSnapshot(state, action.payload.params)) {
         state.quote = action.payload.quote;
+        state.quoteSource = action.payload.source;
       }
     },
     setSlippage: (state, action) => {
@@ -907,9 +960,6 @@ export const swapSlice = createSlice({
     setPiteamsLoading: (state, action) => {
       state.isPiteamsLoading = action.payload;
     },
-    setShowBetterRouterMessage: (state, action) => {
-      state.showBetterRouterMessage = action.payload;
-    },
     setHasCalledPulseXOnce: (state, action) => {
       state.hasCalledPulseXOnce = action.payload;
     },
@@ -955,12 +1005,10 @@ export const swapSlice = createSlice({
       })
       .addCase(getPiteamsQuote.fulfilled, (state, action) => {
         state.isPiteamsLoading = false;
-        state.showBetterRouterMessage = false;
         // Quote comparison and update is handled by the main getQuote function
       })
       .addCase(getPiteamsQuote.rejected, (state, action) => {
         state.isPiteamsLoading = false;
-        state.showBetterRouterMessage = false;
         console.error("Failed to get piteams quote:", action.error);
       });
 
@@ -981,7 +1029,6 @@ export const swapSlice = createSlice({
         // Reset loading states on error
         state.isPulseXLoading = false;
         state.isPiteamsLoading = false;
-        state.showBetterRouterMessage = false;
       });
 
     builder
@@ -1153,7 +1200,6 @@ export const {
   clearApprovalState,
   setPulseXLoading,
   setPiteamsLoading,
-  setShowBetterRouterMessage,
   setHasCalledPulseXOnce,
   setLastPulseXParams,
 } = swapSlice.actions;

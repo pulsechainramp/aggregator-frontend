@@ -84,7 +84,6 @@ const Swap: React.FC = () => {
     nativeBalance,
     isPulseXLoading,
     isPiteamsLoading,
-    showBetterRouterMessage,
     areTokensLoading,
     availableTokens,
   } = useAppSelector((state) => state.swap);
@@ -605,17 +604,6 @@ const Swap: React.FC = () => {
           />
 
           {quote && fromToken && toToken && fromAmount && <QuotePanel />}
-
-          {showBetterRouterMessage && (
-            <div className="rounded-lg border border-primary bg-primary-050/60 p-3">
-              <div className="flex items-center justify-center gap-2 text-sm text-primary">
-                <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent"></div>
-                <span>
-                  For a better rate, please wait a moment...
-                </span>
-              </div>
-            </div>
-          )}
 
           {shouldBlockQuotes && (
             <div className="rounded-lg border border-warning bg-warning-050/60 p-3">

@@ -129,7 +129,6 @@ const renderWithQuote = (quote: QuoteType, fromToken: TokenType, toToken: TokenT
     transactionHash: null,
     isPulseXLoading: false,
     isPiteamsLoading: false,
-    showBetterRouterMessage: false,
     hasCalledPulseXOnce: false,
     lastPulseXParams: null,
     latestAllowanceRequestId: null,
