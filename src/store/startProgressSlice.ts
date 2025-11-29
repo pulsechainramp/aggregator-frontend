@@ -79,6 +79,7 @@ export const checkStartBalances = createAsyncThunk(
     }
 
     let sawError = false;
+    let successCount = 0;
     const results = await Promise.all(
       TOKEN_CHECKS.map(async (token) => {
         try {
@@ -88,6 +89,7 @@ export const checkStartBalances = createAsyncThunk(
             chainId: 1,
             decimals: token.decimals,
           });
+          successCount += 1;
           return BigInt(raw || "0");
         } catch (error: any) {
           console.warn(
@@ -101,7 +103,7 @@ export const checkStartBalances = createAsyncThunk(
     );
 
     const hasTokens = results.some((value) => value > 0n);
-    if (!hasTokens && sawError) {
+    if (!successCount) {
       throw new Error("Failed to check balances");
     }
     return { hasTokens };

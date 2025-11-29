@@ -95,7 +95,6 @@ const Start = () => {
 
       const now = Date.now();
       if (balancesLastChecked && now - balancesLastChecked < MIN_CHECK_INTERVAL_MS) return;
-      if (balancesError && balancesLastChecked && now - balancesLastChecked < MIN_CHECK_INTERVAL_MS) return;
 
       dispatch(checkStartBalances({ account }));
     };
@@ -301,7 +300,6 @@ const Start = () => {
                       [step.id]: !prev[step.id],
                     }));
                   }}
-                  disabled={!isCollapsible}
                   {...(isCollapsible
                     ? {
                         "aria-expanded": !isCollapsed,
