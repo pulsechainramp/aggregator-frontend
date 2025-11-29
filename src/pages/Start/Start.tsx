@@ -42,6 +42,7 @@ const NumberCircle = ({ value, active }: { value: string; active?: boolean }) =>
     className={`inline-flex h-8 w-8 min-w-[2rem] shrink-0 items-center justify-center rounded-full text-sm font-semibold ${
       active ? "bg-primary text-white shadow-sm" : "border border-border text-text"
     }`}
+    aria-label={`Step ${value}`}
   >
     {value}
   </span>
@@ -102,7 +103,6 @@ const Start = () => {
     account,
     balancesLoading,
     balancesComplete,
-    balancesError,
     balancesLastChecked,
     dispatch,
   ]);
@@ -145,6 +145,12 @@ const Start = () => {
       if (provider.removeListener) {
         provider.removeListener("chainChanged", handler);
         provider.removeListener("accountsChanged", handler);
+      } else if (provider.off) {
+        provider.off("chainChanged", handler);
+        provider.off("accountsChanged", handler);
+      } else if (provider.removeEventListener) {
+        provider.removeEventListener("chainChanged", handler);
+        provider.removeEventListener("accountsChanged", handler);
       }
     };
   }, [wallet, scheduleDebouncedCheck]);

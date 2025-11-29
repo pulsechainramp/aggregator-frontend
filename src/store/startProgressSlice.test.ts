@@ -94,6 +94,25 @@ describe("startProgressSlice", () => {
       warnSpy.mockRestore();
     });
 
+    it("rejects when balance parsing fails", async () => {
+      const store = makeStore();
+      store.dispatch(setAccount("0xabc"));
+      mockGetTokenBalance.mockResolvedValue("not-a-number");
+      vi.spyOn(Date, "now").mockReturnValue(333);
+      const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+
+      const result = await store.dispatch(
+        checkStartBalances({ account: "0xabc" })
+      );
+
+      expect(result.type).toBe(checkStartBalances.rejected.type);
+      const state = store.getState().startProgress;
+      expect(state.balances.complete).toBe(false);
+      expect(state.balances.error).toContain("Failed");
+      expect(state.balances.lastChecked).toBe(333);
+      warnSpy.mockRestore();
+    });
+
     it("succeeds with no balances when some tokens fail but at least one succeeds", async () => {
       const store = makeStore();
       store.dispatch(setAccount("0xabc"));

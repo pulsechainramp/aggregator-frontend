@@ -78,7 +78,6 @@ export const checkStartBalances = createAsyncThunk(
       throw new Error("Connect your wallet to check balances");
     }
 
-    let sawError = false;
     let successCount = 0;
     const results = await Promise.all(
       TOKEN_CHECKS.map(async (token) => {
@@ -89,14 +88,14 @@ export const checkStartBalances = createAsyncThunk(
             chainId: 1,
             decimals: token.decimals,
           });
+          const value = BigInt(raw ?? 0);
           successCount += 1;
-          return BigInt(raw || "0");
+          return value;
         } catch (error: any) {
           console.warn(
             `Failed to load balance for ${token.symbol}:`,
             error?.message ?? error
           );
-          sawError = true;
           return 0n;
         }
       })
