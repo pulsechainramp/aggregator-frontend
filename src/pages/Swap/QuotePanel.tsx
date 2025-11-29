@@ -57,7 +57,6 @@ const QuotePanel = () => {
     typeof fromTokenUsdPrice === "number"
       ? `($${fromTokenUsdPrice.toFixed(4)})`
       : "";
-
   return (
     <div className="mt-2 w-full rounded-xl border border-border bg-bg-surface p-4 text-text shadow-sm sm:p-5">
       <div className="flex flex-wrap items-center justify-between gap-2">
