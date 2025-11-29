@@ -3,6 +3,7 @@ import swapReducer from "./swapSlice";
 import bridgeReducer from "./bridgeSlice";
 import activityReducer from "./activitySlice";
 import referralReducer from "./referralSlice";
+import startProgressReducer from "./startProgressSlice";
 
 export const store = configureStore({
   reducer: {
@@ -10,6 +11,7 @@ export const store = configureStore({
     bridge: bridgeReducer,
     activity: activityReducer,
     referral: referralReducer,
+    startProgress: startProgressReducer,
   },
 });
 
