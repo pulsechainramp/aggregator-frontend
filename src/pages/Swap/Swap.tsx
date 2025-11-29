@@ -259,30 +259,30 @@ const Swap: React.FC = () => {
 
       if (swapAccount) {
         setIsRefreshingBalances(true);
-        // Refresh immediately, then again shortly after to catch indexing lag
-        dispatch(
-          refreshBalancesAfterSwap({
-            fromToken: pendingFromToken,
-            toToken: pendingToToken,
-            account: swapAccount,
-          })
-        )
-          .catch(() => {
-            handleBalanceRefreshError();
-          })
-          .finally(() => {
-            setTimeout(() => {
-              dispatch(
-                refreshBalancesAfterSwap({
-                  fromToken: pendingFromToken,
-                  toToken: pendingToToken,
-                  account: swapAccount,
-                })
-              ).catch(() => {
-                handleBalanceRefreshError();
-              });
-            }, 1200);
-          });
+        try {
+          await dispatch(
+            refreshBalancesAfterSwap({
+              fromToken: pendingFromToken,
+              toToken: pendingToToken,
+              account: swapAccount,
+            })
+          ).unwrap();
+
+          // Second pass after a short delay to catch any RPC/indexing lag
+          await new Promise((resolve) => setTimeout(resolve, 1200));
+
+          await dispatch(
+            refreshBalancesAfterSwap({
+              fromToken: pendingFromToken,
+              toToken: pendingToToken,
+              account: swapAccount,
+            })
+          ).unwrap();
+        } catch {
+          handleBalanceRefreshError();
+        } finally {
+          setIsRefreshingBalances(false);
+        }
       }
     } catch (error) {
       console.error("Swap error:", error);
@@ -527,18 +527,22 @@ const Swap: React.FC = () => {
     setIsRefreshingBalances(false);
   };
 
-  const refreshBalances = () => {
+  const refreshBalances = async () => {
     if (account && fromToken && toToken) {
       setIsRefreshingBalances(true);
-      dispatch(
-        refreshBalancesAfterSwap({
-          fromToken,
-          toToken,
-          account,
-        })
-      ).catch(() => {
+      try {
+        await dispatch(
+          refreshBalancesAfterSwap({
+            fromToken,
+            toToken,
+            account,
+          })
+        ).unwrap();
+      } catch {
         handleBalanceRefreshError();
-      });
+      } finally {
+        setIsRefreshingBalances(false);
+      }
     }
   };
 

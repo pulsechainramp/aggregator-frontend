@@ -25,6 +25,9 @@ import { validateQuoteIntegrity } from "../utils/quoteValidation";
 import { decodeSwapRouteSummary } from "../utils/routeEncoding";
 import { normalizeAmountInput, areAmountsEqual, truncateToDecimals } from "../utils/amount";
 import { isPulseChainToken } from "../utils/token";
+import { getPulsechainWeb3 } from "../rpc/pulsechainProviders";
+import ERC20ABI from "../abis/ERC20.json";
+import { AbiItem } from "web3-utils";
 
 const getPublicAssetUrl = (assetPath: string) => {
   const baseUrl = import.meta.env.BASE_URL ?? "/";
@@ -466,46 +469,42 @@ export const refreshBalancesAfterSwap = createAsyncThunk(
       return { fromTokenBalance: "0", toTokenBalance: "0", nativeBalance: "0" };
 
     try {
-      const swapManager = createSwapManager();
+      const web3 = getPulsechainWeb3();
 
-      // Get native balance
-      const nativeBalance = await swapManager.getTokenBalance(
-        ZeroAddress,
-        account,
-        18
-      );
-      const nativeBalanceFormatted = ethers.formatEther(nativeBalance);
+      const nativeBalancePromise = web3.eth.getBalance(account);
 
-      // Get from token balance
-      let fromTokenBalance = "0";
-      if (fromToken && fromToken.address !== ZeroAddress) {
-        const balance = await swapManager.getTokenBalance(
-          fromToken.address,
-          account,
-          fromToken.decimals
+      const formatNative = async () => ethers.formatEther(await nativeBalancePromise);
+
+      const getBalanceForToken = async (token: TokenType | null) => {
+        if (!token) return "0";
+        if (token.address === ZeroAddress) {
+          return formatNative();
+        }
+
+        const contract = new web3.eth.Contract(
+          ERC20ABI as unknown as AbiItem[],
+          token.address
         );
-        fromTokenBalance = ethers.formatUnits(balance, fromToken.decimals);
-      }
+        const balance: string = await contract.methods.balanceOf(account).call();
+        return ethers.formatUnits(balance, token.decimals);
+      };
 
-      // Get to token balance
-      let toTokenBalance = "0";
-      if (toToken && toToken.address !== ZeroAddress) {
-        const balance = await swapManager.getTokenBalance(
-          toToken.address,
-          account,
-          toToken.decimals
-        );
-        toTokenBalance = ethers.formatUnits(balance, toToken.decimals);
-      }
+      const [nativeBalance, fromTokenBalance, toTokenBalance] = await Promise.all([
+        formatNative(),
+        getBalanceForToken(fromToken),
+        getBalanceForToken(toToken),
+      ]);
 
       return {
         fromTokenBalance,
         toTokenBalance,
-        nativeBalance: nativeBalanceFormatted,
+        nativeBalance,
       };
     } catch (error) {
       console.error("Error refreshing balances after swap:", error);
-      return { fromTokenBalance: "0", toTokenBalance: "0", nativeBalance: "0" };
+      throw error instanceof Error
+        ? error
+        : new Error("Failed to refresh balances after swap");
     }
   }
 );
