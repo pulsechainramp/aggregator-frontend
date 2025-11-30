@@ -34,8 +34,10 @@ import CustomConnectButton from "../../components/CustomConnectButton";
 import ReferralFeePopup from "../Swap/ReferralFeePopup";
 import { formatFeeBasisPoints } from "../../utils/referralUtils";
 import { BackendURL } from "../../const/swap";
-import { formatEther } from "ethers";
 import CustomDomainCollapsible from "./components/CustomDomainCollapsible";
+
+const WEI_PER_PLS = 10n ** 18n;
+const formatWholePlsFromWei = (value: bigint) => (value / WEI_PER_PLS).toString();
 
 const Referrals: React.FC = () => {
   const { account, isOnPulseChain } = useWallet();
@@ -216,7 +218,7 @@ const Referrals: React.FC = () => {
           );
         } else {
           try {
-            const feeDisplay = formatEther(BigInt(err.fee));
+            const feeDisplay = formatWholePlsFromWei(BigInt(err.fee));
             toast.error(`Pay ${feeDisplay} PLS to unlock referrals`);
           } catch (parseError) {
             toast.error("Referral creation fee payment required");
@@ -379,7 +381,7 @@ const Referrals: React.FC = () => {
       const value = BigInt(creationFeeInfo.fee);
       return {
         value,
-        formatted: formatEther(value),
+        formatted: formatWholePlsFromWei(value),
       };
     } catch (err) {
       console.error("Failed to parse creation fee:", err);
@@ -395,7 +397,7 @@ const Referrals: React.FC = () => {
     }
 
     try {
-      return formatEther(BigInt(paymentRequired.fee));
+      return formatWholePlsFromWei(BigInt(paymentRequired.fee));
     } catch (err) {
       console.error("Failed to parse payment required fee:", err);
       return paymentRequired.fee;
