@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 
-const STORAGE_KEY = "alpha-banner-dismissed";
+const STORAGE_KEY = "beta-banner-dismissed";
 
 const AlphaNoticeBanner: React.FC = () => {
   const [isVisible, setIsVisible] = useState(() => {
@@ -19,10 +19,10 @@ const AlphaNoticeBanner: React.FC = () => {
       <div className="mx-auto flex w-full max-w-6xl items-center gap-3 px-3 py-2 sm:px-6">
         <div className="flex flex-1 items-center gap-2">
           <span className="inline-flex items-center rounded-full border border-warning/60 px-2 py-0.5 text-[0.63rem] font-semibold uppercase tracking-[0.18em] text-warning">
-            Alpha
+            Beta
           </span>
           <p className="flex-1 text-[0.72rem] font-medium text-text sm:text-xs">
-            Alpha build: expect rapid changes and stick to expendable test wallets.
+            Beta testing: please report any issues and double-check swap details before confirming.
           </p>
         </div>
         <button
