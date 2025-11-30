@@ -198,7 +198,7 @@ const Start = () => {
         id: "onramp",
         title: "Onramp",
         description:
-          "Buy ETH or stablecoins (USDC, USDT, DAI, WETH, WBTC) on Ethereum and withdraw to your wallet.",
+          "Buy ETH or stablecoins (USDC, USDT, DAI) on Ethereum and withdraw to your wallet.",
         href: "/onramp",
         cta: "Buy Crypto Now",
         done: fundingComplete,
