@@ -117,9 +117,16 @@ const makeThunkDispatch = (handlers: {
 };
 
 describe("compareQuotes", () => {
-  it("prefers higher outputAmount", () => {
-    const a = makeQuote({ outputAmount: "200" });
-    const b = makeQuote({ outputAmount: "150" });
+  it("prefers higher uiMinAmountOut/minAmountOut", () => {
+    const a = makeQuote({ minAmountOut: "195", outputAmount: "200" });
+    const b = makeQuote({ minAmountOut: "190", outputAmount: "220" });
+    expect(compareQuotes(a, b)).toBe("a");
+    expect(compareQuotes(b, a)).toBe("b");
+  });
+
+  it("uses outputAmount as tie-breaker when min outs match", () => {
+    const a = makeQuote({ minAmountOut: "190", outputAmount: "210" });
+    const b = makeQuote({ minAmountOut: "190", outputAmount: "205" });
     expect(compareQuotes(a, b)).toBe("a");
     expect(compareQuotes(b, a)).toBe("b");
   });

@@ -350,17 +350,17 @@ export const compareQuotes = (
   a: QuoteType,
   b: QuoteType
 ): "a" | "b" | "tie" => {
+  const minOutA = BigInt(a.uiMinAmountOut ?? a.minAmountOut);
+  const minOutB = BigInt(b.uiMinAmountOut ?? b.minAmountOut);
+
+  if (minOutA > minOutB) return "a";
+  if (minOutB > minOutA) return "b";
+
   const outputA = BigInt(a.outputAmount);
   const outputB = BigInt(b.outputAmount);
 
   if (outputA > outputB) return "a";
   if (outputB > outputA) return "b";
-
-  const minOutA = BigInt(a.minAmountOut);
-  const minOutB = BigInt(b.minAmountOut);
-
-  if (minOutA > minOutB) return "a";
-  if (minOutB > minOutA) return "b";
 
   return "tie";
 };
