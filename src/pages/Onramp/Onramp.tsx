@@ -17,6 +17,14 @@ function ProviderCard({ p }: { p: Provider }) {
   const { href, blocked, host, reason } = resolveProviderLink(p);
   const isDisabled = !href;
   const buttonLabel = isDisabled ? "Link unavailable" : "Visit site";
+  const handleProviderLinkClick: React.MouseEventHandler<HTMLAnchorElement> = (
+    event
+  ) => {
+    if (isDisabled) {
+      event.preventDefault();
+      event.stopPropagation();
+    }
+  };
 
   return (
     <li
@@ -25,7 +33,20 @@ function ProviderCard({ p }: { p: Provider }) {
     >
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="space-y-2">
-          <div className="text-lg font-semibold text-text">{p.display_name}</div>
+          <a
+            href={href ?? "#"}
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-disabled={isDisabled}
+            onClick={handleProviderLinkClick}
+            className={`block text-lg font-semibold transition-colors ${
+              isDisabled
+                ? "cursor-not-allowed text-text opacity-70"
+                : "text-primary hover:text-primary-600 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
+            }`}
+          >
+            {p.display_name}
+          </a>
           <div className="text-xs text-text-muted">
             {(p.supported_payment_methods || []).join(" / ") || p.type}
           </div>
@@ -41,12 +62,7 @@ function ProviderCard({ p }: { p: Provider }) {
                 ? "pointer-events-none cursor-not-allowed opacity-60"
                 : "hover:-translate-y-0.5 hover:bg-primary-600"
             }`}
-            onClick={(event) => {
-              if (isDisabled) {
-                event.preventDefault();
-                event.stopPropagation();
-              }
-            }}
+            onClick={handleProviderLinkClick}
           >
             <span>{buttonLabel}</span>
             <span aria-hidden="true" className="text-lg">
