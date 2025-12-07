@@ -33,7 +33,7 @@ const MOBILE_WALLETS: WalletEntry[] = [
   {
     name: "Rabby",
     description: "Pair to the Rabby extension via QR for mobile signing.",
-    href: "https://rabby.io/mobile",
+    href: "https://rabby.io/",
     icon: "/icons/rabby.svg",
   },
   {
