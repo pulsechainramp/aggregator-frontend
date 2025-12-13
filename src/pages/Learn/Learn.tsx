@@ -1,8 +1,9 @@
+import type { ReactNode } from "react";
 import { Link } from "react-router-dom";
 
 type LearnCard = {
   title: string;
-  summary: string;
+  summary: ReactNode;
   logo: string;
 };
 
@@ -26,6 +27,26 @@ const CARDS: LearnCard[] = [
     title: "HEX (time‑locked savings)",
     summary: "HEX is a token you can lock for a set period of time, similar to a fixed‑term savings account. If you wait until the end of the lock period, you can earn extra HEX as a reward; ending early can mean penalties.",
     logo: "/token-logos/pulsex/369/0x2b591e99afE9f32eAA6214f7B7629768c40Eeb39.png",
+  },
+  {
+    title: "ProveX (burn-only token)",
+    summary: (
+      <>
+        ProveX is a future token for "no middleman" trading. Instead of paying an exchange, buyers
+        and sellers trade directly, and each use is designed to buy and burn ProveX, shrinking
+        supply over time. The token isn't live yet - learn more at{" "}
+        <a
+          href="https://ProveX.com"
+          className="text-primary underline underline-offset-2"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          ProveX.com
+        </a>
+        .
+      </>
+    ),
+    logo: "/icons/provex.png",
   },
 ];
 
