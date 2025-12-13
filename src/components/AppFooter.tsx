@@ -56,6 +56,12 @@ export default function AppFooter() {
               Docs
             </Link>
             <Link
+              to="/ramp"
+              className="text-sm font-medium text-text-muted transition-colors hover:text-primary"
+            >
+              RAMP Token
+            </Link>
+            <Link
               to="/learn"
               className="text-sm font-medium text-text-muted transition-colors hover:text-primary"
             >

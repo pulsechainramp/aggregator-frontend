@@ -47,6 +47,15 @@ const TokenPopup: React.FC<TokenPopupProps> = ({
   const previousAccount = useRef<string | null>(null);
   const normalizedSearch = searchToken.trim().toLowerCase();
 
+  const coreOrder = useMemo(
+    () => ["PLS", "PLSX", "HEX", "INC", "USDC", "USDT"],
+    []
+  );
+  const priorityOrder = useMemo(
+    () => [...coreOrder, "RAMP"],
+    [coreOrder]
+  );
+
   const coreSymbolSet = useMemo(
     () =>
       new Set(
@@ -55,10 +64,6 @@ const TokenPopup: React.FC<TokenPopupProps> = ({
           .filter(Boolean)
       ),
     [coreTokens]
-  );
-  const corePriority = useMemo(
-    () => ["PLS", "PLSX", "HEX", "INC", "USDC", "USDT"],
-    []
   );
 
   const pulseTokens = useMemo(
@@ -78,7 +83,6 @@ const TokenPopup: React.FC<TokenPopupProps> = ({
   );
 
   const quickCoreTokens = useMemo(() => {
-    const coreOrder = ["PLS", "PLSX", "HEX", "INC", "USDC", "USDT"];
     const tokenPool = [
       ...coreTokens,
       ...pulseTokens.filter(
@@ -94,7 +98,7 @@ const TokenPopup: React.FC<TokenPopupProps> = ({
         (token, idx, arr) =>
           token && arr.findIndex((t) => t?.address === token.address) === idx
       ) as TokenType[];
-  }, [coreTokens, allTokens]);
+  }, [coreTokens, allTokens, coreOrder]);
 
   useEffect(() => {
     if (!account) {
@@ -132,9 +136,9 @@ const TokenPopup: React.FC<TokenPopupProps> = ({
         searchTerm: searchToken,
         balances: tokenBalances,
         coreSymbols: coreSymbolSet,
-        corePriority,
+        corePriority: priorityOrder,
       }),
-    [sourceTokens, searchToken, tokenBalances, coreSymbolSet, corePriority]
+    [sourceTokens, searchToken, tokenBalances, coreSymbolSet, priorityOrder]
   );
 
   const originBadge = (token: TokenType) => {

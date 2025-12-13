@@ -9068,5 +9068,23 @@
     "sources": {
       "piteas": true
     }
+  },
+  {
+    "chainId": 369,
+    "address": "0x3Cf6457Ef1De6b208854aa1705bBDe54061B84f2",
+    "symbol": "RAMP",
+    "name": "RAMP Token",
+    "decimals": 18,
+    "origin": "community",
+    "tier": "verified",
+    "status": "active",
+    "logoURI": "/0x3Cf6457Ef1De6b208854aa1705bBDe54061B84f2.png",
+    "image": "/0x3Cf6457Ef1De6b208854aa1705bBDe54061B84f2.png",
+    "remoteLogoURIs": [
+      "/0x3Cf6457Ef1De6b208854aa1705bBDe54061B84f2.png"
+    ],
+    "sources": {
+      "manual": true
+    }
   }
 ]
