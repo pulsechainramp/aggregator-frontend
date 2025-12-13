@@ -311,7 +311,12 @@ const Bridge: React.FC = () => {
 
   const correspondingToken = getCorrespondingToken(selectedToken?.symbol || "", toChainId);
 
-  const { ethFloat, isOnEthereum, loading: ethBalanceLoading } = useEthBalance();
+  const {
+    ethFloat,
+    isOnEthereum,
+    loading: ethBalanceLoading,
+    error: ethBalanceError,
+  } = useEthBalance();
   const [onrampOpen, setOnrampOpen] = useState(false);
   const gasEstimateEth = useMemo(() => {
     if (!gasCostWei) {
@@ -334,8 +339,13 @@ const Bridge: React.FC = () => {
   }, [gasEstimateEth]);
 
   const shouldRenderOnRamp = useMemo(() => {
-    return isOnEthereum && gasEstimateEth !== null;
-  }, [isOnEthereum, gasEstimateEth]);
+    if (!isOnEthereum) return false;
+    if (gasEstimateEth === null) return false;
+    if (ethBalanceLoading) return false;
+    if (ethBalanceError) return false;
+    if (ethFloat == null) return false;
+    return true;
+  }, [isOnEthereum, gasEstimateEth, ethBalanceLoading, ethBalanceError, ethFloat]);
 
   return (
     <div className="relative flex flex-col items-center bg-bg-page px-4 pt-2 pb-0 text-text sm:px-6 sm:pb-10 lg:px-8">

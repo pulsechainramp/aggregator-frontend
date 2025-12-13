@@ -44,12 +44,12 @@ export default function useEthBalance() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [account, isOnEthereum]);
 
-  const ethFloat = useMemo(() => {
-    if (!weiHex) return 0;
+  const ethFloat = useMemo<number | null>(() => {
+    if (!weiHex) return null;
     try {
       return Number(formatEther(BigInt(weiHex)));
     } catch {
-      return 0;
+      return null;
     }
   }, [weiHex]);
 
