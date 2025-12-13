@@ -83,6 +83,8 @@ interface ReferralState {
   referralCode: ReferralCode | null;
   referralAddress: ReferralAddress | null;
   referralFees: ReferralFee[];
+  // Track recently-claimed tokens by account to avoid reintroducing stale items
+  recentlyClaimedTokens: Record<string, Record<string, number>>;
   referralFeeBasisPoints: string | null;
   referrerFeeBasisPoints: string | null;
   loading: boolean;
@@ -129,6 +131,7 @@ const initialState: ReferralState = {
   referralCode: null,
   referralAddress: null,
   referralFees: [],
+  recentlyClaimedTokens: {},
   referralFeeBasisPoints: null,
   referrerFeeBasisPoints: null,
   loading: false,
@@ -574,6 +577,7 @@ const referralSlice = createSlice({
     },
     clearReferralFees: (state) => {
       state.referralFees = [];
+      state.recentlyClaimedTokens = {};
     },
     setReferralAddress: (state, action: PayloadAction<ReferralAddress>) => {
       state.referralAddress = action.payload;
@@ -626,7 +630,59 @@ const referralSlice = createSlice({
       })
       .addCase(fetchReferralFees.fulfilled, (state, action) => {
         state.loading = false;
-        state.referralFees = action.payload;
+        const now = Date.now();
+        const cutoff = now - 30_000; // ~30s guard to avoid reintroducing stale claims
+        const accountRaw = (action.meta as any)?.arg ?? "";
+        const accountKey =
+          typeof accountRaw === "string" && accountRaw
+            ? accountRaw.toLowerCase()
+            : "";
+
+        // If no account is provided, skip suppression to avoid leaking stale guards
+        if (!accountKey) {
+          state.referralFees = action.payload;
+          state.error = null;
+          return;
+        }
+
+        const accountClaims =
+          state.recentlyClaimedTokens[accountKey] ?? {};
+
+        // prune old entries for this account
+        for (const [token, ts] of Object.entries(accountClaims)) {
+          if (ts < cutoff) {
+            delete accountClaims[token];
+          }
+        }
+
+        let hasPositiveForSuppressed = false;
+
+        const filtered = action.payload.filter((fee) => {
+          const lower = fee.token.toLowerCase();
+          const claimedTs = accountClaims[lower];
+          const isFreshClaim = claimedTs != null && claimedTs >= cutoff;
+          const amountNum = Number(fee.amount || "0");
+          if (!Number.isFinite(amountNum)) {
+            return true;
+          }
+          if (isFreshClaim && amountNum > 0) {
+            hasPositiveForSuppressed = true;
+          }
+          // Drop only zero/empty amounts that were just claimed; allow new earnings through
+          if (isFreshClaim && amountNum <= 0) {
+            return false;
+          }
+          return amountNum > 0;
+        });
+
+        // If backend now shows positive for a previously suppressed token, drop suppression immediately
+        if (hasPositiveForSuppressed && accountKey) {
+          state.recentlyClaimedTokens[accountKey] = {};
+        } else if (accountKey) {
+          state.recentlyClaimedTokens[accountKey] = accountClaims;
+        }
+
+        state.referralFees = filtered;
         state.error = null;
       })
       .addCase(fetchReferralFees.rejected, (state, action) => {
@@ -742,13 +798,26 @@ const referralSlice = createSlice({
         state.claiming = false;
         state.error = null;
         const claimedTokens: string[] = action.meta?.arg?.tokens ?? [];
+        const accountKey =
+          action.meta?.arg?.account?.toLowerCase?.() ??
+          action.meta?.arg?.account ??
+          "";
         if (claimedTokens.length > 0) {
+          const now = Date.now();
           const claimedSet = new Set(
             claimedTokens.map((token) => token.toLowerCase())
           );
           state.referralFees = state.referralFees.filter(
             (fee) => !claimedSet.has(fee.token.toLowerCase())
           );
+          if (accountKey) {
+            const accountClaims =
+              state.recentlyClaimedTokens[accountKey] ?? {};
+            claimedSet.forEach((token) => {
+              accountClaims[token] = now;
+            });
+            state.recentlyClaimedTokens[accountKey] = accountClaims;
+          }
         }
       })
       .addCase(claimReferralEarnings.rejected, (state, action) => {

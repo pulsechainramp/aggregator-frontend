@@ -1,4 +1,4 @@
-import React, { useEffect, useLayoutEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import useWallet from "../../hooks/useWallet";
 import {
@@ -52,6 +52,10 @@ const Referrals: React.FC = () => {
   const [isFeePopupOpen, setIsFeePopupOpen] = useState(false);
   const referralFeeBasisPoints = useReferralFeeBasisPoints();
   const feeBasisPointsLoading = useReferralFeeBasisPointsLoading();
+  const postClaimTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const postClaimAttemptRef = useRef(0);
+  const [isPostClaimSyncing, setIsPostClaimSyncing] = useState(false);
+  const postClaimDelays = useRef<number[]>([5000, 10000, 20000]);
   const {
     creationFeeInfo,
     creationFeeLoading,
@@ -146,8 +150,97 @@ const Referrals: React.FC = () => {
       if (error) {
         // You can dispatch a clear error action here if you have one
       }
+      if (postClaimTimerRef.current) {
+        clearTimeout(postClaimTimerRef.current);
+      }
     };
   }, [error]);
+
+  // Clear any pending claim refresh when the account changes or on unmount
+  useEffect(() => {
+    return () => {
+      if (postClaimTimerRef.current) {
+        clearTimeout(postClaimTimerRef.current);
+        postClaimTimerRef.current = null;
+      }
+      postClaimAttemptRef.current = 0;
+      setIsPostClaimSyncing(false);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (postClaimTimerRef.current) {
+      clearTimeout(postClaimTimerRef.current);
+      postClaimTimerRef.current = null;
+    }
+    postClaimAttemptRef.current = 0;
+    setIsPostClaimSyncing(false);
+  }, [account]);
+
+  const schedulePostClaimRefresh = useCallback(
+    (claimedTokens: string[]) => {
+      if (!account) {
+        setIsPostClaimSyncing(false);
+        return;
+      }
+
+      if (postClaimTimerRef.current) {
+        clearTimeout(postClaimTimerRef.current);
+      }
+
+      postClaimAttemptRef.current = 0;
+      setIsPostClaimSyncing(true);
+
+      const run = async () => {
+        const currentAccount = account;
+        if (!currentAccount) {
+          setIsPostClaimSyncing(false);
+          return;
+        }
+
+        let shouldContinue = true;
+        try {
+          const result: any = await dispatch(fetchReferralFees(currentAccount));
+          const fees = Array.isArray(result?.payload) ? result.payload : [];
+          const allCleared =
+            fees.length === 0 ||
+            fees.every((fee: any) => {
+              const token = fee?.token?.toLowerCase?.();
+              if (!token) return false;
+              const amountNum = Number(fee?.amount ?? "0");
+              const wasClaimed = claimedTokens.includes(token);
+              return wasClaimed ? amountNum <= 0 : true;
+            });
+
+          if (allCleared) {
+            setIsPostClaimSyncing(false);
+            shouldContinue = false;
+          }
+        } catch (err) {
+          // Swallow errors and advance to next attempt
+        } finally {
+          if (!shouldContinue) {
+            postClaimTimerRef.current = null;
+            return;
+          }
+          const nextIndex = postClaimAttemptRef.current + 1;
+          if (nextIndex >= postClaimDelays.current.length) {
+            postClaimTimerRef.current = null;
+            setIsPostClaimSyncing(false);
+            return;
+          }
+          postClaimAttemptRef.current = nextIndex;
+          postClaimTimerRef.current = setTimeout(
+            run,
+            postClaimDelays.current[nextIndex]
+          );
+        }
+      };
+
+      postClaimTimerRef.current = setTimeout(run, postClaimDelays.current[0]);
+    },
+    [account, dispatch]
+  );
 
   const handlePayCreationFee = async () => {
     if (!account) {
@@ -262,9 +355,7 @@ const Referrals: React.FC = () => {
         } tokens! Transaction: ${result.transactionHash.slice(0, 10)}...`
       );
 
-      if (account) {
-        dispatch(fetchReferralFees(account));
-      }
+      schedulePostClaimRefresh([fee.token.toLowerCase()]);
     } catch (error: any) {
       console.error("Error claiming tokens:", error);
     } finally {
@@ -307,9 +398,7 @@ const Referrals: React.FC = () => {
         )}...`
       );
 
-      if (account) {
-        dispatch(fetchReferralFees(account));
-      }
+      schedulePostClaimRefresh(tokens.map((t) => t.toLowerCase()));
     } catch (error: any) {
       console.error("Error bulk claiming tokens:", error);
     } finally {
@@ -645,6 +734,11 @@ const Referrals: React.FC = () => {
               >
                 {loading || areTokensLoading ? "Refreshing..." : "Refresh"}
               </button>
+              {isPostClaimSyncing && (
+                <span className="text-xs text-text-muted">
+                  Updating claim status...
+                </span>
+              )}
             </div>
           </div>
           {loading ? (
@@ -897,14 +991,3 @@ const Referrals: React.FC = () => {
 };
 
 export default Referrals;
-
-
-
-
-
-
-
-
-
-
-
