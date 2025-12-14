@@ -500,20 +500,6 @@ const Referrals: React.FC = () => {
 
   const isPulseChainNetwork = isOnPulseChain();
 
-  if (!account) {
-    return (
-      <div className="bg-bg-page px-4 py-16 text-text sm:py-24">
-        <div className="mx-auto w-full max-w-xl rounded-2xl border border-border bg-bg-surface px-6 py-10 text-center shadow-sm sm:px-10">
-          <h2 className="text-2xl font-bold text-text">Connect Wallet</h2>
-          <p className="mt-3 text-base text-text-muted">
-            Please connect your wallet to view your referral dashboard and earnings.
-          </p>
-          <CustomConnectButton variant="cta" className="mt-6" />
-        </div>
-      </div>
-    );
-  }
-
   const referralLink = referralCode?.referralCode
     ? `${referralBaseUrl}?code=${referralCode.referralCode}`
     : "";
@@ -529,29 +515,23 @@ const Referrals: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-bg-page text-text">
+    <div className="bg-bg-page text-text">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-8">
         {/* Header */}
         <motion.div
           initial={{ y: -20, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           transition={{ duration: 0.5 }}
-          className="text-center mb-4 sm:mb-8"
+          className="text-center mb-6 sm:mb-8"
         >
-          <h1 className="text-4xl font-bold text-primary mb-4">
-            Referral Dashboard
-          </h1>
-          <p className="text-text-muted text-lg">
-            Track your referral earnings and claim your rewards
+          <div className="mb-3 flex justify-center">
+            
+          </div>
+          <h1 className="text-4xl font-bold text-primary mb-3">Referral Dashboard</h1>
+          <p className="text-text-muted text-lg max-w-3xl mx-auto">
+            Share your link and <span className="inline-flex items-center gap-2 rounded-full bg-primary-050 font-semibold text-primary">earn up to 3% referral fees</span> when people trade through PulseChainRamp.
           </p>
         </motion.div>
-
-        {!isPulseChainNetwork && (
-          <div className="mb-6 rounded-xl border border-warning/50 bg-warning/10 px-4 py-3 text-sm text-warning">
-            Switch to PulseChain to update your referral fee or claim your referral
-            earnings.
-          </div>
-        )}
 
         {shouldShowPrivacyBanner && (
           <div className="mb-6 rounded-xl border border-border bg-bg-surface p-5 shadow-sm">
@@ -706,42 +686,50 @@ const Referrals: React.FC = () => {
         >
           <div className="flex flex-col gap-4 mb-6 sm:flex-row sm:items-center sm:justify-between">
             <h2 className="text-2xl font-bold text-text">Claimable Tokens</h2>
-            <div className="flex items-center gap-3 flex-wrap">
-              {filteredReferralFees.length > 0 && (
+            {account && (
+              <div className="flex items-center gap-3 flex-wrap">
+                {filteredReferralFees.length > 0 && (
+                  <button
+                    onClick={handleBulkClaim}
+                    disabled={
+                      claimingAll ||
+                      claimingToken !== null ||
+                      claiming ||
+                      loading ||
+                      areTokensLoading ||
+                      !isPulseChainNetwork
+                    }
+                    className="rounded-lg border border-primary bg-primary px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-primary-600 disabled:cursor-not-allowed disabled:border-border disabled:bg-border disabled:text-text-muted"
+                  >
+                    {!isPulseChainNetwork
+                      ? "Switch to PulseChain"
+                      : claimingAll
+                        ? "Claiming All..."
+                        : `Claim All (${filteredReferralFees.length})`}
+                  </button>
+                )}
                 <button
-                  onClick={handleBulkClaim}
-                  disabled={
-                    claimingAll ||
-                    claimingToken !== null ||
-                    claiming ||
-                    loading ||
-                    areTokensLoading ||
-                    !isPulseChainNetwork
-                  }
-                  className="rounded-lg border border-primary bg-primary px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-primary-600 disabled:cursor-not-allowed disabled:border-border disabled:bg-border disabled:text-text-muted"
+                  onClick={handleRefresh}
+                  disabled={loading || areTokensLoading}
+                  className="px-4 py-2 rounded-lg border border-success bg-success text-white font-medium transition-colors hover:bg-success/90 disabled:cursor-not-allowed disabled:border-border disabled:bg-border disabled:text-text-muted"
                 >
-                  {!isPulseChainNetwork
-                    ? "Switch to PulseChain"
-                    : claimingAll
-                      ? "Claiming All..."
-                      : `Claim All (${filteredReferralFees.length})`}
+                  {loading || areTokensLoading ? "Refreshing..." : "Refresh"}
                 </button>
-              )}
-              <button
-                onClick={handleRefresh}
-                disabled={loading || areTokensLoading}
-                className="px-4 py-2 rounded-lg border border-success bg-success text-white font-medium transition-colors hover:bg-success/90 disabled:cursor-not-allowed disabled:border-border disabled:bg-border disabled:text-text-muted"
-              >
-                {loading || areTokensLoading ? "Refreshing..." : "Refresh"}
-              </button>
-              {isPostClaimSyncing && (
-                <span className="text-xs text-text-muted">
-                  Updating claim status...
-                </span>
-              )}
-            </div>
+                {isPostClaimSyncing && (
+                  <span className="text-xs text-text-muted">
+                    Updating claim status...
+                  </span>
+                )}
+              </div>
+            )}
           </div>
-          {loading ? (
+          {!account ? (
+            <div className="text-center py-2 space-y-3">
+              <div className="flex justify-center">
+                <CustomConnectButton variant="cta" />
+              </div>
+            </div>
+          ) : loading ? (
             <div className="text-center py-8">
               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-500 mx-auto"></div>
               <p className="text-text-muted mt-4">Loading referral fees...</p>
