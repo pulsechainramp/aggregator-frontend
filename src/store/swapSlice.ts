@@ -68,6 +68,97 @@ const dedupeTokens = (tokens: TokenType[]) => {
   return unique;
 };
 
+const withCustomDefaults = (token: TokenType): TokenType => {
+  const checksum = (() => {
+    try {
+      return token.address ? ethers.getAddress(token.address) : token.address;
+    } catch {
+      return token.address ?? "";
+    }
+  })();
+
+  const fallbackSymbol =
+    (token.symbol && token.symbol.trim()) ||
+    (checksum ? checksum.slice(0, 6) : "TOKEN");
+  const safeSymbol = fallbackSymbol || "TOKEN";
+  const safeName =
+    (token.name && token.name.trim()) ||
+    safeSymbol ||
+    (checksum ? `Custom ${checksum.slice(0, 6)}` : "Custom Token");
+
+  return {
+    ...token,
+    address: checksum || token.address,
+    symbol: safeSymbol,
+    name: safeName,
+    isCustom: true,
+    origin: token.origin ?? "custom",
+    // Clear logos so we don't show stale images for different custom tokens
+    logoURI: undefined,
+    image: undefined,
+    remoteLogoURIs: [],
+  };
+};
+
+const withSymbolNameFallbacks = (token: TokenType): TokenType => {
+  const checksum = (() => {
+    try {
+      return token.address ? ethers.getAddress(token.address) : token.address;
+    } catch {
+      return token.address ?? "";
+    }
+  })();
+
+  const fallbackSymbol =
+    (token.symbol && token.symbol.trim()) ||
+    (checksum ? checksum.slice(0, 6) : "TOKEN");
+  const safeSymbol = fallbackSymbol || "TOKEN";
+  const safeName =
+    (token.name && token.name.trim()) ||
+    safeSymbol ||
+    (checksum ? `Custom ${checksum.slice(0, 6)}` : "Custom Token");
+
+  return {
+    ...token,
+    address: checksum || token.address,
+    symbol: safeSymbol,
+    name: safeName,
+  };
+};
+
+const mergeCatalogAndCustomTokens = (
+  catalog: TokenType[],
+  customTokens: TokenType[]
+): TokenType[] => {
+  const merged = new Map<string, TokenType>();
+
+  for (const token of dedupeTokens(catalog)) {
+    const addr = normalizeAddressLower(token.address);
+    if (!addr) continue;
+    merged.set(addr, withSymbolNameFallbacks(token));
+  }
+
+  for (const custom of customTokens) {
+    const addr = normalizeAddressLower(custom.address);
+    if (!addr) continue;
+    const catalogToken = merged.get(addr);
+    if (catalogToken) {
+      merged.set(addr, {
+        ...catalogToken,
+        isCustom: true,
+        origin: catalogToken.origin ?? custom.origin ?? "custom",
+        logoURI: catalogToken.logoURI ?? custom.logoURI,
+        image: catalogToken.image ?? custom.image,
+        remoteLogoURIs: catalogToken.remoteLogoURIs ?? custom.remoteLogoURIs,
+      });
+    } else {
+      merged.set(addr, withCustomDefaults(custom));
+    }
+  }
+
+  return Array.from(merged.values()).map(withSymbolNameFallbacks);
+};
+
 const persistCustomTokens = (tokens: TokenType[]) => {
   try {
     if (typeof localStorage === "undefined") return;
@@ -98,19 +189,21 @@ const readCustomTokensFromStorage = (): TokenType[] => {
     const parsed = JSON.parse(raw);
     if (!Array.isArray(parsed)) return [];
     return parsed
-      .map((t) => ({
-        ...t,
-        address: typeof t.address === "string" ? t.address : "",
-        symbol: typeof t.symbol === "string" ? t.symbol : "",
-        name: typeof t.name === "string" ? t.name : "",
-        decimals: Number(t.decimals) || 0,
-        chainId: t.chainId ?? 369,
-        blockchainNetwork: t.blockchainNetwork ?? "pulsechain",
-        network: t.network ?? "PulseChain",
-        tier: t.tier ?? "unverified",
-        origin: t.origin ?? "custom",
-        isCustom: true,
-      }))
+      .map((t) =>
+        withCustomDefaults({
+          ...t,
+          address: typeof t.address === "string" ? t.address : "",
+          symbol: typeof t.symbol === "string" ? t.symbol : "",
+          name: typeof t.name === "string" ? t.name : "",
+          decimals: Number(t.decimals) || 0,
+          chainId: t.chainId ?? 369,
+          blockchainNetwork: t.blockchainNetwork ?? "pulsechain",
+          network: t.network ?? "PulseChain",
+          tier: t.tier ?? "unverified",
+          origin: t.origin ?? "custom",
+          isCustom: true,
+        })
+      )
       .filter((t) => normalizeAddressLower(t.address));
   } catch {
     return [];
@@ -366,33 +459,47 @@ export const importCustomToken = createAsyncThunk<
       (t) => normalizeAddressLower(t.address) === normalized
     );
     if (existing) {
-      return { ...existing, isCustom: true, origin: existing.origin ?? "custom" };
+      return withCustomDefaults({ ...existing, isCustom: true, origin: existing.origin ?? "custom" });
     }
 
     const checksumAddress = ethers.getAddress(address);
     const web3 = getPulsechainWeb3();
     const contract = new web3.eth.Contract(ERC20ABI as unknown as AbiItem[], checksumAddress);
 
-    try {
+    const loadMetadata = async () => {
       const [symbol, name, decimals] = await Promise.all([
         contract.methods.symbol().call(),
         contract.methods.name().call(),
         contract.methods.decimals().call(),
       ]);
+      return { symbol, name, decimals };
+    };
+
+    const metadata = async () => {
+      try {
+        return await loadMetadata();
+      } catch (firstError) {
+        // Retry once for transient RPC/contract issues
+        try {
+          return await loadMetadata();
+        } catch (error) {
+          throw firstError instanceof Error ? firstError : error;
+        }
+      }
+    };
+
+    try {
+      const { symbol, name, decimals } = await metadata();
 
       const decimalsNum = Number(decimals);
       if (!Number.isFinite(decimalsNum) || decimalsNum < 0 || decimalsNum > 36) {
         throw new Error("Invalid token decimals.");
       }
 
-      const fallbackSymbol = ethers.getAddress(address).slice(0, 6);
-      const safeSymbol = symbol || fallbackSymbol;
-      const safeName = name || safeSymbol || "Custom Token";
-
       const token: TokenType = {
         address: checksumAddress,
-        symbol: safeSymbol,
-        name: safeName,
+        symbol,
+        name,
         decimals: decimalsNum,
         chainId: 369,
         blockchainNetwork: "pulsechain",
@@ -402,7 +509,7 @@ export const importCustomToken = createAsyncThunk<
         isCustom: true,
       };
 
-      return token;
+      return withCustomDefaults(token);
     } catch (error) {
       const message =
         error instanceof Error ? error.message : "Failed to import token.";
@@ -1349,19 +1456,19 @@ const selectSwapState = (state: RootState) => state.swap;
 
 export const selectAllPulsexTokens = createSelector(
   selectSwapState,
-  (swap) => dedupeTokens([...swap.availableTokens, ...swap.customTokens])
+  (swap) => mergeCatalogAndCustomTokens(swap.availableTokens, swap.customTokens)
 );
 
 export const selectDefaultPulsexTokens = createSelector(
-  selectAllPulsexTokens,
   selectSwapState,
-  (tokens, swap) =>
-    dedupeTokens([
-      ...tokens.filter(
-        (token) => token.tier !== "unverified" && token.origin !== "prefork"
-      ),
-      ...swap.customTokens.map((t) => ({ ...t, isCustom: true })),
-    ])
+  (swap) => {
+    const merged = mergeCatalogAndCustomTokens(swap.availableTokens, swap.customTokens);
+    const defaults = merged.filter(
+      (token) => token.tier !== "unverified" && token.origin !== "prefork"
+    );
+    const customs = swap.customTokens.map((t) => withCustomDefaults(t));
+    return dedupeTokens([...defaults, ...customs]);
+  }
 );
 
 export const selectCoreFavoriteTokens = createSelector(

@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import React, { useEffect, useState, useRef } from "react";
+import React, { useEffect, useState, useRef, useMemo } from "react";
 import { useSearchParams } from "react-router-dom";
 import { AffiliateRouterAddress, ZeroAddress } from "../../const/swap";
 import { useAppDispatch, useAppSelector } from "../../store/hooks";
@@ -88,6 +88,32 @@ const findTokenByAddressParam = (
 const addressesMatch = (a?: string | null, b?: string | null) =>
   normalizeAddressParam(a) === normalizeAddressParam(b);
 
+const ensureDisplayFields = (token: TokenType) => {
+  const checksum = (() => {
+    try {
+      return token.address ? ethers.getAddress(token.address) : token.address;
+    } catch {
+      return token.address ?? "";
+    }
+  })();
+
+  const fallbackSymbol =
+    (token.symbol && token.symbol.trim()) ||
+    (checksum ? checksum.slice(0, 6) : "TOKEN");
+  const safeSymbol = fallbackSymbol || "TOKEN";
+  const safeName =
+    (token.name && token.name.trim()) ||
+    safeSymbol ||
+    (checksum ? `Custom ${checksum.slice(0, 6)}` : "Custom Token");
+
+  return {
+    ...token,
+    address: checksum || token.address,
+    symbol: safeSymbol,
+    name: safeName,
+  };
+};
+
 const Swap: React.FC = () => {
   const dispatch = useAppDispatch();
   const { account, wallet, currentChainId } = useWallet();
@@ -124,6 +150,25 @@ const Swap: React.FC = () => {
   const allTokens = useAppSelector(selectAllPulsexTokens);
   const { tailBps, maxPromoBps } = useAppSelector((state) => state.referral);
 
+  const catalog = useMemo(
+    () => [...availableTokens, ...customTokens],
+    [availableTokens, customTokens]
+  );
+
+  const catalogKey = useMemo(
+    () =>
+      catalog
+        .map((t) => normalizeAddressParam(t.address))
+        .filter(Boolean)
+        .join("|"),
+    [catalog]
+  );
+
+  const hasUrlParams = useMemo(
+    () => Boolean(searchParams.get("from") || searchParams.get("to")),
+    [searchParams]
+  );
+
   const shouldBlockQuotes =
     Boolean(wallet) &&
     currentChainId !== null &&
@@ -141,7 +186,10 @@ const Swap: React.FC = () => {
     setPendingSwap(null);
     setIsPreviewOpen(false);
   };
-  const attemptedCustomImports = useRef<Set<string>>(new Set());
+  const attemptedCustomImports = useRef<Map<string, "pending" | "succeeded">>(
+    new Map()
+  );
+  const lastAppliedUrlParams = useRef<string | null>(null);
 
   // Check if user has sufficient balance
   const hasSufficientBalance = () => {
@@ -354,6 +402,7 @@ const Swap: React.FC = () => {
 
   // Default swap tokens on PulseChain: WETH -> PLS
   useEffect(() => {
+    if (hasUrlParams) return;
     if (availableTokens && availableTokens.length > 0) {
       // only set once
       if (!fromToken) {
@@ -362,7 +411,7 @@ const Swap: React.FC = () => {
           availableTokens.find(t => t.symbol === "WETH") ||
           availableTokens.find(t => /^WETH/i.test(t.symbol));
         if (weth) {
-          dispatch(setFromToken({ ...weth }));
+          dispatch(setFromToken(ensureDisplayFields({ ...weth })));
         }
       }
 
@@ -372,61 +421,139 @@ const Swap: React.FC = () => {
           availableTokens.find(t => t.symbol === "PLS") ||
           availableTokens.find(t => t.address === ZeroAddress);
         if (pls) {
-          dispatch(setToToken({ ...pls }));
+          dispatch(setToToken(ensureDisplayFields({ ...pls })));
         }
       }
     }
-  }, [availableTokens, fromToken, toToken, dispatch]);
+  }, [availableTokens, fromToken, toToken, dispatch, hasUrlParams]);
+
+  // Upgrade custom tokens to full catalog entries when availableTokens load
+  useEffect(() => {
+    if (!availableTokens.length) return;
+
+    if (fromToken?.isCustom) {
+      const match = findTokenByAddressParam(fromToken.address, availableTokens);
+      if (match && !addressesMatch(match.address, fromToken.address)) {
+        // addressesMatch already handled; this branch ensures same address with richer metadata replaces custom
+        dispatch(setFromToken(ensureDisplayFields({ ...match })));
+      } else if (match && match.logoURI && !fromToken.logoURI) {
+        dispatch(setFromToken(ensureDisplayFields({ ...match })));
+      }
+    }
+
+    if (toToken?.isCustom) {
+      const match = findTokenByAddressParam(toToken.address, availableTokens);
+      if (match && !addressesMatch(match.address, toToken.address)) {
+        dispatch(setToToken(ensureDisplayFields({ ...match })));
+      } else if (match && match.logoURI && !toToken.logoURI) {
+        dispatch(setToToken(ensureDisplayFields({ ...match })));
+      }
+    }
+  }, [availableTokens, dispatch, fromToken, toToken]);
 
   const requestCustomImport = (param: string | null) => {
     const normalized = normalizeAddressParam(param);
     const raw = param?.trim();
     if (!normalized || !raw) return;
+    // If already in the available catalog, skip importing to avoid overwriting richer metadata
+    if (catalog.find((t) => addressesMatch(t.address, normalized))) {
+      return;
+    }
     if (normalized === ZeroAddress.toLowerCase()) return;
     if (!ethers.isAddress(raw)) return;
-    if (attemptedCustomImports.current.has(normalized)) return;
-    attemptedCustomImports.current.add(normalized);
-    dispatch(importCustomToken({ address: raw })).catch(() => { });
+    const status = attemptedCustomImports.current.get(normalized);
+    if (status === "pending" || status === "succeeded") return;
+    attemptedCustomImports.current.set(normalized, "pending");
+    dispatch(importCustomToken({ address: raw }))
+      .unwrap()
+      .then(() => {
+        attemptedCustomImports.current.set(normalized, "succeeded");
+      })
+      .catch(() => {
+        attemptedCustomImports.current.delete(normalized);
+      });
   };
 
   useEffect(() => {
-    const catalog = [...availableTokens, ...customTokens];
-    if (!catalog.length) return;
-
     const fromParam = searchParams.get("from");
     const toParam = searchParams.get("to");
 
+    if (!fromParam && !toParam) {
+      lastAppliedUrlParams.current = null;
+      return;
+    }
+
+    const desiredFrom = normalizeAddressParam(fromParam);
+    const desiredTo = normalizeAddressParam(toParam);
+    const urlKey = `${desiredFrom}|${desiredTo}`;
+    const selectionKey = `${normalizeAddressParam(fromToken?.address)}|${normalizeAddressParam(toToken?.address)}`;
+
+    // If params were already applied and both sides are set, avoid reapplying when user manually switched tokens.
+    // Allow re-application when one side is still missing so delayed imports can fill in.
+    if (
+      urlKey &&
+      lastAppliedUrlParams.current === urlKey &&
+      urlKey !== selectionKey &&
+      fromToken &&
+      toToken
+    ) {
+      return;
+    }
+
+    const paramsMatchSelection =
+      (!desiredFrom || addressesMatch(fromToken?.address, desiredFrom)) &&
+      (!desiredTo || addressesMatch(toToken?.address, desiredTo));
+
+    if (lastAppliedUrlParams.current === urlKey && paramsMatchSelection) {
+      return;
+    }
+
     const matchedFrom = findTokenByAddressParam(fromParam, catalog);
-    if (matchedFrom) {
-      if (!fromToken || !addressesMatch(fromToken.address, matchedFrom.address)) {
-        dispatch(setFromToken({ ...matchedFrom }));
+    const matchedTo = findTokenByAddressParam(toParam, catalog);
+
+    let updatedFrom = false;
+    let updatedTo = false;
+
+    if (desiredFrom && matchedFrom) {
+      const shouldReplaceFrom =
+        !fromToken ||
+        !addressesMatch(fromToken.address, matchedFrom.address) ||
+        fromToken.isCustom;
+      if (shouldReplaceFrom) {
+        dispatch(setFromToken(ensureDisplayFields({ ...matchedFrom })));
+        updatedFrom = true;
       }
-    } else {
+    } else if (!matchedFrom && fromParam) {
       requestCustomImport(fromParam);
     }
 
-    const matchedTo = findTokenByAddressParam(toParam, catalog);
-    if (matchedTo) {
-      if (!toToken || !addressesMatch(toToken.address, matchedTo.address)) {
-        dispatch(setToToken({ ...matchedTo }));
+    if (desiredTo && matchedTo) {
+      const shouldReplaceTo =
+        !toToken ||
+        !addressesMatch(toToken.address, matchedTo.address) ||
+        toToken.isCustom;
+      if (shouldReplaceTo) {
+        dispatch(setToToken(ensureDisplayFields({ ...matchedTo })));
+        updatedTo = true;
       }
-    } else {
+    } else if (!matchedTo && toParam) {
       requestCustomImport(toParam);
     }
+
+    if (updatedFrom || updatedTo || paramsMatchSelection) {
+      lastAppliedUrlParams.current = urlKey;
+    }
   }, [
-    availableTokens.length,
-    customTokens.length,
+    catalogKey,
     dispatch,
     searchParams,
+    fromToken?.isCustom,
+    toToken?.isCustom,
     fromToken?.address,
     toToken?.address,
   ]);
 
   useEffect(() => {
-    if (!fromToken && !toToken) {
-      return;
-    }
-
     const params = new URLSearchParams(searchParams);
     const currentFrom = normalizeAddressParam(params.get("from"));
     const currentTo = normalizeAddressParam(params.get("to"));
@@ -435,30 +562,20 @@ const Swap: React.FC = () => {
 
     let didChange = false;
 
-    if (nextFrom) {
-      if (currentFrom !== nextFrom) {
-        params.set("from", nextFrom);
-        didChange = true;
-      }
-    } else if (params.has("from")) {
-      params.delete("from");
+    if (nextFrom && currentFrom !== nextFrom) {
+      params.set("from", nextFrom);
       didChange = true;
     }
 
-    if (nextTo) {
-      if (currentTo !== nextTo) {
-        params.set("to", nextTo);
-        didChange = true;
-      }
-    } else if (params.has("to")) {
-      params.delete("to");
+    if (nextTo && currentTo !== nextTo) {
+      params.set("to", nextTo);
       didChange = true;
     }
 
     if (didChange) {
       setSearchParams(params, { replace: true });
     }
-  }, [fromToken, setSearchParams, toToken]);
+  }, [fromToken, setSearchParams, toToken, searchParams]);
 
   // Get native balance when account changes
   useEffect(() => {

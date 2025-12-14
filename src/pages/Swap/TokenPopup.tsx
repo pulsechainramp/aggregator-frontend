@@ -136,7 +136,7 @@ const TokenPopup: React.FC<TokenPopupProps> = ({
     [allTokens, normalizedSearchAddress]
   );
 
-  const canImportCustom = searchIsAddress && !hasTokenAlready;
+  const canImportCustom = searchIsAddress && !hasTokenAlready && (!currentChainId || currentChainId === 369);
 
   useEffect(() => {
     if (!account) {
@@ -177,6 +177,46 @@ const TokenPopup: React.FC<TokenPopupProps> = ({
         corePriority: priorityOrder,
       }),
     [sourceTokens, searchToken, tokenBalances, coreSymbolSet, priorityOrder]
+  );
+
+  const tokenLookup = useMemo(() => {
+    const map = new Map<string, TokenType>();
+    for (const token of allTokens) {
+      const addr = normalizeAddr(token.address);
+      if (!addr) continue;
+      if (!map.has(addr)) {
+        map.set(addr, token);
+      }
+    }
+    return map;
+  }, [allTokens, normalizeAddr]);
+
+  const displayTokens = useMemo(
+    () =>
+      filteredTokens.map((token) => {
+        if (
+          !token.isCustom ||
+          token.logoURI ||
+          token.image ||
+          (token as any).remoteLogoURIs?.length
+        ) {
+          return token;
+        }
+        const match = tokenLookup.get(normalizeAddr(token.address));
+        if (
+          match &&
+          (match.logoURI || match.image || (match as any).remoteLogoURIs?.length)
+        ) {
+          return {
+            ...token,
+            logoURI: match.logoURI ?? match.image,
+            image: match.image ?? match.logoURI,
+            remoteLogoURIs: (match as any).remoteLogoURIs ?? [],
+          };
+        }
+        return token;
+      }),
+    [filteredTokens, tokenLookup, normalizeAddr]
   );
 
   useEffect(() => {
@@ -365,7 +405,7 @@ const TokenPopup: React.FC<TokenPopupProps> = ({
                       Loading tokens...
                     </div>
                   </div>
-                ) : filteredTokens.length === 0 ? (
+                ) : displayTokens.length === 0 ? (
                   <div className="flex h-48 items-center justify-center">
                     <p className="text-sm text-text-muted">
                       No tokens match your search.
@@ -373,7 +413,7 @@ const TokenPopup: React.FC<TokenPopupProps> = ({
                   </div>
                 ) : (
                   <ul className="divide-y divide-border">
-                    {filteredTokens.map((token) => {
+                    {displayTokens.map((token) => {
                       const badge = originBadge(token);
                       const tokenKey = token.address.toLowerCase();
                       const rawBalance = tokenBalances[tokenKey];
