@@ -24,6 +24,8 @@ import {
   selectDefaultPulsexTokens,
   selectCoreFavoriteTokens,
   selectAllPulsexTokens,
+  hydrateCustomTokens,
+  importCustomToken,
 } from "../../store/swapSlice";
 import TokenPopup from "./TokenPopup";
 import QuotePanel from "./QuotePanel";
@@ -114,6 +116,8 @@ const Swap: React.FC = () => {
     isPiteamsLoading,
     areTokensLoading,
     availableTokens,
+    customTokensHydrated,
+    customTokens,
   } = useAppSelector((state) => state.swap);
   const defaultTokens = useAppSelector(selectDefaultPulsexTokens);
   const coreFavoriteTokens = useAppSelector(selectCoreFavoriteTokens);
@@ -137,6 +141,7 @@ const Swap: React.FC = () => {
     setPendingSwap(null);
     setIsPreviewOpen(false);
   };
+  const attemptedCustomImports = useRef<Set<string>>(new Set());
 
   // Check if user has sufficient balance
   const hasSufficientBalance = () => {
@@ -330,6 +335,12 @@ const Swap: React.FC = () => {
   }, [dispatch, tailBps, maxPromoBps]);
 
   useEffect(() => {
+    if (!customTokensHydrated) {
+      dispatch(hydrateCustomTokens());
+    }
+  }, [dispatch, customTokensHydrated]);
+
+  useEffect(() => {
     if (account) {
       dispatch(fetchReferralPromo(account));
     }
@@ -367,28 +378,49 @@ const Swap: React.FC = () => {
     }
   }, [availableTokens, fromToken, toToken, dispatch]);
 
+  const requestCustomImport = (param: string | null) => {
+    const normalized = normalizeAddressParam(param);
+    const raw = param?.trim();
+    if (!normalized || !raw) return;
+    if (normalized === ZeroAddress.toLowerCase()) return;
+    if (!ethers.isAddress(raw)) return;
+    if (attemptedCustomImports.current.has(normalized)) return;
+    attemptedCustomImports.current.add(normalized);
+    dispatch(importCustomToken({ address: raw })).catch(() => { });
+  };
+
   useEffect(() => {
-    if (!availableTokens.length) return;
+    const catalog = [...availableTokens, ...customTokens];
+    if (!catalog.length) return;
 
     const fromParam = searchParams.get("from");
     const toParam = searchParams.get("to");
 
-    const matchedFrom = findTokenByAddressParam(fromParam, availableTokens);
-    if (
-      matchedFrom &&
-      (!fromToken || !addressesMatch(fromToken.address, matchedFrom.address))
-    ) {
-      dispatch(setFromToken({ ...matchedFrom }));
+    const matchedFrom = findTokenByAddressParam(fromParam, catalog);
+    if (matchedFrom) {
+      if (!fromToken || !addressesMatch(fromToken.address, matchedFrom.address)) {
+        dispatch(setFromToken({ ...matchedFrom }));
+      }
+    } else {
+      requestCustomImport(fromParam);
     }
 
-    const matchedTo = findTokenByAddressParam(toParam, availableTokens);
-    if (
-      matchedTo &&
-      (!toToken || !addressesMatch(toToken.address, matchedTo.address))
-    ) {
-      dispatch(setToToken({ ...matchedTo }));
+    const matchedTo = findTokenByAddressParam(toParam, catalog);
+    if (matchedTo) {
+      if (!toToken || !addressesMatch(toToken.address, matchedTo.address)) {
+        dispatch(setToToken({ ...matchedTo }));
+      }
+    } else {
+      requestCustomImport(toParam);
     }
-  }, [availableTokens, dispatch, searchParams]);
+  }, [
+    availableTokens.length,
+    customTokens.length,
+    dispatch,
+    searchParams,
+    fromToken?.address,
+    toToken?.address,
+  ]);
 
   useEffect(() => {
     if (!fromToken && !toToken) {

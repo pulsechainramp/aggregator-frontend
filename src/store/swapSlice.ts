@@ -39,6 +39,7 @@ const getPublicAssetUrl = (assetPath: string) => {
 const ZERO_ADDRESS_LOWER = ZeroAddress.toLowerCase();
 const WPLS_ADDRESS_LOWER = PulsexConfig.WPLSAddress?.toLowerCase() ?? "";
 const BPS_DENOMINATOR = 10_000n;
+const CUSTOM_TOKEN_STORAGE_KEY = "swapCustomTokens";
 
 const clampSlippageBps = (slippage: number): number => {
   if (!Number.isFinite(slippage)) return 0;
@@ -50,6 +51,70 @@ const applySlippageToAmount = (amount: string, slippageBps: number): string => {
   const amountBig = BigInt(amount);
   const safeBps = BigInt(Math.max(0, Math.min(10_000, slippageBps)));
   return ((amountBig * (BPS_DENOMINATOR - safeBps)) / BPS_DENOMINATOR).toString();
+};
+
+const normalizeAddressLower = (address?: string | null) =>
+  address ? address.toLowerCase() : "";
+
+const dedupeTokens = (tokens: TokenType[]) => {
+  const seen = new Set<string>();
+  const unique: TokenType[] = [];
+  for (const token of tokens) {
+    const addr = normalizeAddressLower(token.address);
+    if (!addr || seen.has(addr)) continue;
+    seen.add(addr);
+    unique.push(token);
+  }
+  return unique;
+};
+
+const persistCustomTokens = (tokens: TokenType[]) => {
+  try {
+    if (typeof localStorage === "undefined") return;
+    const payload = tokens.map((t) => ({
+      address: t.address,
+      symbol: t.symbol,
+      name: t.name,
+      decimals: t.decimals,
+      chainId: t.chainId,
+      blockchainNetwork: t.blockchainNetwork,
+      network: t.network,
+      logoURI: t.logoURI,
+      origin: t.origin,
+      tier: t.tier,
+      isCustom: true,
+    }));
+    localStorage.setItem(CUSTOM_TOKEN_STORAGE_KEY, JSON.stringify(payload));
+  } catch {
+    // ignore storage errors
+  }
+};
+
+const readCustomTokensFromStorage = (): TokenType[] => {
+  try {
+    if (typeof localStorage === "undefined") return [];
+    const raw = localStorage.getItem(CUSTOM_TOKEN_STORAGE_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return [];
+    return parsed
+      .map((t) => ({
+        ...t,
+        address: typeof t.address === "string" ? t.address : "",
+        symbol: typeof t.symbol === "string" ? t.symbol : "",
+        name: typeof t.name === "string" ? t.name : "",
+        decimals: Number(t.decimals) || 0,
+        chainId: t.chainId ?? 369,
+        blockchainNetwork: t.blockchainNetwork ?? "pulsechain",
+        network: t.network ?? "PulseChain",
+        tier: t.tier ?? "unverified",
+        origin: t.origin ?? "custom",
+        isCustom: true,
+      }))
+      .filter((t) => normalizeAddressLower(t.address));
+  } catch {
+    return [];
+  }
 };
 
 interface SwapState {
@@ -87,6 +152,10 @@ interface SwapState {
   } | null;
   latestAllowanceRequestId: string | null;
   areTokensLoading: boolean;
+  customTokens: TokenType[];
+  customTokensHydrated: boolean;
+  isImportingCustomToken: boolean;
+  importingAddress: string | null;
 }
 
 type QuoteRequestSnapshot = {
@@ -129,6 +198,10 @@ const initialState: SwapState = {
   lastPulseXParams: null,
   latestAllowanceRequestId: null,
   areTokensLoading: false,
+  customTokens: [],
+  customTokensHydrated: false,
+  isImportingCustomToken: false,
+  importingAddress: null,
 };
 
 const resetSwapTransientState = (state: SwapState) => {
@@ -258,6 +331,82 @@ export const getTokenBalance = createAsyncThunk(
     } catch (error) {
       console.error("Error getting token balance:", error);
       return "0";
+    }
+  }
+);
+
+export const hydrateCustomTokens = createAsyncThunk(
+  "swap/hydrateCustomTokens",
+  async () => {
+    return readCustomTokensFromStorage();
+  }
+);
+
+export const importCustomToken = createAsyncThunk<
+  TokenType,
+  { address: string },
+  { state: RootState }
+>(
+  "swap/importCustomToken",
+  async ({ address }, { getState }) => {
+    const normalized = normalizeAddressLower(address);
+    if (!normalized || !ethers.isAddress(address)) {
+      throw new Error("Enter a valid token address.");
+    }
+    if (normalized === ZERO_ADDRESS_LOWER) {
+      throw new Error("Native token cannot be imported as custom.");
+    }
+
+    const state = getState().swap;
+    const allKnown = dedupeTokens([
+      ...state.availableTokens,
+      ...state.customTokens,
+    ]);
+    const existing = allKnown.find(
+      (t) => normalizeAddressLower(t.address) === normalized
+    );
+    if (existing) {
+      return { ...existing, isCustom: true, origin: existing.origin ?? "custom" };
+    }
+
+    const checksumAddress = ethers.getAddress(address);
+    const web3 = getPulsechainWeb3();
+    const contract = new web3.eth.Contract(ERC20ABI as unknown as AbiItem[], checksumAddress);
+
+    try {
+      const [symbol, name, decimals] = await Promise.all([
+        contract.methods.symbol().call(),
+        contract.methods.name().call(),
+        contract.methods.decimals().call(),
+      ]);
+
+      const decimalsNum = Number(decimals);
+      if (!Number.isFinite(decimalsNum) || decimalsNum < 0 || decimalsNum > 36) {
+        throw new Error("Invalid token decimals.");
+      }
+
+      const fallbackSymbol = ethers.getAddress(address).slice(0, 6);
+      const safeSymbol = symbol || fallbackSymbol;
+      const safeName = name || safeSymbol || "Custom Token";
+
+      const token: TokenType = {
+        address: checksumAddress,
+        symbol: safeSymbol,
+        name: safeName,
+        decimals: decimalsNum,
+        chainId: 369,
+        blockchainNetwork: "pulsechain",
+        network: "PulseChain",
+        tier: "unverified",
+        origin: "custom",
+        isCustom: true,
+      };
+
+      return token;
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "Failed to import token.";
+      throw new Error(message);
     }
   }
 );
@@ -1162,6 +1311,37 @@ export const swapSlice = createSlice({
         }
         state.isTokenBalancesLoading = false;
       });
+
+    builder
+      .addCase(hydrateCustomTokens.fulfilled, (state, action) => {
+        state.customTokens = dedupeTokens([
+          ...state.customTokens,
+          ...action.payload.map((t) => ({ ...t, isCustom: true })),
+        ]);
+        state.customTokensHydrated = true;
+      })
+      .addCase(hydrateCustomTokens.rejected, (state) => {
+        state.customTokensHydrated = true;
+      });
+
+    builder
+      .addCase(importCustomToken.pending, (state, action) => {
+        state.isImportingCustomToken = true;
+        state.importingAddress = normalizeAddressLower(action.meta.arg.address);
+      })
+      .addCase(importCustomToken.fulfilled, (state, action) => {
+        state.isImportingCustomToken = false;
+        state.importingAddress = null;
+        state.customTokens = dedupeTokens([
+          ...state.customTokens,
+          { ...action.payload, isCustom: true, origin: action.payload.origin ?? "custom" },
+        ]);
+        persistCustomTokens(state.customTokens);
+      })
+      .addCase(importCustomToken.rejected, (state, action) => {
+        state.isImportingCustomToken = false;
+        state.importingAddress = null;
+      });
   },
 });
 
@@ -1169,15 +1349,19 @@ const selectSwapState = (state: RootState) => state.swap;
 
 export const selectAllPulsexTokens = createSelector(
   selectSwapState,
-  (swap) => swap.availableTokens
+  (swap) => dedupeTokens([...swap.availableTokens, ...swap.customTokens])
 );
 
 export const selectDefaultPulsexTokens = createSelector(
   selectAllPulsexTokens,
-  (tokens) =>
-    tokens.filter(
-      (token) => token.tier !== "unverified" && token.origin !== "prefork"
-    )
+  selectSwapState,
+  (tokens, swap) =>
+    dedupeTokens([
+      ...tokens.filter(
+        (token) => token.tier !== "unverified" && token.origin !== "prefork"
+      ),
+      ...swap.customTokens.map((t) => ({ ...t, isCustom: true })),
+    ])
 );
 
 export const selectCoreFavoriteTokens = createSelector(
