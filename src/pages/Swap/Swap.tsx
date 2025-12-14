@@ -165,6 +165,11 @@ const Swap: React.FC = () => {
     new Map()
   );
   const lastAppliedUrlParams = useRef<string | null>(null);
+  const urlSyncReady = useRef(false);
+  useEffect(() => {
+    // Reset readiness so new query params get applied before we write back to the URL
+    urlSyncReady.current = false;
+  }, [searchParams]);
 
   // Check if user has sufficient balance
   const hasSufficientBalance = () => {
@@ -377,7 +382,9 @@ const Swap: React.FC = () => {
 
   // Default swap tokens on PulseChain: WETH -> PLS
   useEffect(() => {
-    if (hasUrlParams) return;
+    const params = new URLSearchParams(searchParams);
+    const hasParams = Boolean(params.get("from") || params.get("to"));
+    if (hasParams) return;
     if (availableTokens && availableTokens.length > 0) {
       // only set once
       if (!fromToken) {
@@ -400,7 +407,7 @@ const Swap: React.FC = () => {
         }
       }
     }
-  }, [availableTokens, fromToken, toToken, dispatch, hasUrlParams]);
+  }, [availableTokens, fromToken, toToken, dispatch, searchParams]);
 
   // Upgrade custom tokens to full catalog entries when availableTokens load
   useEffect(() => {
@@ -457,6 +464,7 @@ const Swap: React.FC = () => {
 
     if (!fromParam && !toParam) {
       lastAppliedUrlParams.current = null;
+      urlSyncReady.current = true;
       return;
     }
 
@@ -474,6 +482,7 @@ const Swap: React.FC = () => {
       fromToken &&
       toToken
     ) {
+      urlSyncReady.current = true;
       return;
     }
 
@@ -482,6 +491,7 @@ const Swap: React.FC = () => {
       (!desiredTo || addressesMatch(toToken?.address, desiredTo));
 
     if (lastAppliedUrlParams.current === urlKey && paramsMatchSelection) {
+      urlSyncReady.current = true;
       return;
     }
 
@@ -520,11 +530,13 @@ const Swap: React.FC = () => {
     if (updatedFrom || updatedTo || paramsMatchSelection) {
       lastAppliedUrlParams.current = urlKey;
     }
+    urlSyncReady.current = true;
   }, [
     catalog,
     catalogKey,
     dispatch,
     searchParams,
+    currentChainId,
     fromToken?.isCustom,
     toToken?.isCustom,
     fromToken?.address,
@@ -532,28 +544,41 @@ const Swap: React.FC = () => {
   ]);
 
   useEffect(() => {
+    if (!urlSyncReady.current) return;
+
     const params = new URLSearchParams(searchParams);
     const currentFrom = normalizeAddressParam(params.get("from"));
     const currentTo = normalizeAddressParam(params.get("to"));
     const nextFrom = normalizeAddressParam(fromToken?.address);
     const nextTo = normalizeAddressParam(toToken?.address);
 
+    // Avoid clearing user-supplied params before tokens resolve
+    if ((currentFrom && !fromToken) || (currentTo && !toToken)) {
+      return;
+    }
+
     let didChange = false;
 
     if (nextFrom && currentFrom !== nextFrom) {
       params.set("from", nextFrom);
+      didChange = true;
+    } else if (!nextFrom && currentFrom) {
+      params.delete("from");
       didChange = true;
     }
 
     if (nextTo && currentTo !== nextTo) {
       params.set("to", nextTo);
       didChange = true;
+    } else if (!nextTo && currentTo) {
+      params.delete("to");
+      didChange = true;
     }
 
     if (didChange) {
       setSearchParams(params, { replace: true });
     }
-  }, [fromToken, setSearchParams, toToken]);
+  }, [fromToken, setSearchParams, toToken, searchParams]);
 
   // Get native balance when account changes
   useEffect(() => {
