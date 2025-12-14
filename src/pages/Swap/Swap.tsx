@@ -1,5 +1,6 @@
 import { motion } from "framer-motion";
 import React, { useEffect, useState, useRef } from "react";
+import { useSearchParams } from "react-router-dom";
 import { AffiliateRouterAddress, ZeroAddress } from "../../const/swap";
 import { useAppDispatch, useAppSelector } from "../../store/hooks";
 import {
@@ -59,9 +60,36 @@ type PendingSwap = {
   validation: QuoteValidationResult;
 };
 
+const normalizeAddressParam = (address?: string | null) => {
+  if (!address) return "";
+  const normalized = address.trim().toLowerCase();
+  if (!normalized) return "";
+  if (normalized === "pls" || normalized === "0x0") {
+    return ZeroAddress.toLowerCase();
+  }
+  return normalized;
+};
+
+const findTokenByAddressParam = (
+  addressParam: string | null,
+  tokens: TokenType[]
+) => {
+  const target = normalizeAddressParam(addressParam);
+  if (!target) return null;
+  return (
+    tokens.find(
+      (token) => normalizeAddressParam(token.address) === target
+    ) ?? null
+  );
+};
+
+const addressesMatch = (a?: string | null, b?: string | null) =>
+  normalizeAddressParam(a) === normalizeAddressParam(b);
+
 const Swap: React.FC = () => {
   const dispatch = useAppDispatch();
   const { account, wallet, currentChainId } = useWallet();
+  const [searchParams, setSearchParams] = useSearchParams();
 
   const [isTokenPopupOpen, setIsTokenPopupOpen] = useState(false);
   const [isSlippagePopupOpen, setIsSlippagePopupOpen] = useState(false);
@@ -338,6 +366,67 @@ const Swap: React.FC = () => {
       }
     }
   }, [availableTokens, fromToken, toToken, dispatch]);
+
+  useEffect(() => {
+    if (!availableTokens.length) return;
+
+    const fromParam = searchParams.get("from");
+    const toParam = searchParams.get("to");
+
+    const matchedFrom = findTokenByAddressParam(fromParam, availableTokens);
+    if (
+      matchedFrom &&
+      (!fromToken || !addressesMatch(fromToken.address, matchedFrom.address))
+    ) {
+      dispatch(setFromToken({ ...matchedFrom }));
+    }
+
+    const matchedTo = findTokenByAddressParam(toParam, availableTokens);
+    if (
+      matchedTo &&
+      (!toToken || !addressesMatch(toToken.address, matchedTo.address))
+    ) {
+      dispatch(setToToken({ ...matchedTo }));
+    }
+  }, [availableTokens, dispatch, searchParams]);
+
+  useEffect(() => {
+    if (!fromToken && !toToken) {
+      return;
+    }
+
+    const params = new URLSearchParams(searchParams);
+    const currentFrom = normalizeAddressParam(params.get("from"));
+    const currentTo = normalizeAddressParam(params.get("to"));
+    const nextFrom = normalizeAddressParam(fromToken?.address);
+    const nextTo = normalizeAddressParam(toToken?.address);
+
+    let didChange = false;
+
+    if (nextFrom) {
+      if (currentFrom !== nextFrom) {
+        params.set("from", nextFrom);
+        didChange = true;
+      }
+    } else if (params.has("from")) {
+      params.delete("from");
+      didChange = true;
+    }
+
+    if (nextTo) {
+      if (currentTo !== nextTo) {
+        params.set("to", nextTo);
+        didChange = true;
+      }
+    } else if (params.has("to")) {
+      params.delete("to");
+      didChange = true;
+    }
+
+    if (didChange) {
+      setSearchParams(params, { replace: true });
+    }
+  }, [fromToken, setSearchParams, toToken]);
 
   // Get native balance when account changes
   useEffect(() => {
