@@ -68,7 +68,7 @@ const dedupeTokens = (tokens: TokenType[]) => {
   return unique;
 };
 
-const withCustomDefaults = (token: TokenType): TokenType => {
+const withDisplayFallbacks = (token: TokenType) => {
   const checksum = (() => {
     try {
       return token.address ? ethers.getAddress(token.address) : token.address;
@@ -91,8 +91,18 @@ const withCustomDefaults = (token: TokenType): TokenType => {
     address: checksum || token.address,
     symbol: safeSymbol,
     name: safeName,
+  };
+};
+
+export const withCustomDefaults = (token: TokenType): TokenType => {
+  const display = withDisplayFallbacks(token);
+
+  return {
+    ...display,
     isCustom: true,
     origin: token.origin ?? "custom",
+    status: token.status ?? "unknown",
+    sources: token.sources ?? {},
     // Clear logos so we don't show stale images for different custom tokens
     logoURI: undefined,
     image: undefined,
@@ -100,30 +110,8 @@ const withCustomDefaults = (token: TokenType): TokenType => {
   };
 };
 
-const withSymbolNameFallbacks = (token: TokenType): TokenType => {
-  const checksum = (() => {
-    try {
-      return token.address ? ethers.getAddress(token.address) : token.address;
-    } catch {
-      return token.address ?? "";
-    }
-  })();
-
-  const fallbackSymbol =
-    (token.symbol && token.symbol.trim()) ||
-    (checksum ? checksum.slice(0, 6) : "TOKEN");
-  const safeSymbol = fallbackSymbol || "TOKEN";
-  const safeName =
-    (token.name && token.name.trim()) ||
-    safeSymbol ||
-    (checksum ? `Custom ${checksum.slice(0, 6)}` : "Custom Token");
-
-  return {
-    ...token,
-    address: checksum || token.address,
-    symbol: safeSymbol,
-    name: safeName,
-  };
+export const withSymbolNameFallbacks = (token: TokenType): TokenType => {
+  return withDisplayFallbacks(token);
 };
 
 const mergeCatalogAndCustomTokens = (
@@ -1466,6 +1454,7 @@ export const selectDefaultPulsexTokens = createSelector(
     const defaults = merged.filter(
       (token) => token.tier !== "unverified" && token.origin !== "prefork"
     );
+    // Always surface user-imported customs (even if unverified) so they appear in the default list without search.
     const customs = swap.customTokens.map((t) => withCustomDefaults(t));
     return dedupeTokens([...defaults, ...customs]);
   }

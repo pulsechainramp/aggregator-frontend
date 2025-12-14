@@ -26,6 +26,7 @@ import {
   selectAllPulsexTokens,
   hydrateCustomTokens,
   importCustomToken,
+  withSymbolNameFallbacks as ensureDisplayFields,
 } from "../../store/swapSlice";
 import TokenPopup from "./TokenPopup";
 import QuotePanel from "./QuotePanel";
@@ -87,32 +88,6 @@ const findTokenByAddressParam = (
 
 const addressesMatch = (a?: string | null, b?: string | null) =>
   normalizeAddressParam(a) === normalizeAddressParam(b);
-
-const ensureDisplayFields = (token: TokenType) => {
-  const checksum = (() => {
-    try {
-      return token.address ? ethers.getAddress(token.address) : token.address;
-    } catch {
-      return token.address ?? "";
-    }
-  })();
-
-  const fallbackSymbol =
-    (token.symbol && token.symbol.trim()) ||
-    (checksum ? checksum.slice(0, 6) : "TOKEN");
-  const safeSymbol = fallbackSymbol || "TOKEN";
-  const safeName =
-    (token.name && token.name.trim()) ||
-    safeSymbol ||
-    (checksum ? `Custom ${checksum.slice(0, 6)}` : "Custom Token");
-
-  return {
-    ...token,
-    address: checksum || token.address,
-    symbol: safeSymbol,
-    name: safeName,
-  };
-};
 
 const Swap: React.FC = () => {
   const dispatch = useAppDispatch();
@@ -433,19 +408,21 @@ const Swap: React.FC = () => {
 
     if (fromToken?.isCustom) {
       const match = findTokenByAddressParam(fromToken.address, availableTokens);
-      if (match && !addressesMatch(match.address, fromToken.address)) {
-        // addressesMatch already handled; this branch ensures same address with richer metadata replaces custom
-        dispatch(setFromToken(ensureDisplayFields({ ...match })));
-      } else if (match && match.logoURI && !fromToken.logoURI) {
+      if (
+        match &&
+        (!fromToken.logoURI || !fromToken.symbol || !fromToken.name)
+      ) {
+        // Replace custom with richer catalog metadata (logo/decimals/name) when available
         dispatch(setFromToken(ensureDisplayFields({ ...match })));
       }
     }
 
     if (toToken?.isCustom) {
       const match = findTokenByAddressParam(toToken.address, availableTokens);
-      if (match && !addressesMatch(match.address, toToken.address)) {
-        dispatch(setToToken(ensureDisplayFields({ ...match })));
-      } else if (match && match.logoURI && !toToken.logoURI) {
+      if (
+        match &&
+        (!toToken.logoURI || !toToken.symbol || !toToken.name)
+      ) {
         dispatch(setToToken(ensureDisplayFields({ ...match })));
       }
     }
@@ -544,6 +521,7 @@ const Swap: React.FC = () => {
       lastAppliedUrlParams.current = urlKey;
     }
   }, [
+    catalog,
     catalogKey,
     dispatch,
     searchParams,
@@ -575,7 +553,7 @@ const Swap: React.FC = () => {
     if (didChange) {
       setSearchParams(params, { replace: true });
     }
-  }, [fromToken, setSearchParams, toToken, searchParams]);
+  }, [fromToken, setSearchParams, toToken]);
 
   // Get native balance when account changes
   useEffect(() => {

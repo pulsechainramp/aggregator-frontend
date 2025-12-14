@@ -1,5 +1,5 @@
 import { AnimatePresence, motion } from "framer-motion";
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import TokenIcon from "../../components/TokenIcon";
 import { useAppDispatch, useAppSelector } from "../../store/hooks";
 import {
@@ -52,8 +52,10 @@ const TokenPopup: React.FC<TokenPopupProps> = ({
   const previousAccount = useRef<string | null>(null);
   const [isImporting, setIsImporting] = useState(false);
   const [importError, setImportError] = useState<string | null>(null);
-  const normalizeAddr = (addr?: string | null) =>
-    addr ? addr.trim().toLowerCase() : "";
+  const normalizeAddr = useCallback(
+    (addr?: string | null) => (addr ? addr.trim().toLowerCase() : ""),
+    []
+  );
   const normalizedSearch = searchToken.trim().toLowerCase();
 
   const coreOrder = useMemo(
