@@ -5,7 +5,7 @@ const CONTRACT_ADDRESS = "0x3Cf6457Ef1De6b208854aa1705bBDe54061B84f2";
 const DEXSCREENER_URL =
   "https://dexscreener.com/pulsechain/0x04dc9b9b094537ab1d50003263a8b247355051b6";
 const TRADE_URL =
-  "https://ipfs.app.pulsex.com/?inputCurrency=0xA1077a294dDE1B09bB078844df40758a5D0f9a27&outputCurrency=0x3Cf6457Ef1De6b208854aa1705bBDe54061B84f2"
+  "https://pulsechainramp.com/swap?from=0x0000000000000000000000000000000000000000&to=0x3cf6457ef1de6b208854aa1705bbde54061b84f2"
 const PUMP_TIRES_URL =
   "https://pump.tires/token/0x3Cf6457Ef1De6b208854aa1705bBDe54061B84f2";
 const APP_URL = "https://PulseChainRamp.com";
@@ -128,7 +128,7 @@ const Ramp = () => {
                 rel="noreferrer noopener"
                 className="inline-flex items-center rounded-lg border border-primary bg-transparent px-4 py-2 text-sm font-semibold text-primary shadow-sm transition-colors hover:bg-primary/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-bg-surface"
               >
-                Buy RAMP on PulseX
+                Buy RAMP
               </a>
             </div>
           </div>
@@ -302,14 +302,14 @@ const Ramp = () => {
           <ol className="list-decimal space-y-2 pl-5 text-sm text-text">
             <li>Get PLS on PulseChain for gas and swaps.</li>
             <li>
-              Open the official RAMP / PLS pool on PulseX and start a swap:&nbsp;
+              Open the official RAMP / PLS pool and start a swap:&nbsp;
               <a
                 href={TRADE_URL}
                 target="_blank"
                 rel="noreferrer noopener"
                 className="text-primary underline underline-offset-2 hover:text-primary-600"
               >
-                trade RAMP on PulseX
+                trade RAMP
               </a>
               .
               <span className="block text-xs text-text-muted">
@@ -366,12 +366,20 @@ const Ramp = () => {
               PulseChainRamp.com homepage
             </a>
             <a
+              href={TRADE_URL}
+              target="_blank"
+              rel="noreferrer noopener"
+              className="block text-primary underline underline-offset-2 transition-colors hover:text-primary-600"
+            >
+              Buy RAMP (PulseChainRamp)
+            </a>
+            <a
               href={DEXSCREENER_URL}
               target="_blank"
               rel="noreferrer noopener"
               className="block text-primary underline underline-offset-2 transition-colors hover:text-primary-600"
             >
-              RAMP / PLS chart (DexScreener)
+              RAMP / PLS price chart (DexScreener)
             </a>
             <a
               href={PUMP_TIRES_URL}
