@@ -28,7 +28,7 @@ const BALANCE_OF_ABI = {
   inputs: [{ name: "account", type: "address" }],
 };
 
-export const getWeb3 = () => getPulsechainWeb3();
+const getWeb3 = () => getPulsechainWeb3();
 
 export const initializeMulticall = () => {
   try {
@@ -58,7 +58,9 @@ const buildBalanceOfCall = (web3: Web3, tokenAddress: string, account: string): 
   };
 };
 
-export const multicall = async (calls: MulticallCall[]): Promise<MulticallResult[]> => {
+export const multicall = async (
+  calls: MulticallCall[]
+): Promise<MulticallResult[]> => {
   const { multicallContract } = initializeMulticall();
   return multicallContract.methods.multicall(calls).call();
 };
@@ -66,7 +68,9 @@ export const multicall = async (calls: MulticallCall[]): Promise<MulticallResult
 /**
  * Batch fetch raw token balances (base units) for an account.
  */
-export const getTokenBalances = async (params: GetTokenBalancesParams): Promise<string[]> => {
+export const getTokenBalances = async (
+  params: GetTokenBalancesParams
+): Promise<string[]> => {
   const { tokens, account } = params;
   const { web3 } = initializeMulticall();
 

@@ -13,6 +13,7 @@ import Earn from "./pages/Earn/Earn";
 import Ramp from "./pages/Ramp";
 import Start from "./pages/Start";
 import Wallet from "./pages/Wallet";
+import Stake from "./pages/Stake";
 
 // track route changes under Router
 const RouteTracker = () => {
@@ -73,6 +74,7 @@ const AppRoutes = () => {
         <Route path="/learn" element={<Learn />} />
         <Route path="/earn" element={<Earn />} />
         <Route path="/ramp" element={<Ramp />} />
+        <Route path="/stake" element={<Stake />} />
         <Route path="/terms" element={<Terms />} />
         <Route path="/privacy" element={<Privacy />} />
         <Route path="*" element={<Navigate to="/" replace />} />

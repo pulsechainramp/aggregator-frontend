@@ -303,7 +303,7 @@ export async function signSiweMessage(
     throw new Error("Connect your wallet to continue");
   }
 
-  const provider = new BrowserProvider(providerSource as any);
+  const provider = new BrowserProvider(providerSource as any, "any");
   const signer = await provider.getSigner();
   return signer.signMessage(message);
 }

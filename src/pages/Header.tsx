@@ -28,15 +28,16 @@ import {
 import { useTheme } from "../theme/ThemeProvider";
 
 const NAV_LINKS = [
+  { path: "/start", label: "Start" },
   { path: "/onramp", label: "Onramp" },
   { path: "/bridge", label: "Bridge" },
   { path: "/swap", label: "Swap" },
-  { path: "/start", label: "Start" },
+  { path: "/stake", label: "Stake" },
   //{ path: "/activity", label: "Activity" },
   { path: "/referrals", label: "Referrals" },
 ];
 
-const MOBILE_LINKS = NAV_LINKS.slice(0, 3);
+const MOBILE_LINKS = NAV_LINKS.slice(0, 6);
 
 const Header = () => {
   const { account, disconnectWallet } = useWallet();

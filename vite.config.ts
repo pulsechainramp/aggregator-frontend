@@ -97,4 +97,4 @@ export default defineConfig({
       '@docs': path.resolve(__dirname, 'docs'),
     },
   },
-}); 
+});

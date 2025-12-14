@@ -41,6 +41,7 @@ import {
   QuoteValidationResult,
 } from "../../utils/quoteValidation";
 import { QuoteType, TokenType } from "../../types/Swap";
+import { Link } from "react-router-dom";
 import { PulseChainConfig } from "../../config/chainConfig";
 import { useQuoteSummary } from "../../hooks/useQuoteSummary";
 import { truncateToDecimals } from "../../utils/amount";
@@ -86,6 +87,7 @@ const Swap: React.FC = () => {
     isPiteamsLoading,
     areTokensLoading,
     availableTokens,
+    transactionHash,
   } = useAppSelector((state) => state.swap);
   const defaultTokens = useAppSelector(selectDefaultPulsexTokens);
   const coreFavoriteTokens = useAppSelector(selectCoreFavoriteTokens);
@@ -98,6 +100,17 @@ const Swap: React.FC = () => {
     currentChainId !== PulseChainConfig.chainId;
 
   const quoteSummary = useQuoteSummary();
+  const stakeNetworkParam =
+    toToken?.chainId === PulseChainConfig.chainId ? "pulse" : null;
+  const shouldShowStakeCta =
+    Boolean(
+      transactionHash &&
+      toToken &&
+      stakeNetworkParam &&
+      toToken.symbol &&
+      toToken.symbol.toUpperCase().includes("HEX")
+    );
+  const stakeCtaLabel = "Stake on PulseChain";
   const outputAmount = quoteSummary.netToTokenAmount;
 
   const openPreview = (swapRequest: PendingSwap) => {
@@ -642,6 +655,25 @@ const Swap: React.FC = () => {
             onSwap={handleSwap}
             hasSufficientBalance={hasSufficientBalance()}
           />
+
+          {shouldShowStakeCta && stakeNetworkParam && (
+            <div className="rounded-lg border border-success bg-success/10 p-3">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <p className="text-sm font-semibold text-success">Swap completed</p>
+                  <p className="text-xs text-text-muted">
+                    You now have HEX on PulseChain.
+                  </p>
+                </div>
+                <Link
+                  to="/stake"
+                  className="rounded-lg bg-success px-3 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-success/90"
+                >
+                  {stakeCtaLabel}
+                </Link>
+              </div>
+            </div>
+          )}
         </div>
       </motion.div>
 
