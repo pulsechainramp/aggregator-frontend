@@ -34,6 +34,37 @@ export default function AppFooter() {
       <footer className="border-t border-border bg-bg-surface">
         <div className="mx-auto flex max-w-6xl flex-col items-center justify-center gap-4 px-4 py-6 sm:flex-row sm:px-6">
           <nav className="flex flex-wrap items-center justify-center gap-x-4 gap-y-3 sm:gap-x-6">
+            <Link
+              to="/start"
+              className="text-sm font-medium text-text-muted transition-colors hover:text-primary"
+            >
+              Get Started
+            </Link>
+            <Link
+              to="/ramp"
+              className="text-sm font-medium text-text-muted transition-colors hover:text-primary"
+            >
+              RAMP Token
+            </Link>
+            <Link
+              to="/docs"
+              className="text-sm font-medium text-text-muted transition-colors hover:text-primary"
+            >
+              Docs
+            </Link>
+            <Link
+              to="/referrals"
+              className="text-sm font-medium text-text-muted transition-colors hover:text-primary"
+            >
+              Referrals
+            </Link>
+            <button
+              onClick={() => setShowContactModal(true)}
+              className="text-sm font-medium text-text-muted transition-colors hover:text-primary underline underline-offset-4"
+              type="button"
+            >
+              Contact Us
+            </button>
             <a
               href="https://github.com/pulsechainramp"
               target="_blank"
@@ -50,41 +81,16 @@ export default function AppFooter() {
               Donate
             </button>
             <Link
-              to="/docs"
-              className="text-sm font-medium text-text-muted transition-colors hover:text-primary"
-            >
-              Docs
-            </Link>
-            <Link
-              to="/ramp"
-              className="text-sm font-medium text-text-muted transition-colors hover:text-primary"
-            >
-              RAMP Token
-            </Link>
-            <Link
-              to="/learn"
-              className="text-sm font-medium text-text-muted transition-colors hover:text-primary"
-            >
-              Learn
-            </Link>
-            <button
-              onClick={() => setShowContactModal(true)}
-              className="text-sm font-medium text-text-muted transition-colors hover:text-primary underline underline-offset-4"
-              type="button"
-            >
-              Contact Us
-            </button>
-            <Link
               to="/terms"
               className="text-sm font-medium text-text-muted transition-colors hover:text-primary"
             >
-              Terms of Use
+              Terms
             </Link>
             <Link
               to="/privacy"
               className="text-sm font-medium text-text-muted transition-colors hover:text-primary"
             >
-              Privacy Policy
+              Privacy
             </Link>
           </nav>
         </div>
