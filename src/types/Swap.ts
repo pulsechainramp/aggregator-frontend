@@ -10,6 +10,7 @@ export interface TokenType extends PulsexToken {
   token_security?: any;
   network_rank?: number;
   price?: number;
+  isCustom?: boolean;
 }
 
 export interface QuoteIntegrityPayload {

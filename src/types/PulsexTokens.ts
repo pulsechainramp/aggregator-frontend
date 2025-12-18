@@ -1,4 +1,9 @@
-export type PulsexTokenOrigin = "native" | "bridged-eth" | "prefork" | "unknown";
+export type PulsexTokenOrigin =
+  | "native"
+  | "bridged-eth"
+  | "prefork"
+  | "unknown"
+  | "custom";
 
 export type PulsexTokenTier = "core" | "verified" | "unverified";
 

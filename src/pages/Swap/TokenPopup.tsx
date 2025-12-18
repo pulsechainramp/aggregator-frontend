@@ -1,10 +1,11 @@
 import { AnimatePresence, motion } from "framer-motion";
-import React, { useEffect, useMemo, useRef } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import TokenIcon from "../../components/TokenIcon";
 import { useAppDispatch, useAppSelector } from "../../store/hooks";
 import {
   clearTokenBalances,
   getTokenBalancesBatch,
+  importCustomToken,
   setFromToken,
   setToToken,
 } from "../../store/swapSlice";
@@ -14,6 +15,10 @@ import {
   filterAndSortTokensByBalance,
   formatBalanceDisplay,
 } from "../../utils/tokenSort";
+import { ethers } from "ethers";
+import * as toastify from "react-toastify";
+
+const { toast } = toastify;
 
 interface TokenPopupProps {
   isOpen: boolean;
@@ -45,6 +50,12 @@ const TokenPopup: React.FC<TokenPopupProps> = ({
   );
   const { account, currentChainId } = useWallet();
   const previousAccount = useRef<string | null>(null);
+  const [isImporting, setIsImporting] = useState(false);
+  const [importError, setImportError] = useState<string | null>(null);
+  const normalizeAddr = useCallback(
+    (addr?: string | null) => (addr ? addr.trim().toLowerCase() : ""),
+    []
+  );
   const normalizedSearch = searchToken.trim().toLowerCase();
 
   const coreOrder = useMemo(
@@ -82,6 +93,15 @@ const TokenPopup: React.FC<TokenPopupProps> = ({
     [pulseTokens, tokens, normalizedSearch]
   );
 
+  const sourceTokensKey = useMemo(
+    () =>
+      sourceTokens
+        .map((t) => normalizeAddr(t.address))
+        .filter(Boolean)
+        .join("|"),
+    [sourceTokens]
+  );
+
   const quickCoreTokens = useMemo(() => {
     const tokenPool = [
       ...coreTokens,
@@ -100,6 +120,26 @@ const TokenPopup: React.FC<TokenPopupProps> = ({
       ) as TokenType[];
   }, [coreTokens, allTokens, coreOrder]);
 
+  const normalizedSearchAddress = useMemo(
+    () => normalizeAddr(searchToken),
+    [searchToken]
+  );
+
+  const searchIsAddress = useMemo(
+    () => Boolean(searchToken.trim()) && ethers.isAddress(searchToken.trim()),
+    [searchToken]
+  );
+
+  const hasTokenAlready = useMemo(
+    () =>
+      allTokens.some(
+        (token) => normalizeAddr(token.address) === normalizedSearchAddress
+      ),
+    [allTokens, normalizedSearchAddress]
+  );
+
+  const canImportCustom = searchIsAddress && !hasTokenAlready && (!currentChainId || currentChainId === 369);
+
   useEffect(() => {
     if (!account) {
       dispatch(clearTokenBalances());
@@ -113,7 +153,7 @@ const TokenPopup: React.FC<TokenPopupProps> = ({
     if (isOpen && sourceTokens.length > 0) {
       dispatch(getTokenBalancesBatch({ tokens: sourceTokens, account }));
     }
-  }, [dispatch, account, isOpen, sourceTokens, currentChainId]);
+  }, [dispatch, account, isOpen, sourceTokensKey, sourceTokens.length, currentChainId]);
 
   useEffect(() => {
     if (previousAccount.current && previousAccount.current !== account) {
@@ -141,12 +181,78 @@ const TokenPopup: React.FC<TokenPopupProps> = ({
     [sourceTokens, searchToken, tokenBalances, coreSymbolSet, priorityOrder]
   );
 
+  const tokenLookup = useMemo(() => {
+    const map = new Map<string, TokenType>();
+    for (const token of allTokens) {
+      const addr = normalizeAddr(token.address);
+      if (!addr) continue;
+      if (!map.has(addr)) {
+        map.set(addr, token);
+      }
+    }
+    return map;
+  }, [allTokens, normalizeAddr]);
+
+  const displayTokens = useMemo(
+    () =>
+      filteredTokens.map((token) => {
+        if (
+          !token.isCustom ||
+          token.logoURI ||
+          token.image ||
+          (token as any).remoteLogoURIs?.length
+        ) {
+          return token;
+        }
+        const match = tokenLookup.get(normalizeAddr(token.address));
+        if (
+          match &&
+          (match.logoURI || match.image || (match as any).remoteLogoURIs?.length)
+        ) {
+          return {
+            ...token,
+            logoURI: match.logoURI ?? match.image,
+            image: match.image ?? match.logoURI,
+            remoteLogoURIs: (match as any).remoteLogoURIs ?? [],
+          };
+        }
+        return token;
+      }),
+    [filteredTokens, tokenLookup, normalizeAddr]
+  );
+
+  useEffect(() => {
+    setImportError(null);
+  }, [searchToken]);
+
   const originBadge = (token: TokenType) => {
     // Prefork tokens keep a badge; native/bridged labels are hidden per requirements
     if (token.origin === "prefork") {
       return { label: "Prefork", className: "bg-warning/10 text-warning" };
     }
     return undefined;
+  };
+
+  const handleImportToken = async () => {
+    if (!canImportCustom) return;
+    setIsImporting(true);
+    setImportError(null);
+    try {
+      const token = await dispatch(
+        importCustomToken({ address: searchToken.trim() })
+      ).unwrap();
+      toast.success(`Imported ${token.symbol || "token"}`);
+      handleSetToken(token);
+    } catch (error) {
+      const message =
+        error instanceof Error
+          ? error.message
+          : "Failed to import custom token.";
+      setImportError(message);
+      toast.error(message);
+    } finally {
+      setIsImporting(false);
+    }
   };
 
   const handleSetToken = (token: TokenType) => {
@@ -252,6 +358,30 @@ const TokenPopup: React.FC<TokenPopupProps> = ({
                 </p>
               </div>
 
+              {canImportCustom && (
+                <div className="mb-4 rounded-lg border border-warning bg-warning-050/60 p-3">
+                  <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                    <div className="text-sm text-warning">
+                      Import custom token: {searchToken.trim()}
+                      <div className="text-xs text-warning/80">
+                        Unverified tokens may be unsafe. Double-check the address.
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={handleImportToken}
+                      disabled={isImporting}
+                      className="inline-flex items-center justify-center rounded-md border border-warning bg-warning px-3 py-2 text-sm font-semibold text-white transition-colors hover:bg-warning-600 disabled:cursor-not-allowed disabled:opacity-70"
+                    >
+                      {isImporting ? "Importing..." : "Import token"}
+                    </button>
+                  </div>
+                  {importError && (
+                    <p className="mt-2 text-xs text-danger">{importError}</p>
+                  )}
+                </div>
+              )}
+
               {quickCoreTokens.length > 0 && (
                 <div className="mb-4">
                   <p className="text-xs uppercase text-text-muted">Core tokens</p>
@@ -277,7 +407,7 @@ const TokenPopup: React.FC<TokenPopupProps> = ({
                       Loading tokens...
                     </div>
                   </div>
-                ) : filteredTokens.length === 0 ? (
+                ) : displayTokens.length === 0 ? (
                   <div className="flex h-48 items-center justify-center">
                     <p className="text-sm text-text-muted">
                       No tokens match your search.
@@ -285,7 +415,7 @@ const TokenPopup: React.FC<TokenPopupProps> = ({
                   </div>
                 ) : (
                   <ul className="divide-y divide-border">
-                    {filteredTokens.map((token) => {
+                    {displayTokens.map((token) => {
                       const badge = originBadge(token);
                       const tokenKey = token.address.toLowerCase();
                       const rawBalance = tokenBalances[tokenKey];
@@ -325,7 +455,7 @@ const TokenPopup: React.FC<TokenPopupProps> = ({
                                   )}
                                 </div>
                                 <p className="text-xs text-text-muted">
-                                  {token.name}
+                                  {token.name || `Custom token (${token.address.slice(0, 6)}...${token.address.slice(-4)})`}
                                 </p>
                               </div>
                             </div>

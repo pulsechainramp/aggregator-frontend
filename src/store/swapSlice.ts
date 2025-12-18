@@ -39,6 +39,7 @@ const getPublicAssetUrl = (assetPath: string) => {
 const ZERO_ADDRESS_LOWER = ZeroAddress.toLowerCase();
 const WPLS_ADDRESS_LOWER = PulsexConfig.WPLSAddress?.toLowerCase() ?? "";
 const BPS_DENOMINATOR = 10_000n;
+const CUSTOM_TOKEN_STORAGE_KEY = "swapCustomTokens";
 
 const clampSlippageBps = (slippage: number): number => {
   if (!Number.isFinite(slippage)) return 0;
@@ -50,6 +51,151 @@ const applySlippageToAmount = (amount: string, slippageBps: number): string => {
   const amountBig = BigInt(amount);
   const safeBps = BigInt(Math.max(0, Math.min(10_000, slippageBps)));
   return ((amountBig * (BPS_DENOMINATOR - safeBps)) / BPS_DENOMINATOR).toString();
+};
+
+const normalizeAddressLower = (address?: string | null) =>
+  address ? address.toLowerCase() : "";
+
+const dedupeTokens = (tokens: TokenType[]) => {
+  const seen = new Set<string>();
+  const unique: TokenType[] = [];
+  for (const token of tokens) {
+    const addr = normalizeAddressLower(token.address);
+    if (!addr || seen.has(addr)) continue;
+    seen.add(addr);
+    unique.push(token);
+  }
+  return unique;
+};
+
+const withDisplayFallbacks = (token: TokenType) => {
+  const checksum = (() => {
+    try {
+      return token.address ? ethers.getAddress(token.address) : token.address;
+    } catch {
+      return token.address ?? "";
+    }
+  })();
+
+  const fallbackSymbol =
+    (token.symbol && token.symbol.trim()) ||
+    (checksum ? checksum.slice(0, 6) : "TOKEN");
+  const safeSymbol = fallbackSymbol || "TOKEN";
+  const safeName =
+    (token.name && token.name.trim()) ||
+    safeSymbol ||
+    (checksum ? `Custom ${checksum.slice(0, 6)}` : "Custom Token");
+
+  return {
+    ...token,
+    address: checksum || token.address,
+    symbol: safeSymbol,
+    name: safeName,
+  };
+};
+
+export const withCustomDefaults = (token: TokenType): TokenType => {
+  const display = withDisplayFallbacks(token);
+
+  return {
+    ...display,
+    isCustom: true,
+    origin: token.origin ?? "custom",
+    status: token.status ?? "unknown",
+    sources: token.sources ?? {},
+    // Clear logos so we don't show stale images for different custom tokens
+    logoURI: undefined,
+    image: undefined,
+    remoteLogoURIs: [],
+  };
+};
+
+export const withSymbolNameFallbacks = (token: TokenType): TokenType => {
+  return withDisplayFallbacks(token);
+};
+
+const mergeCatalogAndCustomTokens = (
+  catalog: TokenType[],
+  customTokens: TokenType[]
+): TokenType[] => {
+  const merged = new Map<string, TokenType>();
+
+  for (const token of dedupeTokens(catalog)) {
+    const addr = normalizeAddressLower(token.address);
+    if (!addr) continue;
+    merged.set(addr, withSymbolNameFallbacks(token));
+  }
+
+  for (const custom of customTokens) {
+    const addr = normalizeAddressLower(custom.address);
+    if (!addr) continue;
+    const catalogToken = merged.get(addr);
+    if (catalogToken) {
+      merged.set(addr, {
+        ...catalogToken,
+        isCustom: true,
+        origin: catalogToken.origin ?? custom.origin ?? "custom",
+        logoURI: catalogToken.logoURI ?? custom.logoURI,
+        image: catalogToken.image ?? custom.image,
+        remoteLogoURIs: catalogToken.remoteLogoURIs ?? custom.remoteLogoURIs,
+      });
+    } else {
+      merged.set(addr, withCustomDefaults(custom));
+    }
+  }
+
+  return Array.from(merged.values()).map(withSymbolNameFallbacks);
+};
+
+const persistCustomTokens = (tokens: TokenType[]) => {
+  try {
+    if (typeof localStorage === "undefined") return;
+    const payload = tokens.map((t) => ({
+      address: t.address,
+      symbol: t.symbol,
+      name: t.name,
+      decimals: t.decimals,
+      chainId: t.chainId,
+      blockchainNetwork: t.blockchainNetwork,
+      network: t.network,
+      logoURI: t.logoURI,
+      origin: t.origin,
+      tier: t.tier,
+      isCustom: true,
+    }));
+    localStorage.setItem(CUSTOM_TOKEN_STORAGE_KEY, JSON.stringify(payload));
+  } catch {
+    // ignore storage errors
+  }
+};
+
+const readCustomTokensFromStorage = (): TokenType[] => {
+  try {
+    if (typeof localStorage === "undefined") return [];
+    const raw = localStorage.getItem(CUSTOM_TOKEN_STORAGE_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return [];
+    return parsed
+      .map((t) =>
+        withCustomDefaults({
+          ...t,
+          address: typeof t.address === "string" ? t.address : "",
+          symbol: typeof t.symbol === "string" ? t.symbol : "",
+          name: typeof t.name === "string" ? t.name : "",
+          decimals: Number(t.decimals) || 0,
+          chainId: t.chainId ?? 369,
+          blockchainNetwork: t.blockchainNetwork ?? "pulsechain",
+          network: t.network ?? "PulseChain",
+          tier: t.tier ?? "unverified",
+          origin: t.origin ?? "custom",
+          isCustom: true,
+        })
+      )
+      .filter((t) => normalizeAddressLower(t.address));
+  } catch {
+    return [];
+  }
 };
 
 interface SwapState {
@@ -87,6 +233,10 @@ interface SwapState {
   } | null;
   latestAllowanceRequestId: string | null;
   areTokensLoading: boolean;
+  customTokens: TokenType[];
+  customTokensHydrated: boolean;
+  isImportingCustomToken: boolean;
+  importingAddress: string | null;
 }
 
 type QuoteRequestSnapshot = {
@@ -129,6 +279,10 @@ const initialState: SwapState = {
   lastPulseXParams: null,
   latestAllowanceRequestId: null,
   areTokensLoading: false,
+  customTokens: [],
+  customTokensHydrated: false,
+  isImportingCustomToken: false,
+  importingAddress: null,
 };
 
 const resetSwapTransientState = (state: SwapState) => {
@@ -258,6 +412,96 @@ export const getTokenBalance = createAsyncThunk(
     } catch (error) {
       console.error("Error getting token balance:", error);
       return "0";
+    }
+  }
+);
+
+export const hydrateCustomTokens = createAsyncThunk(
+  "swap/hydrateCustomTokens",
+  async () => {
+    return readCustomTokensFromStorage();
+  }
+);
+
+export const importCustomToken = createAsyncThunk<
+  TokenType,
+  { address: string },
+  { state: RootState }
+>(
+  "swap/importCustomToken",
+  async ({ address }, { getState }) => {
+    const normalized = normalizeAddressLower(address);
+    if (!normalized || !ethers.isAddress(address)) {
+      throw new Error("Enter a valid token address.");
+    }
+    if (normalized === ZERO_ADDRESS_LOWER) {
+      throw new Error("Native token cannot be imported as custom.");
+    }
+
+    const state = getState().swap;
+    const allKnown = dedupeTokens([
+      ...state.availableTokens,
+      ...state.customTokens,
+    ]);
+    const existing = allKnown.find(
+      (t) => normalizeAddressLower(t.address) === normalized
+    );
+    if (existing) {
+      return withCustomDefaults({ ...existing, isCustom: true, origin: existing.origin ?? "custom" });
+    }
+
+    const checksumAddress = ethers.getAddress(address);
+    const web3 = getPulsechainWeb3();
+    const contract = new web3.eth.Contract(ERC20ABI as unknown as AbiItem[], checksumAddress);
+
+    const loadMetadata = async () => {
+      const [symbol, name, decimals] = await Promise.all([
+        contract.methods.symbol().call(),
+        contract.methods.name().call(),
+        contract.methods.decimals().call(),
+      ]);
+      return { symbol, name, decimals };
+    };
+
+    const metadata = async () => {
+      try {
+        return await loadMetadata();
+      } catch (firstError) {
+        // Retry once for transient RPC/contract issues
+        try {
+          return await loadMetadata();
+        } catch (error) {
+          throw firstError instanceof Error ? firstError : error;
+        }
+      }
+    };
+
+    try {
+      const { symbol, name, decimals } = await metadata();
+
+      const decimalsNum = Number(decimals);
+      if (!Number.isFinite(decimalsNum) || decimalsNum < 0 || decimalsNum > 36) {
+        throw new Error("Invalid token decimals.");
+      }
+
+      const token: TokenType = {
+        address: checksumAddress,
+        symbol,
+        name,
+        decimals: decimalsNum,
+        chainId: 369,
+        blockchainNetwork: "pulsechain",
+        network: "PulseChain",
+        tier: "unverified",
+        origin: "custom",
+        isCustom: true,
+      };
+
+      return withCustomDefaults(token);
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "Failed to import token.";
+      throw new Error(message);
     }
   }
 );
@@ -1162,6 +1406,37 @@ export const swapSlice = createSlice({
         }
         state.isTokenBalancesLoading = false;
       });
+
+    builder
+      .addCase(hydrateCustomTokens.fulfilled, (state, action) => {
+        state.customTokens = dedupeTokens([
+          ...state.customTokens,
+          ...action.payload.map((t) => ({ ...t, isCustom: true })),
+        ]);
+        state.customTokensHydrated = true;
+      })
+      .addCase(hydrateCustomTokens.rejected, (state) => {
+        state.customTokensHydrated = true;
+      });
+
+    builder
+      .addCase(importCustomToken.pending, (state, action) => {
+        state.isImportingCustomToken = true;
+        state.importingAddress = normalizeAddressLower(action.meta.arg.address);
+      })
+      .addCase(importCustomToken.fulfilled, (state, action) => {
+        state.isImportingCustomToken = false;
+        state.importingAddress = null;
+        state.customTokens = dedupeTokens([
+          ...state.customTokens,
+          { ...action.payload, isCustom: true, origin: action.payload.origin ?? "custom" },
+        ]);
+        persistCustomTokens(state.customTokens);
+      })
+      .addCase(importCustomToken.rejected, (state, action) => {
+        state.isImportingCustomToken = false;
+        state.importingAddress = null;
+      });
   },
 });
 
@@ -1169,15 +1444,20 @@ const selectSwapState = (state: RootState) => state.swap;
 
 export const selectAllPulsexTokens = createSelector(
   selectSwapState,
-  (swap) => swap.availableTokens
+  (swap) => mergeCatalogAndCustomTokens(swap.availableTokens, swap.customTokens)
 );
 
 export const selectDefaultPulsexTokens = createSelector(
-  selectAllPulsexTokens,
-  (tokens) =>
-    tokens.filter(
+  selectSwapState,
+  (swap) => {
+    const merged = mergeCatalogAndCustomTokens(swap.availableTokens, swap.customTokens);
+    const defaults = merged.filter(
       (token) => token.tier !== "unverified" && token.origin !== "prefork"
-    )
+    );
+    // Always surface user-imported customs (even if unverified) so they appear in the default list without search.
+    const customs = swap.customTokens.map((t) => withCustomDefaults(t));
+    return dedupeTokens([...defaults, ...customs]);
+  }
 );
 
 export const selectCoreFavoriteTokens = createSelector(
