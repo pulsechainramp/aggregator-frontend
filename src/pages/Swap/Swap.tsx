@@ -510,7 +510,7 @@ const Swap: React.FC = () => {
         dispatch(setFromToken(ensureDisplayFields({ ...matchedFrom })));
         updatedFrom = true;
       }
-    } else if (!matchedFrom && fromParam) {
+    } else if (!matchedFrom && fromParam && availableTokens.length > 0) {
       requestCustomImport(fromParam);
     }
 
@@ -523,7 +523,7 @@ const Swap: React.FC = () => {
         dispatch(setToToken(ensureDisplayFields({ ...matchedTo })));
         updatedTo = true;
       }
-    } else if (!matchedTo && toParam) {
+    } else if (!matchedTo && toParam && availableTokens.length > 0) {
       requestCustomImport(toParam);
     }
 

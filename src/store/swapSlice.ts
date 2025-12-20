@@ -1165,6 +1165,47 @@ export const swapSlice = createSlice({
       state.slippage = action.payload;
       resetSwapTransientState(state);
     },
+    removeCustomToken: (state, action: PayloadAction<string>) => {
+      const target = normalizeAddressLower(action.payload);
+      if (!target) return;
+      const wasFrom = state.fromToken && normalizeAddressLower(state.fromToken.address) === target;
+      const wasTo = state.toToken && normalizeAddressLower(state.toToken.address) === target;
+
+      state.customTokens = state.customTokens.filter(
+        (token) => normalizeAddressLower(token.address) !== target
+      );
+
+      if (wasFrom) {
+        state.fromToken = null;
+        state.fromAmount = "";
+        state.quote = null;
+        state.quoteSource = null;
+      }
+      if (wasTo) {
+        state.toToken = null;
+        state.quote = null;
+        state.quoteSource = null;
+      }
+
+      persistCustomTokens(state.customTokens);
+    },
+    clearCustomTokens: (state) => {
+      const clearingFrom = state.fromToken?.isCustom;
+      const clearingTo = state.toToken?.isCustom;
+      state.customTokens = [];
+      if (clearingFrom) {
+        state.fromToken = null;
+        state.fromAmount = "";
+      }
+      if (clearingTo) {
+        state.toToken = null;
+      }
+      if (clearingFrom || clearingTo) {
+        state.quote = null;
+        state.quoteSource = null;
+      }
+      persistCustomTokens(state.customTokens);
+    },
     // Set balances
     setFromTokenBalance: (state, action) => {
       state.fromTokenBalance = action.payload;
@@ -1484,6 +1525,8 @@ export const {
   setPiteamsLoading,
   setHasCalledPulseXOnce,
   setLastPulseXParams,
+  removeCustomToken,
+  clearCustomTokens,
 } = swapSlice.actions;
 
 export default swapSlice.reducer;
