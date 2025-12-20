@@ -40,13 +40,13 @@ const TokenSelector: React.FC<TokenSelectorProps> = ({
       whileHover={{ scale: 1.02 }}
       whileTap={{ scale: 0.98 }}
       onClick={onSelect}
-      className="inline-flex min-w-[180px] items-center gap-3 rounded-full border border-border bg-bg-surface px-4 py-2 text-left font-semibold text-text shadow-sm transition-colors hover:border-primary hover:bg-primary-050/60"
+      className="relative flex w-full items-center gap-3 rounded-full border border-border bg-bg-surface px-4 pr-10 py-2 text-left font-semibold text-text shadow-sm transition-colors hover:border-primary hover:bg-primary-050/60 sm:w-auto sm:min-w-[180px]"
       aria-label={`${type === "from" ? "Select source token" : "Select destination token"}`}
     >
       {token ? (
-        <>
+        <div className="flex items-center gap-3 min-w-0 flex-1">
           <TokenIcon token={token} size={44} />
-          <div className="flex max-w-[120px] flex-col items-start">
+          <div className="flex flex-1 min-w-0 flex-col items-start sm:max-w-[120px]">
             <span className="text-xs font-medium text-text-muted">
               {networkLabel}
             </span>
@@ -57,13 +57,13 @@ const TokenSelector: React.FC<TokenSelectorProps> = ({
               </span>
             )}
           </div>
-        </>
+        </div>
       ) : (
-        <div className="flex items-center gap-2 text-sm text-text-muted">
+        <div className="flex items-center gap-2 text-sm text-text-muted flex-1">
           <span>Select Token</span>
         </div>
       )}
-      <ChevronDownIcon className="h-4 w-4 text-text-muted" />
+      <ChevronDownIcon className="pointer-events-none absolute right-4 top-1/2 h-4 w-4 -translate-y-1/2 text-text-muted" />
     </motion.button>
   );
 };
