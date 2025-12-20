@@ -10,12 +10,40 @@ type LearnCard = {
 const CARDS: LearnCard[] = [
   {
     title: "PulseChain (PLS)",
-    summary: "PulseChain is a blockchain, similar to Ethereum, but built to be faster and cheaper to use. It uses a coin called PLS to pay small network fees whenever you send, swap, or use apps.",
+    summary: (
+      <>
+        PulseChain is a blockchain, similar to Ethereum, but built to be faster and cheaper to use. It uses a coin
+        called PLS to pay small network fees whenever you send, swap, or use apps. Learn more at{" "}
+        <a
+          href="https://pulsechain.com"
+          className="text-primary underline underline-offset-2"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          PulseChain.com
+        </a>
+        .
+      </>
+    ),
     logo: "/token-logos/pulsex/369/0x0000000000000000000000000000000000000000.png",
   },
   {
     title: "PLSX (PulseX token)",
-    summary: "PLSX is the token for PulseX, the main trading app (exchange) on PulseChain. You'll often see it when swapping tokens or using features that reward people for helping the exchange run.",
+    summary: (
+      <>
+        PLSX is the token for PulseX, the main trading app (exchange) on PulseChain. You'll often see it when swapping
+        tokens or using features that reward people for helping the exchange run. Learn more at{" "}
+        <a
+          href="https://pulsex.com"
+          className="text-primary underline underline-offset-2"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          PulseX.com
+        </a>
+        .
+      </>
+    ),
     logo: "/token-logos/pulsex/369/0x95B303987A60C71504D99Aa1b13B4DA07b0790ab.png",
   },
   {
@@ -24,8 +52,21 @@ const CARDS: LearnCard[] = [
     logo: "/token-logos/pulsex/369/0x2fa878Ab3F87CC1C9737Fc071108F904c0B0C95d.png",
   },
   {
-    title: "HEX (time‑locked savings)",
-    summary: "HEX is a token you can lock for a set period of time, similar to a fixed‑term savings account. If you wait until the end of the lock period, you can earn extra HEX as a reward; ending early can mean penalties.",
+    title: "HEX (time-locked savings)",
+    summary: (
+      <>
+        HEX is a token you can lock for a set period of time, similar to a fixed-term savings account. If you wait until the end of the lock period, you can earn extra HEX as a reward; ending early can mean penalties. Learn more at{" "}
+        <a
+          href="https://hex.com"
+          className="text-primary underline underline-offset-2"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          HEX.com
+        </a>
+        .
+      </>
+    ),
     logo: "/token-logos/pulsex/369/0x2b591e99afE9f32eAA6214f7B7629768c40Eeb39.png",
   },
   {
