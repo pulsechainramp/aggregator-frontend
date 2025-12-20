@@ -420,16 +420,6 @@ const Referrals: React.FC = () => {
     }
   };
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString("en-US", {
-      year: "numeric",
-      month: "short",
-      day: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    });
-  };
-
   // Get token metadata from address
   const getTokenMetadata = (tokenAddress: string) => {
     const token = tokens.find(
@@ -812,12 +802,6 @@ const Referrals: React.FC = () => {
                         <span className="text-lg font-bold text-success">{fee.amount}</span>
                       </div>
 
-                      {/* Created Date */}
-                      <div className="flex items-center justify-between py-2 border-t border-border">
-                        <span className="text-sm text-text-muted">Created</span>
-                        <span className="text-sm text-text">{formatDate(fee.createdAt)}</span>
-                      </div>
-
                       {/* Actions */}
                       <div className="flex items-center gap-3 pt-2">
                         {tokenMetadata && (
@@ -860,12 +844,9 @@ const Referrals: React.FC = () => {
                       <th className="text-left py-3 px-4 text-text-muted font-medium">
                         Amount
                       </th>
-                      <th className="text-left py-3 px-4 text-text-muted font-medium">
-                        Created
-                      </th>
-                      <th className="text-left py-3 px-4 text-text-muted font-medium">
-                        Action
-                      </th>
+                        <th className="text-right py-3 px-4 text-text-muted font-medium w-52">
+                          Action
+                        </th>
                     </tr>
                   </thead>
                   <tbody>
@@ -898,11 +879,11 @@ const Referrals: React.FC = () => {
                                 token={
                                   tokenMetadata
                                     ? {
-                                      symbol: tokenMetadata.symbol,
-                                      logoURI: tokenMetadata.logoURI ?? tokenMetadata.image,
-                                      image: tokenMetadata.logoURI ?? tokenMetadata.image,
-                                      remoteLogoURIs: tokenMetadata.remoteLogoURIs,
-                                    }
+                                        symbol: tokenMetadata.symbol,
+                                        logoURI: tokenMetadata.logoURI ?? tokenMetadata.image,
+                                        image: tokenMetadata.logoURI ?? tokenMetadata.image,
+                                        remoteLogoURIs: tokenMetadata.remoteLogoURIs,
+                                      }
                                     : { symbol: fee.token.slice(2, 6) }
                                 }
                                 size={36}
@@ -929,11 +910,8 @@ const Referrals: React.FC = () => {
                               {fee.amount}
                             </span>
                           </td>
-                          <td className="py-4 px-4 text-text-muted">
-                            {formatDate(fee.createdAt)}
-                          </td>
-                          <td className="py-4 px-4">
-                            <div className="flex items-center gap-3">
+                          <td className="py-4 px-4 w-52 text-right">
+                            <div className="ml-auto flex w-full items-center justify-end gap-3">
                               {tokenMetadata && (
                                 <AddToWalletButton
                                   token={{
@@ -949,13 +927,13 @@ const Referrals: React.FC = () => {
                               <button
                                 onClick={() => handleClaim(fee)}
                                 disabled={disableClaimButton}
-                                className="rounded-lg border border-success bg-success px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-success/80 disabled:cursor-not-allowed disabled:border-border disabled:bg-border disabled:text-text-muted"
+                                className="flex-1 min-w-[130px] rounded-lg border border-success bg-success px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-success/80 disabled:cursor-not-allowed disabled:border-border disabled:bg-border disabled:text-text-muted"
                               >
                                 {!isPulseChainNetwork
                                   ? "Switch to PulseChain"
                                   : isCurrentTokenClaiming
-                                    ? "Claiming..."
-                                    : "Claim"}
+                                  ? "Claiming..."
+                                  : "Claim"}
                               </button>
                             </div>
                           </td>
