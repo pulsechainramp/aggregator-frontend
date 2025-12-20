@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
+import internetMoneyIcon from "../../assets/internet-money.png";
 
 type WalletEntry = {
   name: string;
@@ -22,10 +23,10 @@ const DESKTOP_WALLETS: WalletEntry[] = [
     icon: "/icons/metamask.svg",
   },
   {
-    name: "Coinbase Wallet (Extension)",
-    description: "Self-custody wallet from Coinbase.",
-    href: "https://www.coinbase.com/wallet/downloads",
-    icon: "/icons/coinbase.svg",
+    name: "Internet Money",
+    description: "PulseChain-focused browser wallet with revenue sharing.",
+    href: "https://internetmoney.io/",
+    icon: internetMoneyIcon,
   },
 ];
 
@@ -43,10 +44,10 @@ const MOBILE_WALLETS: WalletEntry[] = [
     icon: "/icons/metamask.svg",
   },
   {
-    name: "Coinbase",
-    description: "Mobile self-custody wallet with in-app browser.",
-    href: "https://www.coinbase.com/wallet",
-    icon: "/icons/coinbase.svg",
+    name: "Internet Money",
+    description: "Mobile wallet built for PulseChain users.",
+    href: "https://internetmoney.io/",
+    icon: internetMoneyIcon,
   },
 ];
 

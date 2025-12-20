@@ -19,7 +19,6 @@ const rabbyWallet = createInjectedWalletInit("Rabby Wallet");
 const metamaskWallet = createInjectedWalletInit("MetaMask");
 const trustWallet = createInjectedWalletInit("Trust Wallet");
 const okxWallet = createInjectedWalletInit("OKX Wallet");
-const coinbaseWallet = createInjectedWalletInit("Coinbase Wallet");
 const bitgetWallet = createInjectedWalletInit("Bitget Wallet");
 const braveWallet = createInjectedWalletInit("Brave Wallet");
 const internetMoneyWallet = internetMoneyWalletInit;
@@ -52,10 +51,9 @@ const wallets = [
   internetMoneyWallet,
   trustWallet,
   okxWallet,
-  coinbaseWallet,
   braveWallet,
-  walletConnect,
   bitgetWallet,
+  walletConnect,
 ];
 
 const web3Onboard = init({
@@ -86,7 +84,6 @@ const web3Onboard = init({
       { name: "Internet Money", url: "https://internetmoney.io/" },
       { name: "Trust Wallet", url: "https://trustwallet.com" },
       { name: "OKX Wallet", url: "https://www.okx.com/web3" },
-      { name: "Coinbase Wallet", url: "https://www.coinbase.com/wallet" },
       { name: "Brave Wallet", url: "https://brave.com/wallet/" },
       { name: "WalletConnect", url: "https://walletconnect.com/" },
       { name: "Bitget Wallet", url: "https://web3.bitget.com/en/wallet-download" },
