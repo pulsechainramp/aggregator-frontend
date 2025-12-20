@@ -3,12 +3,14 @@ import { Link, useLocation } from "react-router-dom";
 import useWallet from "../../hooks/useWallet";
 import {
   useAppDispatch,
+  useAppSelector,
   useStartProgress,
 } from "../../store/hooks";
 import {
   checkStartBalances,
   setAccount as setStartAccount,
 } from "../../store/startProgressSlice";
+import { checkReferralCreationFeePaid } from "../../store/referralSlice";
 
 type ChecklistStep = {
   id: string;
@@ -70,6 +72,7 @@ const Start = () => {
 
   const [isMobile, setIsMobile] = useState(getInitialIsMobile);
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
+  const referralState = useAppSelector((state) => state.referral);
 
   useEffect(() => {
     try {
@@ -124,6 +127,14 @@ const Start = () => {
     requestBalanceCheck();
   }, [account, requestBalanceCheck]);
 
+  // Detect referral creation fee payment for the referral step
+  useEffect(() => {
+    if (!account) return;
+    if (referralState.hasPaidCreationFee === true) return;
+    if (referralState.checkingCreationFee) return;
+    dispatch(checkReferralCreationFeePaid(account));
+  }, [account, referralState.hasPaidCreationFee, referralState.checkingCreationFee, dispatch]);
+
   useEffect(() => {
     if (typeof document === "undefined") return;
     const handler = () => {
@@ -173,6 +184,9 @@ const Start = () => {
   const fundingComplete = startProgress.balances.complete;
   const bridgeComplete = startProgress.bridge.complete;
   const swapComplete = startProgress.swap.complete;
+  const referralComplete =
+    referralState.hasPaidCreationFee === true ||
+    Boolean(referralState.referralCode);
 
   useEffect(() => {
     if (typeof window === "undefined" || !window.matchMedia) return;
@@ -229,8 +243,17 @@ const Start = () => {
         href: "/earn",
         cta: "Explore Earning",
       },
+      {
+        id: "referral",
+        title: "Referral link (Optional)",
+        description:
+          "Pay the one-time fee to create your referral link and earn up to 3% when people swap through your link.",
+        href: "/referrals",
+        cta: "Create referral link",
+        done: referralComplete,
+      },
     ],
-    [walletComplete, fundingComplete, bridgeComplete, swapComplete]
+    [walletComplete, fundingComplete, bridgeComplete, swapComplete, referralComplete]
   );
 
   const currentIndex = steps.findIndex((step) => !step.done);
@@ -252,7 +275,7 @@ const Start = () => {
       });
       return changed ? next : prev;
     });
-  }, [isMobile, walletComplete, fundingComplete, bridgeComplete, swapComplete, steps]);
+  }, [isMobile, walletComplete, fundingComplete, bridgeComplete, swapComplete, referralComplete, steps]);
 
   return (
     <div className="bg-bg-page px-4 py-6 text-text sm:py-10">
