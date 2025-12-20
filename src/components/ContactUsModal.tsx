@@ -15,8 +15,6 @@ const createInitialForm = () => ({
 });
 
 export default function ContactUsModal({ open, onClose }: Props) {
-  const simplexLink =
-    "https://simplex.chat/contact#/?v=2-7&smp=smp%3A%2F%2FixvvzatmijnuRYWyjU4YvBe1r9C6rYxRzyDcYN7siW4%3D%40smp.pulsechainramp.com%2F2wIjJL0hvVtrYFBxl2c5RULXcZM58fFs%23%2F%3Fv%3D1-3%26dh%3DMCowBQYDK2VuAyEAds2sGuPzcU3tsyO66iFy40VJhjB1eJ5aC0LIvLjXXRU%253D&data=%7B%22groupLinkId%22%3A%22867dR5NhhyPUCG71aOQgAw%3D%3D%22%7D";
   const telegramLink = "https://t.me/PulseChainRamp";
 
   const [form, setForm] = useState(createInitialForm);
@@ -102,62 +100,15 @@ export default function ContactUsModal({ open, onClose }: Props) {
           <p className="text-sm leading-relaxed text-text-muted">
             Send us a note and the team will follow up by email. Prefer live chat?{" "}
             <a
-              href={simplexLink}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="font-semibold text-primary hover:text-primary-600"
-            >
-              SimpleX
-            </a>{" "}
-            or{" "}
-            <a
               href={telegramLink}
               target="_blank"
               rel="noopener noreferrer"
               className="font-semibold text-primary hover:text-primary-600"
             >
               Telegram
-            </a>
-            .
+            </a>.
           </p>
-          <p className="text-xs text-text-subtle">
-            You can also email us directly at{" "}
-            <a
-              href="mailto:PulseChainRamp@gmail.com"
-              className="font-semibold text-primary hover:text-primary-600"
-            >
-              PulseChainRamp@gmail.com
-            </a>
-          </p>
-
           <div className="grid gap-4">
-            <div className="flex flex-col items-center gap-3 rounded-xl border border-border bg-primary-050/40 p-4 text-center">
-              <img
-                src="/simplex-qrcode.jpg"
-                alt="Scan to join the PulseChain Ramp SimpleX chat"
-                className="h-48 w-48 rounded-lg border border-border object-contain"
-              />
-              <p className="text-xs text-text-muted">
-                Scan with SimpleX to open our support group instantly.
-              </p>
-              <a
-                href={simplexLink}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center justify-center rounded-lg border border-primary bg-primary px-3 py-2 text-xs font-semibold text-white transition-colors hover:border-primary-600 hover:bg-primary-600"
-              >
-                Open SimpleX Chat
-              </a>
-              <a
-                href={telegramLink}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center justify-center rounded-lg border border-border bg-bg-surface px-3 py-2 text-xs font-semibold text-text transition-colors hover:border-primary hover:bg-primary-050/60"
-              >
-                Message us on Telegram
-              </a>
-            </div>
-
             <div className="grid gap-2">
               <label className="text-xs font-medium uppercase tracking-wide text-text-muted" htmlFor="contact-name">
                 Name

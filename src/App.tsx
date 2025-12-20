@@ -12,6 +12,7 @@ import { useTheme } from "./theme/ThemeProvider";
 import ScrollToTop from "./components/ScrollToTop";
 import AlphaNoticeBanner from "./components/AlphaNoticeBanner";
 import SiwePreviewProvider from "./components/SiwePreviewProvider";
+import MobileThemeToggle from "./components/MobileThemeToggle";
 
 function App() {
   const { theme } = useTheme();
@@ -31,6 +32,7 @@ function App() {
           <main className="flex-1 pb-10">
             <AppRoutes />
           </main>
+          <MobileThemeToggle />
           <ToastContainer
             position="top-right"
             autoClose={5000}
