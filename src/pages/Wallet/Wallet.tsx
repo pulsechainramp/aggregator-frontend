@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
+import cryptosteelIcon from "../../assets/cryptosteel.png";
 import internetMoneyIcon from "../../assets/internet-money.png";
+import trezorIcon from "../../assets/trezor.png";
 
 type WalletEntry = {
   name: string;
@@ -24,7 +26,7 @@ const DESKTOP_WALLETS: WalletEntry[] = [
   },
   {
     name: "Internet Money",
-    description: "PulseChain-focused browser wallet with revenue sharing.",
+    description: "PulseChain-focused browser wallet.",
     href: "https://internetmoney.io/",
     icon: internetMoneyIcon,
   },
@@ -51,6 +53,21 @@ const MOBILE_WALLETS: WalletEntry[] = [
   },
 ];
 
+const HARDWARE_WALLETS: WalletEntry[] = [
+  {
+    name: "Trezor",
+    description: "Hardware wallet for extra safety—store keys offline.",
+    href: "https://trezor.io/store",
+    icon: trezorIcon,
+  },
+  {
+    name: "Cryptosteel",
+    description: "Metal backup to protect your recovery phrase.",
+    href: "https://cryptosteel.com/product/seed24",
+    icon: cryptosteelIcon,
+  },
+];
+
 const detectMobileDevice = () => {
   if (typeof navigator === "undefined") {
     return false;
@@ -69,6 +86,64 @@ const Wallet = () => {
 
   const wallets = isMobile ? MOBILE_WALLETS : DESKTOP_WALLETS;
   const deviceLabel = isMobile ? "mobile" : "desktop";
+
+  const renderWalletList = (list: WalletEntry[]) => (
+    <ul className="mt-4 space-y-3">
+      {list.map((wallet) => {
+        const isRabby = wallet.icon.includes("rabby");
+
+        return (
+          <li
+            key={wallet.name}
+            className="flex w-full flex-col gap-3 sm:gap-4 rounded-2xl border border-border bg-bg-page/80 px-4 py-3 sm:flex-row sm:items-center sm:justify-between"
+          >
+            <div className="flex w-full min-w-0 items-center gap-2 sm:gap-3">
+              <div
+                className={`flex ${isRabby ? "h-12 w-12 min-w-[3rem] sm:h-10 sm:w-10 sm:min-w-[2.5rem]" : "h-10 w-10 min-w-[2.5rem] sm:h-9 sm:w-9 sm:min-w-[2.25rem]"} items-center justify-center rounded-full bg-primary/10`}
+              >
+                {wallet.icon ? (
+                  <img
+                    src={wallet.icon}
+                    alt={`${wallet.name} icon`}
+                    className={`object-contain ${isRabby ? "h-11 w-11 sm:h-9 sm:w-9" : "h-8 w-8 sm:h-6 sm:w-6"}`}
+                    loading="lazy"
+                  />
+                ) : (
+                  <span className="font-semibold text-primary">{wallet.name.charAt(0)}</span>
+                )}
+              </div>
+              <div className="flex-1 min-w-0">
+                <a
+                  href={wallet.href}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="font-semibold text-text transition-colors hover:text-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus sm:truncate"
+                >
+                  {wallet.name}
+                </a>
+                {wallet.description ? (
+                  <p className="mt-0.5 text-sm text-text-muted hidden sm:block">
+                    {wallet.description}
+                  </p>
+                ) : null}
+              </div>
+            </div>
+            <a
+              className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-primary bg-primary px-4 py-2 text-sm font-semibold text-white transition-all hover:-translate-y-0.5 hover:bg-primary-600 hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus sm:ml-auto sm:w-auto sm:px-5 sm:py-3 sm:text-base sm:gap-3"
+              href={wallet.href}
+              target="_blank"
+              rel="noreferrer"
+            >
+              Visit
+              <span aria-hidden="true" className="text-lg">
+                &rarr;
+              </span>
+            </a>
+          </li>
+        );
+      })}
+    </ul>
+  );
 
   return (
     <div className="bg-bg-page px-4 py-4 sm:py-10 text-text">
@@ -98,56 +173,17 @@ const Wallet = () => {
               After installing, make sure to back up your recovery phrase.
             </p>
           </div>
-          <ul className="mt-4 space-y-3">
-            {wallets.map((wallet) => {
-              const isRabby = wallet.icon.includes("rabby");
+          {renderWalletList(wallets)}
+        </section>
 
-              return (
-                <li
-                  key={wallet.name}
-                  className="flex w-full items-center justify-between gap-3 sm:gap-4 rounded-2xl border border-border bg-bg-page/80 px-4 py-3"
-                >
-                  <div className="flex min-w-0 items-center gap-2 sm:gap-3">
-                    <div
-                      className={`flex ${isRabby ? "h-12 w-12 min-w-[3rem] sm:h-10 sm:w-10 sm:min-w-[2.5rem]" : "h-10 w-10 min-w-[2.5rem] sm:h-9 sm:w-9 sm:min-w-[2.25rem]"} items-center justify-center rounded-full bg-primary/10`}
-                    >
-                      {wallet.icon ? (
-                        <img
-                          src={wallet.icon}
-                          alt={`${wallet.name} icon`}
-                          className={`object-contain ${isRabby ? "h-11 w-11 sm:h-9 sm:w-9" : "h-8 w-8 sm:h-6 sm:w-6"}`}
-                          loading="lazy"
-                        />
-                      ) : (
-                        <span className="font-semibold text-primary">{wallet.name.charAt(0)}</span>
-                      )}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <a
-                        href={wallet.href}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="truncate font-semibold text-text transition-colors hover:text-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
-                      >
-                        {wallet.name}
-                      </a>
-                    </div>
-                  </div>
-                  <a
-                    className="ml-auto inline-flex shrink-0 items-center gap-2 rounded-xl border border-primary bg-primary px-4 py-2 text-sm font-semibold text-white transition-all hover:-translate-y-0.5 hover:bg-primary-600 hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus sm:px-5 sm:py-3 sm:text-base sm:gap-3"
-                    href={wallet.href}
-                    target="_blank"
-                    rel="noreferrer"
-                  >
-                    Visit
-                    <span aria-hidden="true" className="text-lg">
-                      &rarr;
-                    </span>
-                  </a>
-                </li>
-              );
-            })}
-          </ul>
+        <section className="space-y-3 rounded-3xl border border-border bg-bg-surface p-6 shadow-sm">
+          <div className="flex flex-col gap-1">
+            <p className="text-sm font-semibold text-primary">Hardware wallets</p>
+            <p className="text-sm text-text-muted">
+              Keep your keys offline and back them up securely.
+            </p>
+          </div>
+          {renderWalletList(HARDWARE_WALLETS)}
         </section>
 
         <section className="space-y-4 rounded-3xl border border-border bg-bg-surface p-6 shadow-floating sm:p-8">
