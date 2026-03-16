@@ -1,26 +1,26 @@
 {
-  "timestamp": "2025-11-20T02:38:34.638Z",
-  "totalTokens": 491,
-  "tokensWithLogos": 490,
+  "timestamp": "2026-03-16T22:49:59.109Z",
+  "totalTokens": 499,
+  "tokensWithLogos": 498,
   "tierCounts": {
-    "core": 9,
+    "core": 10,
     "verified": 90,
-    "unverified": 392
+    "unverified": 399
   },
   "originCounts": {
     "native": 9,
     "bridged-eth": 21,
     "prefork": 5,
-    "unknown": 456
+    "unknown": 464
   },
   "statusCounts": {
     "active": 46,
     "abandoned": 0,
     "spam": 0,
-    "unknown": 445
+    "unknown": 453
   },
   "logoStats": {
-    "downloaded": 490,
+    "downloaded": 498,
     "reused": 0,
     "missing": 1
   }

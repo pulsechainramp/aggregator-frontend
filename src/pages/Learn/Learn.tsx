@@ -75,7 +75,7 @@ const CARDS: LearnCard[] = [
       <>
         ProveX is a future token for "no middleman" trading. Instead of paying an exchange, buyers
         and sellers trade directly, and each use is designed to buy and burn ProveX, shrinking
-        supply over time. The token isn't live yet - learn more at{" "}
+        supply over time. Learn more at{" "}
         <a
           href="https://ProveX.com"
           className="text-primary underline underline-offset-2"

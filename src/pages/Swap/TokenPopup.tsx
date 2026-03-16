@@ -65,7 +65,7 @@ const TokenPopup: React.FC<TokenPopupProps> = ({
   const normalizedSearch = searchToken.trim().toLowerCase();
 
   const coreOrder = useMemo(
-    () => ["PLS", "PLSX", "HEX", "INC", "USDC", "USDT"],
+    () => ["PLS", "PLSX", "HEX", "INC", "PRVX", "USDC", "USDT"],
     []
   );
   const priorityOrder = useMemo(

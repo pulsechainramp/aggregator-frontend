@@ -1068,6 +1068,24 @@
   },
   {
     "chainId": 369,
+    "address": "0xb20f8de69250f76AC4324815193BdC8a2F7E8eA3",
+    "symbol": "CIPHER",
+    "name": "Cipher",
+    "decimals": 6,
+    "origin": "unknown",
+    "tier": "unverified",
+    "status": "unknown",
+    "logoURI": "/token-logos/pulsex/369/0xb20f8de69250f76AC4324815193BdC8a2F7E8eA3.png",
+    "remoteLogoURIs": [
+      "https://raw.githubusercontent.com/PLS369/pulsechain-assets/main/blockchain/pulsechain/assets/0xb20f8de69250f76AC4324815193BdC8a2F7E8eA3/logo.png",
+      "https://raw.githubusercontent.com/piteasio/app-tokens/main/token-logo/0xb20f8de69250f76AC4324815193BdC8a2F7E8eA3.png"
+    ],
+    "sources": {
+      "piteas": true
+    }
+  },
+  {
+    "chainId": 369,
     "address": "0xFd96af96B6cFb5F35Fb227b0fE7215903FdAFC68",
     "symbol": "Claire",
     "name": "Teddy Claire",
@@ -1779,6 +1797,24 @@
     "remoteLogoURIs": [
       "https://raw.githubusercontent.com/PLS369/pulsechain-assets/main/blockchain/pulsechain/assets/0xA9e71e1AcF993F001f734cE849e8E2fec4B6A4Ea/logo.png",
       "https://raw.githubusercontent.com/piteasio/app-tokens/main/token-logo/0xA9e71e1AcF993F001f734cE849e8E2fec4B6A4Ea.png"
+    ],
+    "sources": {
+      "piteas": true
+    }
+  },
+  {
+    "chainId": 369,
+    "address": "0xD0676B28a457371D58d47E5247b439114e40Eb0F",
+    "symbol": "DTGC",
+    "name": "Dump Tires Gold Coin",
+    "decimals": 18,
+    "origin": "unknown",
+    "tier": "unverified",
+    "status": "unknown",
+    "logoURI": "/token-logos/pulsex/369/0xD0676B28a457371D58d47E5247b439114e40Eb0F.png",
+    "remoteLogoURIs": [
+      "https://raw.githubusercontent.com/PLS369/pulsechain-assets/main/blockchain/pulsechain/assets/0xD0676B28a457371D58d47E5247b439114e40Eb0F/logo.png",
+      "https://raw.githubusercontent.com/piteasio/app-tokens/main/token-logo/0xD0676B28a457371D58d47E5247b439114e40Eb0F.png"
     ],
     "sources": {
       "piteas": true
@@ -2777,6 +2813,24 @@
     "remoteLogoURIs": [
       "https://raw.githubusercontent.com/PLS369/pulsechain-assets/main/blockchain/pulsechain/assets/0x14aED785b3F951Eb5aC98250E8f4f530A2F83177/logo.png",
       "https://raw.githubusercontent.com/piteasio/app-tokens/main/token-logo/0x14aED785b3F951Eb5aC98250E8f4f530A2F83177.png"
+    ],
+    "sources": {
+      "piteas": true
+    }
+  },
+  {
+    "chainId": 369,
+    "address": "0x89f5d1c22394B4761F3bF746b60d54De03b59Ec6",
+    "symbol": "Gizmo",
+    "name": "Gizmo",
+    "decimals": 18,
+    "origin": "unknown",
+    "tier": "unverified",
+    "status": "unknown",
+    "logoURI": "/token-logos/pulsex/369/0x89f5d1c22394B4761F3bF746b60d54De03b59Ec6.png",
+    "remoteLogoURIs": [
+      "https://raw.githubusercontent.com/PLS369/pulsechain-assets/main/blockchain/pulsechain/assets/0x89f5d1c22394B4761F3bF746b60d54De03b59Ec6/logo.png",
+      "https://raw.githubusercontent.com/piteasio/app-tokens/main/token-logo/0x89f5d1c22394B4761F3bF746b60d54De03b59Ec6.png"
     ],
     "sources": {
       "piteas": true
@@ -4139,6 +4193,24 @@
   },
   {
     "chainId": 369,
+    "address": "0x562866b6483894240739211049E109312E9A9A67",
+    "symbol": "MAFIA",
+    "name": "Coin Mafia",
+    "decimals": 18,
+    "origin": "unknown",
+    "tier": "unverified",
+    "status": "unknown",
+    "logoURI": "/token-logos/pulsex/369/0x562866b6483894240739211049E109312E9A9A67.png",
+    "remoteLogoURIs": [
+      "https://raw.githubusercontent.com/PLS369/pulsechain-assets/main/blockchain/pulsechain/assets/0x562866b6483894240739211049E109312E9A9A67/logo.png",
+      "https://raw.githubusercontent.com/piteasio/app-tokens/main/token-logo/0x562866b6483894240739211049E109312E9A9A67.png"
+    ],
+    "sources": {
+      "piteas": true
+    }
+  },
+  {
+    "chainId": 369,
     "address": "0xE538f4D6E38bABF47e47513094483aFc4aA42E03",
     "symbol": "Magdalene",
     "name": "Pentagon-Electron",
@@ -4658,6 +4730,24 @@
     "remoteLogoURIs": [
       "https://raw.githubusercontent.com/PLS369/pulsechain-assets/main/blockchain/pulsechain/assets/0x93Ad3C61f5e39c0DA07fCEbAe0261eAA2d3A9314/logo.png",
       "https://raw.githubusercontent.com/piteasio/app-tokens/main/token-logo/0x93Ad3C61f5e39c0DA07fCEbAe0261eAA2d3A9314.png"
+    ],
+    "sources": {
+      "piteas": true
+    }
+  },
+  {
+    "chainId": 369,
+    "address": "0xF2Da3942616880E52e841E5C504B5A9Fba23FFF0",
+    "symbol": "NEON",
+    "name": "NEXION",
+    "decimals": 18,
+    "origin": "unknown",
+    "tier": "unverified",
+    "status": "unknown",
+    "logoURI": "/token-logos/pulsex/369/0xF2Da3942616880E52e841E5C504B5A9Fba23FFF0.png",
+    "remoteLogoURIs": [
+      "https://raw.githubusercontent.com/PLS369/pulsechain-assets/main/blockchain/pulsechain/assets/0xF2Da3942616880E52e841E5C504B5A9Fba23FFF0/logo.png",
+      "https://raw.githubusercontent.com/piteasio/app-tokens/main/token-logo/0xF2Da3942616880E52e841E5C504B5A9Fba23FFF0.png"
     ],
     "sources": {
       "piteas": true
@@ -6260,6 +6350,25 @@
   },
   {
     "chainId": 369,
+    "address": "0xF6f8Db0aBa00007681F8fAF16A0FDa1c9B030b11",
+    "symbol": "PRVX",
+    "name": "ProveX",
+    "decimals": 18,
+    "origin": "unknown",
+    "tier": "core",
+    "status": "unknown",
+    "logoURI": "/token-logos/pulsex/369/0xF6f8Db0aBa00007681F8fAF16A0FDa1c9B030b11.png",
+    "remoteLogoURIs": [
+      "https://raw.githubusercontent.com/PLS369/pulsechain-assets/main/blockchain/pulsechain/assets/0xF6f8Db0aBa00007681F8fAF16A0FDa1c9B030b11/logo.png",
+      "https://raw.githubusercontent.com/piteasio/app-tokens/main/token-logo/0xF6f8Db0aBa00007681F8fAF16A0FDa1c9B030b11.png"
+    ],
+    "sources": {
+      "core": true,
+      "piteas": true
+    }
+  },
+  {
+    "chainId": 369,
     "address": "0xae7ab96520DE3A18E5e111B5EaAb095312D7fE84",
     "symbol": "pSTETH",
     "name": "Staked ETH on PulseChain",
@@ -6483,24 +6592,6 @@
   },
   {
     "chainId": 369,
-    "address": "0x78Ad9dA5d80a08AeDE9B0876B7A8807320DbDc9A",
-    "symbol": "PUMP",
-    "name": "GOPUMPME",
-    "decimals": 18,
-    "origin": "unknown",
-    "tier": "unverified",
-    "status": "unknown",
-    "logoURI": "/token-logos/pulsex/369/0x78Ad9dA5d80a08AeDE9B0876B7A8807320DbDc9A.png",
-    "remoteLogoURIs": [
-      "https://raw.githubusercontent.com/PLS369/pulsechain-assets/main/blockchain/pulsechain/assets/0x78Ad9dA5d80a08AeDE9B0876B7A8807320DbDc9A/logo.png",
-      "https://raw.githubusercontent.com/piteasio/app-tokens/main/token-logo/0x78Ad9dA5d80a08AeDE9B0876B7A8807320DbDc9A.png"
-    ],
-    "sources": {
-      "piteas": true
-    }
-  },
-  {
-    "chainId": 369,
     "address": "0xec4252e62C6dE3D655cA9Ce3AfC12E553ebBA274",
     "symbol": "PUMP",
     "name": "PUMP.tires",
@@ -6512,6 +6603,24 @@
     "remoteLogoURIs": [
       "https://raw.githubusercontent.com/PLS369/pulsechain-assets/main/blockchain/pulsechain/assets/0xec4252e62C6dE3D655cA9Ce3AfC12E553ebBA274/logo.png",
       "https://raw.githubusercontent.com/piteasio/app-tokens/main/token-logo/0xec4252e62C6dE3D655cA9Ce3AfC12E553ebBA274.png"
+    ],
+    "sources": {
+      "piteas": true
+    }
+  },
+  {
+    "chainId": 369,
+    "address": "0x78Ad9dA5d80a08AeDE9B0876B7A8807320DbDc9A",
+    "symbol": "PUMP",
+    "name": "GOPUMPME",
+    "decimals": 18,
+    "origin": "unknown",
+    "tier": "unverified",
+    "status": "unknown",
+    "logoURI": "/token-logos/pulsex/369/0x78Ad9dA5d80a08AeDE9B0876B7A8807320DbDc9A.png",
+    "remoteLogoURIs": [
+      "https://raw.githubusercontent.com/PLS369/pulsechain-assets/main/blockchain/pulsechain/assets/0x78Ad9dA5d80a08AeDE9B0876B7A8807320DbDc9A/logo.png",
+      "https://raw.githubusercontent.com/piteasio/app-tokens/main/token-logo/0x78Ad9dA5d80a08AeDE9B0876B7A8807320DbDc9A.png"
     ],
     "sources": {
       "piteas": true
@@ -8018,6 +8127,24 @@
   },
   {
     "chainId": 369,
+    "address": "0x0ED3A7ea3f008FB2827F0A62Fc72FbDF2F4a8Ae5",
+    "symbol": "TOUCAN",
+    "name": "TOUCAN",
+    "decimals": 18,
+    "origin": "unknown",
+    "tier": "unverified",
+    "status": "unknown",
+    "logoURI": "/token-logos/pulsex/369/0x0ED3A7ea3f008FB2827F0A62Fc72FbDF2F4a8Ae5.png",
+    "remoteLogoURIs": [
+      "https://raw.githubusercontent.com/PLS369/pulsechain-assets/main/blockchain/pulsechain/assets/0x0ED3A7ea3f008FB2827F0A62Fc72FbDF2F4a8Ae5/logo.png",
+      "https://raw.githubusercontent.com/piteasio/app-tokens/main/token-logo/0x0ED3A7ea3f008FB2827F0A62Fc72FbDF2F4a8Ae5.png"
+    ],
+    "sources": {
+      "piteas": true
+    }
+  },
+  {
+    "chainId": 369,
     "address": "0x6BD7b5173CF89CA83fbCbc3113d91B41DFfdd04F",
     "symbol": "TPUSD",
     "name": "Turning Point USD",
@@ -8651,6 +8778,24 @@
     "sources": {
       "piteas": true,
       "pls369": true
+    }
+  },
+  {
+    "chainId": 369,
+    "address": "0x8CDaf3d630Da9E1450832924D5701CC0500E9cfC",
+    "symbol": "WICK",
+    "name": "Green Wick",
+    "decimals": 18,
+    "origin": "unknown",
+    "tier": "unverified",
+    "status": "unknown",
+    "logoURI": "/token-logos/pulsex/369/0x8CDaf3d630Da9E1450832924D5701CC0500E9cfC.png",
+    "remoteLogoURIs": [
+      "https://raw.githubusercontent.com/PLS369/pulsechain-assets/main/blockchain/pulsechain/assets/0x8CDaf3d630Da9E1450832924D5701CC0500E9cfC/logo.png",
+      "https://raw.githubusercontent.com/piteasio/app-tokens/main/token-logo/0x8CDaf3d630Da9E1450832924D5701CC0500E9cfC.png"
+    ],
+    "sources": {
+      "piteas": true
     }
   },
   {
