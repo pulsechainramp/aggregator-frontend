@@ -1,10 +1,8 @@
-import React, { useState } from "react";
+import React from "react";
 import { motion } from "framer-motion";
-import ProviderIcon from "../../../components/ProviderIcon";
 import useWallet from "../../../hooks/useWallet";
 import AddToWalletButton from "../../../components/AddToWalletButton";
 import { tryParseAmountToWei } from "../../../utils/amount";
-import { ZeroAddress } from "../../../const/swap";
 import {
   MIN_NATIVE_ETH_AMOUNT_WEI,
   MIN_NATIVE_ETH_AMOUNT_DISPLAY,
@@ -18,13 +16,9 @@ interface AmountInputProps {
   balanceLoading: boolean;
   tokenAddress?: string;
   onCopyAddress?: () => void;
-  onAddToWallet?: () => void;
   showButtons?: boolean;
   fromChainId?: number;
   selectedTokenData?: any;
-  usdValue?: number | null;
-  usdMinimum?: number;
-  isBelowUsdMinimum?: boolean;
 }
 
 const AmountInput: React.FC<AmountInputProps> = ({
@@ -35,28 +29,21 @@ const AmountInput: React.FC<AmountInputProps> = ({
   balanceLoading,
   tokenAddress,
   onCopyAddress,
-  onAddToWallet,
   showButtons = false,
   fromChainId,
   selectedTokenData,
-  usdValue = null,
-  usdMinimum,
-  isBelowUsdMinimum = false,
 }) => {
-  const [showTooltip, setShowTooltip] = useState(false);
-  const { wallet, account, currentChainId } = useWallet();
-  const injected = (wallet as any)?.provider?.provider ?? (wallet as any)?.provider ?? null;
+  const { account } = useWallet();
   const isConnected = !!account;
+
+  const tokenDecimals = selectedTokenData?.decimals ?? 18;
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const inputValue = e.target.value;
-    // Only allow numbers and decimals
     if (/^\d*\.?\d*$/.test(inputValue) || inputValue === "") {
       onChange(inputValue);
     }
   };
-
-  const tokenDecimals = selectedTokenData?.decimals ?? 18;
 
   const handleMaxClick = () => {
     if (!balance || balanceLoading) return;
@@ -66,17 +53,21 @@ const AmountInput: React.FC<AmountInputProps> = ({
     }
   };
 
-  // Check if this is ETH native token on Ethereum chain
-  const isEthNative =
-    selectedTokenData?.address === ZeroAddress && fromChainId === 1;
+  const minForToken = (() => {
+    const base = MIN_NATIVE_ETH_AMOUNT_WEI;
+    const decimals = BigInt(tokenDecimals ?? 18);
+    if (decimals === 18n) return base;
+    if (decimals > 18n) {
+      return base * 10n ** (decimals - 18n);
+    }
+    const divisor = 10n ** (18n - decimals);
+    return base / divisor;
+  })();
+
   const amountWei = tryParseAmountToWei(value, tokenDecimals);
   const isBelowMinimum =
-    isEthNative &&
-    amountWei !== null &&
-    amountWei > 0n &&
-    amountWei < MIN_NATIVE_ETH_AMOUNT_WEI;
-
-  const shouldHighlight = isBelowMinimum || isBelowUsdMinimum;
+    amountWei !== null && amountWei > 0n && amountWei < minForToken;
+  const shouldHighlight = isBelowMinimum;
 
   return (
     <motion.div
@@ -111,7 +102,6 @@ const AmountInput: React.FC<AmountInputProps> = ({
             MAX
           </motion.button>
 
-          {/* Copy Button */}
           {showButtons && tokenAddress && onCopyAddress && (
             <motion.button
               whileHover={{ scale: 1.05 }}
@@ -136,7 +126,6 @@ const AmountInput: React.FC<AmountInputProps> = ({
             </motion.button>
           )}
 
-          {/* Add to Wallet Button */}
           {showButtons && tokenAddress && fromChainId !== 1 && isConnected && (
             <AddToWalletButton
               token={{
@@ -153,8 +142,7 @@ const AmountInput: React.FC<AmountInputProps> = ({
         </div>
       </div>
 
-      {/* Live Validation Message */}
-      {(isBelowMinimum || isBelowUsdMinimum) && (
+      {isBelowMinimum && (
         <motion.div
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
@@ -165,50 +153,11 @@ const AmountInput: React.FC<AmountInputProps> = ({
               <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
             </svg>
             <span>
-              {isBelowMinimum
-                ? `The PulseChain bridge requires a minimum of ${MIN_NATIVE_ETH_AMOUNT_DISPLAY} ETH for this transaction.`
-                : usdMinimum
-                  ? `The PulseChain bridge requires a minimum of $${usdMinimum} for this transaction${usdValue !== null ? ` (≈ $${usdValue.toFixed(2)} entered).` : "."}`
-                  : "Bridge amount may be below the recommended minimum."}
+              The bridge requires a minimum of {MIN_NATIVE_ETH_AMOUNT_DISPLAY} {selectedToken || "tokens"} for this transaction.
             </span>
-          </div>
-          
-          {/* Tooltip Icon */}
-          <div className="relative">
-            <button
-              onMouseEnter={() => setShowTooltip(true)}
-              onMouseLeave={() => setShowTooltip(false)}
-              className="transition-colors text-text-muted hover:text-primary"
-            >
-              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-3a1 1 0 00-.867.5 1 1 0 11-1.731-1A3 3 0 0113 8a3.001 3.001 0 01-2 2.83V11a1 1 0 11-2 0v-1a1 1 0 011-1 1 1 0 100-2zm0 8a1 1 0 100-2 1 1 0 000 2z" clipRule="evenodd" />
-              </svg>
-            </button>
-            
-            {/* Tooltip */}
-            {showTooltip && (
-              <motion.div
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="absolute bottom-full left-1/2 z-50 mb-2 w-80 -translate-x-1/2 transform rounded-lg border border-border bg-bg-surface p-3 shadow-md"
-              >
-                <div className="text-xs leading-relaxed text-text-muted">
-                  <p className="mb-1 font-medium text-text">Why this minimum exists:</p>
-                  <p>This minimum is set by the official PulseChain bridge to ensure the transaction can cover its complex gas fees on both the Ethereum and PulseChain networks. The bridge needs sufficient ETH to:</p>
-                  <ul className="mt-2 space-y-1 text-text-muted">
-                    <li>- Pay Ethereum gas fees for the initial transaction</li>
-                    <li>- Cover PulseChain gas fees for the final transaction</li>
-                    <li>- Handle the bridge&apos;s internal processing costs</li>
-                  </ul>
-                </div>
-                {/* Arrow */}
-                <div className="absolute top-full left-1/2 h-0 w-0 -translate-x-1/2 transform border-l-4 border-r-4 border-t-4 border-transparent border-t-border"></div>
-              </motion.div>
-            )}
           </div>
         </motion.div>
       )}
-
     </motion.div>
   );
 };

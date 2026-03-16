@@ -1,6 +1,7 @@
 import React from "react";
 import { motion } from "framer-motion";
 import useWallet from "../hooks/useWallet";
+import { useAppSelector } from "../store/hooks";
 import { useLocation } from "react-router-dom";
 
 const NetworkWarning: React.FC = () => {
@@ -13,6 +14,9 @@ const NetworkWarning: React.FC = () => {
     wallet
   } = useWallet();
   const location = useLocation();
+  const bridgeFromChainId = useAppSelector(
+    (state) => state.bridge?.fromChainId
+  );
 
   if (!wallet || !currentChainId) {
     return null;
@@ -22,7 +26,9 @@ const NetworkWarning: React.FC = () => {
   const getRequiredNetwork = () => {
     const path = location.pathname;
     if (path.startsWith("/bridge")) {
-      return "ethereum"; // Bridge requires Ethereum as source
+      if (bridgeFromChainId === 1) return "ethereum";
+      if (bridgeFromChainId === 369) return "pulsechain";
+      return null;
     }
     if (path === "/" || path.startsWith("/swap")) {
       return "pulsechain"; // Swap requires PulseChain

@@ -56,7 +56,9 @@ type SiwePurpose =
   | "referral-view"
   | "bridge-activity"
   | "bridge-submit";
-type EnsureSiweSessionArgs = string | { address: string; purpose?: SiwePurpose };
+type EnsureSiweSessionArgs =
+  | string
+  | { address: string; purpose?: SiwePurpose; force?: boolean };
 
 type CreateReferralCodeError =
   | ({ type: "PAYMENT_REQUIRED" } & ReferralCreationFeeInfo)
@@ -325,8 +327,8 @@ const ensureSiweSessionInternal = async (
   args: EnsureSiweSessionArgs,
   thunkAPI: ReferralThunkAPI
 ): Promise<string> => {
-  const { address, purpose } =
-    typeof args === "string" ? { address: args, purpose: undefined } : args;
+  const { address, purpose, force } =
+    typeof args === "string" ? { address: args, purpose: undefined, force: false } : args;
 
   if (!address) {
     throw new Error("Connect your wallet to continue");
@@ -338,6 +340,7 @@ const ensureSiweSessionInternal = async (
     state?.referral?.authAddress ?? null;
 
   if (
+    !force &&
     existingToken &&
     authenticatedAddress &&
     authenticatedAddress.toLowerCase() === address.toLowerCase()
@@ -583,6 +586,10 @@ const referralSlice = createSlice({
       state.referralAddress = action.payload;
       state.referralFeeBasisPoints = null;
       state.referrerFeeBasisPoints = null;
+    },
+    clearSiweAuth: (state) => {
+      state.authToken = null;
+      state.authAddress = null;
     },
     setError: (state, action: PayloadAction<string>) => {
       state.error = action.payload;
@@ -911,6 +918,7 @@ export const {
   clearReferralCode,
   clearReferralAddress,
   clearReferralFees,
+  clearSiweAuth,
   setReferralAddress,
   setError,
 } = referralSlice.actions;

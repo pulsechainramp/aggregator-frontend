@@ -9,60 +9,14 @@ import {
   BridgeParams,
   handleTokenApproval,
   initializeBridgeManager,
-  assertEthereumSourceChain,
+  assertSupportedSourceChain,
   estimateBridgeGasCost,
 } from "../contracts/BridgeContract";
 import { BackendURL, ZeroAddress } from "../const/swap";
-import { ensureSiweSessionAction } from "./referralSlice";
+import { clearSiweAuth, ensureSiweSessionAction } from "./referralSlice";
 import { ethers } from "ethers";
 import { normalizeAmountInput } from "../utils/amount";
-import {
-  PulsexToken,
-  PulsexTokenOrigin,
-  PulsexTokenTier,
-  EthToken,
-} from "../types/PulsexTokens";
-
-const getPublicAssetUrl = (assetPath: string) => {
-  const baseUrl = import.meta.env.BASE_URL ?? "/";
-  const normalizedBase = baseUrl.endsWith("/") ? baseUrl : `${baseUrl}/`;
-  const normalizedAsset = assetPath.startsWith("/") ? assetPath.slice(1) : assetPath;
-  return `${normalizedBase}${normalizedAsset}`;
-};
-
-const createPulseBridgeToken = (token: PulsexToken): BridgeToken => ({
-  name: token.name,
-  symbol: token.symbol,
-  decimals: token.decimals,
-  address: token.address,
-  chainId: token.chainId,
-  logoURI: token.logoURI ?? "",
-  tags: token.tags ?? [],
-  network: "PulseChain",
-  origin: token.origin,
-  originAddress: token.originAddress,
-  originChainId: token.originChainId,
-  tier: token.tier,
-});
-
-const createEthBridgeToken = (token: EthToken): BridgeToken => ({
-  name: token.name,
-  symbol: token.symbol,
-  decimals: token.decimals,
-  address: token.address,
-  chainId: token.chainId,
-  logoURI: token.logoURI ?? "",
-  tags: token.tags ?? [],
-  network: "Ethereum",
-  isNative: token.isNative,
-});
-
-type ManualPairConfig = {
-  pulseSymbol?: string;
-  pulseAddress?: string;
-  ethSymbol?: string;
-  ethAddress?: string;
-};
+import { PulsexTokenOrigin, PulsexTokenTier } from "../types/PulsexTokens";
 
 export interface BridgeToken {
   name: string;
@@ -109,6 +63,8 @@ export interface BridgeTransaction {
   createdAt: string;
   updatedAt: string;
   humanReadableAmount?: string;
+  statusDetail?: "bridge_in_progress" | "claim_required" | "completed" | "failed";
+  isClaimable?: boolean;
 }
 
 export interface TokenPair {
@@ -181,98 +137,188 @@ export const fetchTokenPairs = createAsyncThunk(
   "bridge/fetchTokenPairs",
   async () => {
     try {
-      const [pulsechainResponse, ethereumResponse] = await Promise.all([
-        fetch(getPublicAssetUrl("pulsex-tokens.json"), { cache: "no-cache" }),
-        fetch(getPublicAssetUrl("eth-core-tokens.json"), { cache: "no-cache" }),
-      ]);
+      const response = await fetch(
+        `${BackendURL}exchange/omnibridge/currencies`,
+        { cache: "no-cache" }
+      );
 
-      if (!pulsechainResponse.ok) {
-        throw new Error(
-          `Failed to load PulseChain tokens (${pulsechainResponse.status})`
-        );
-      }
-      if (!ethereumResponse.ok) {
-        throw new Error(
-          `Failed to load Ethereum tokens (${ethereumResponse.status})`
-        );
+      if (!response.ok) {
+        throw new Error(`Failed to load bridge currencies (${response.status})`);
       }
 
-      const pulsexTokens = (await pulsechainResponse.json()) as PulsexToken[];
-      const ethTokens = (await ethereumResponse.json()) as EthToken[];
+      const data = await response.json();
 
-      const pulsechainBridgeTokens = pulsexTokens
-        .filter((token) => token.chainId === 369)
-        .filter(
-          (token) =>
-            token.tier !== "unverified" && token.status !== "spam"
-        )
-        .map(createPulseBridgeToken);
+      if (!data.success || !Array.isArray(data.data)) {
+        throw new Error(data.error || "Failed to parse bridge currencies");
+      }
 
-      const ethereumBridgeTokens = ethTokens.map(createEthBridgeToken);
-      const tokens = [...ethereumBridgeTokens, ...pulsechainBridgeTokens];
+      const rawTokens = data.data as Array<{
+        name: string;
+        symbol: string;
+        decimals: number;
+        address: string;
+        chainId: number;
+        logoURI?: string;
+        tags?: string[];
+        network?: string;
+      }>;
 
-      const ethByAddress = new Map(
-        ethereumBridgeTokens.map((token) => [token.address.toLowerCase(), token])
+      // Only support Ethereum + PulseChain for now
+      const filteredTokens = rawTokens.filter(
+        (token) => token.chainId === 1 || token.chainId === 369
       );
-      const ethBySymbol = new Map(
-        ethereumBridgeTokens.map((token) => [token.symbol, token])
-      );
-      const pulseBySymbol = new Map(
-        pulsechainBridgeTokens.map((token) => [token.symbol, token])
-      );
-      const pulseByAddress = new Map(
-        pulsechainBridgeTokens.map((token) => [token.address.toLowerCase(), token])
-      );
+
+      const tokens: BridgeToken[] = filteredTokens.map((token) => ({
+        name: token.name,
+        symbol: token.symbol,
+        decimals: token.decimals,
+        address: token.address,
+        chainId: token.chainId,
+        logoURI: token.logoURI ?? "",
+        tags: token.tags ?? [],
+        network:
+          token.chainId === 1
+            ? "Ethereum"
+            : token.chainId === 369
+            ? "PulseChain"
+            : token.network ?? `Chain ${token.chainId}`,
+      }));
+
+      const tokensByChain = new Map<number, BridgeToken[]>();
+      tokens.forEach((token) => {
+        const current = tokensByChain.get(token.chainId) ?? [];
+        current.push(token);
+        tokensByChain.set(token.chainId, current);
+      });
+
+      const cleanSymbol = (symbol: string) =>
+        symbol
+          .replace(/ from (Ethereum|PulseChain)/i, "")
+          .replace(/\s*\(OLD\)/i, "")
+          .trim();
+
+      const tagRank = (token: BridgeToken) => {
+        if (token.tags?.includes("priority")) return 0;
+        if (token.tags?.includes("verified")) return 1;
+        return 2;
+      };
+
+      const pickPreferred = (candidates: BridgeToken[]) => {
+        if (!candidates.length) return null;
+        return [...candidates].sort((a, b) => {
+          const tagDiff = tagRank(a) - tagRank(b);
+          if (tagDiff !== 0) return tagDiff;
+          return a.address.toLowerCase().localeCompare(b.address.toLowerCase());
+        })[0];
+      };
 
       const pairKeys = new Set<string>();
       const tokenPairs: TokenPair[] = [];
       const pushPair = (from: BridgeToken, to: BridgeToken) => {
-        const key = `${from.chainId}:${from.address}->${to.chainId}:${to.address}`;
-        if (pairKeys.has(key)) {
-          return;
-        }
+        const key = `${from.chainId}:${from.address.toLowerCase()}->${to.chainId}:${to.address.toLowerCase()}`;
+        if (pairKeys.has(key)) return;
         pairKeys.add(key);
         tokenPairs.push({ from, to });
       };
 
-      pulsechainBridgeTokens.forEach((pulseToken) => {
-        if (
-          pulseToken.origin === "bridged-eth" &&
-          pulseToken.originAddress &&
-          ethByAddress.has(pulseToken.originAddress.toLowerCase())
-        ) {
-          const ethToken = ethByAddress.get(
-            pulseToken.originAddress.toLowerCase()
-          );
-          if (ethToken) {
-            pushPair(ethToken, pulseToken);
-            pushPair(pulseToken, ethToken);
+      const getCandidates = (chainId: number, baseSymbol: string) => {
+        const chainTokens = tokensByChain.get(chainId) ?? [];
+        return chainTokens.filter(
+          (token) => cleanSymbol(token.symbol).toLowerCase() === baseSymbol.toLowerCase()
+        );
+      };
+
+      // Pair PulseChain tokens that explicitly come "from Ethereum"
+      (tokensByChain.get(369) ?? []).forEach((token) => {
+        if (token.symbol.toLowerCase().includes("from ethereum")) {
+          const base = cleanSymbol(token.symbol);
+          const candidate = pickPreferred(getCandidates(1, base));
+          if (candidate) {
+            pushPair(candidate, token);
+            pushPair(token, candidate);
           }
         }
       });
 
-      const manualPairs: ManualPairConfig[] = [
-        // Allow native ETH (zero address) to map onto Pulse WETH (bridged from ETH)
-        { ethSymbol: "ETH", pulseSymbol: "WETH" },
-      ];
-
-      manualPairs.forEach(
-        ({ pulseSymbol, ethSymbol, ethAddress, pulseAddress }) => {
-          const pulseToken =
-            (pulseSymbol && pulseBySymbol.get(pulseSymbol)) ||
-            (pulseAddress && pulseByAddress.get(pulseAddress.toLowerCase()));
-          const ethToken =
-            (ethSymbol && ethBySymbol.get(ethSymbol)) ||
-            (ethAddress && ethByAddress.get(ethAddress.toLowerCase()));
-
-          if (pulseToken && ethToken) {
-            pushPair(ethToken, pulseToken);
-            pushPair(pulseToken, ethToken);
+      // Pair Ethereum tokens that explicitly come "from PulseChain"
+      (tokensByChain.get(1) ?? []).forEach((token) => {
+        if (token.symbol.toLowerCase().includes("from pulsechain")) {
+          const base = cleanSymbol(token.symbol);
+          const candidate = pickPreferred(getCandidates(369, base));
+          if (candidate) {
+            pushPair(token, candidate);
+            pushPair(candidate, token);
           }
         }
-      );
+      });
 
-      return { tokenPairs, tokens };
+      // Pair same-symbol tokens across chains (clean symbol match)
+      (tokensByChain.get(1) ?? []).forEach((ethToken) => {
+        const base = cleanSymbol(ethToken.symbol);
+        const candidate = pickPreferred(getCandidates(369, base));
+        if (candidate) {
+          pushPair(ethToken, candidate);
+          pushPair(candidate, ethToken);
+        }
+      });
+
+      // Native ETH (chain 1) -> WETH-from-Ethereum (chain 369)
+      const nativeEth = pickPreferred(
+        (tokensByChain.get(1) ?? []).filter(
+          (token) => token.address.toLowerCase() === ZeroAddress.toLowerCase()
+        )
+      );
+      const wethOnPulse = pickPreferred(
+        getCandidates(369, "WETH").filter((t) =>
+          t.symbol.toLowerCase().includes("from ethereum") ||
+          cleanSymbol(t.symbol).toLowerCase() === "weth"
+        )
+      );
+      if (nativeEth && wethOnPulse) {
+        pushPair(nativeEth, wethOnPulse);
+        pushPair(wethOnPulse, nativeEth);
+      }
+
+      // Native PLS (chain 369) -> WPLS on Ethereum
+      const nativePls = pickPreferred(
+        (tokensByChain.get(369) ?? []).filter(
+          (token) => token.address.toLowerCase() === ZeroAddress.toLowerCase()
+        )
+      );
+      const wplsOnEth = pickPreferred(getCandidates(1, "WPLS"));
+      if (nativePls && wplsOnEth) {
+        pushPair(nativePls, wplsOnEth);
+        pushPair(wplsOnEth, nativePls);
+      }
+
+      // Restrict exposed tokens to those that are part of a valid pair
+      const pairedAddresses = new Set<string>();
+      tokenPairs.forEach(({ from, to }) => {
+        pairedAddresses.add(`${from.chainId}:${from.address.toLowerCase()}`);
+        pairedAddresses.add(`${to.chainId}:${to.address.toLowerCase()}`);
+      });
+
+      const disallowedSymbols = new Set(["HEX", "PLS", "WPLS", "PLSX"]);
+
+      const pairedTokens = tokens.filter((token) => {
+        const key = `${token.chainId}:${token.address.toLowerCase()}`;
+        const isPaired = pairedAddresses.has(key);
+        // If multiple candidates share a cleaned symbol, keep the highest-ranked one
+        if (!isPaired) return false;
+        const candidates = (tokensByChain.get(token.chainId) ?? []).filter(
+          (t) =>
+            cleanSymbol(t.symbol).toLowerCase() ===
+            cleanSymbol(token.symbol).toLowerCase()
+        );
+        const preferred = pickPreferred(candidates);
+        if (preferred?.address.toLowerCase() !== token.address.toLowerCase()) {
+          return false;
+        }
+        const cleaned = cleanSymbol(token.symbol).toUpperCase();
+        return !disallowedSymbols.has(cleaned);
+      });
+
+      return { tokenPairs, tokens: pairedTokens };
     } catch (error) {
       console.error("Error fetching token pairs:", error);
       throw error;
@@ -350,7 +396,7 @@ export const bridgeTokens = createAsyncThunk(
     { dispatch }
   ) => {
     try {
-      assertEthereumSourceChain(fromChainId);
+      assertSupportedSourceChain(fromChainId);
       const normalizedAmount = normalizeAmountInput(amount);
       // Convert amount to wei
       const amountInWei = ethers.parseUnits(
@@ -447,16 +493,19 @@ export const fetchBridgeEstimate = createAsyncThunk(
   async ({
     tokenAddress,
     networkId,
+    targetChainId,
     amount,
   }: {
     tokenAddress: string;
     networkId: number;
+    targetChainId: number;
     amount: string;
   }) => {
     try {
       const params = new URLSearchParams({
         tokenAddress,
         networkId: networkId.toString(),
+        targetChainId: targetChainId.toString(),
         amount,
       });
       const response = await fetch(
@@ -507,19 +556,7 @@ export const submitBridgeTransaction = createAsyncThunk(
     networkId: number;
     userAddress: string;
   }, thunkAPI) => {
-    try {
-      if (!userAddress) {
-        throw new Error("Wallet address is required");
-      }
-
-      const token = await thunkAPI
-        .dispatch(
-          ensureSiweSessionAction({
-            address: userAddress,
-            purpose: "bridge-submit",
-          })
-        )
-        .unwrap();
+    const submitWithToken = async (token: string) => {
       const response = await fetch(
         `${BackendURL}exchange/omnibridge/transaction`,
         {
@@ -535,6 +572,34 @@ export const submitBridgeTransaction = createAsyncThunk(
           }),
         }
       );
+      return response;
+    };
+
+    const requestToken = async (force?: boolean) =>
+      thunkAPI
+        .dispatch(
+          ensureSiweSessionAction({
+            address: userAddress,
+            purpose: "bridge-submit",
+            force,
+          })
+        )
+        .unwrap();
+
+    if (!userAddress) {
+      throw new Error("Wallet address is required");
+    }
+
+    try {
+      let token = await requestToken(false);
+      let response = await submitWithToken(token);
+
+      if (response.status === 401) {
+        // Clear cached auth and retry once with fresh SIWE
+        thunkAPI.dispatch(clearSiweAuth());
+        token = await requestToken(true);
+        response = await submitWithToken(token);
+      }
 
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
@@ -603,32 +668,27 @@ const bridgeSlice = createSlice({
     swapChains: (state) => {
       const oldFromChainId = state.fromChainId;
       const oldToChainId = state.toChainId;
+      const selectedTokenBeforeSwap = state.selectedToken;
+      let swappedSelectedToken: BridgeToken | null = null;
+
+      if (selectedTokenBeforeSwap) {
+        const pair = state.tokenPairs.find(
+          (pair) =>
+            pair.from.chainId === selectedTokenBeforeSwap.chainId &&
+            pair.from.address.toLowerCase() ===
+              selectedTokenBeforeSwap.address.toLowerCase() &&
+            pair.to.chainId === oldToChainId
+        );
+
+        swappedSelectedToken = pair ? pair.to : null;
+      }
 
       // Swap the chain IDs
       state.fromChainId = oldToChainId;
       state.toChainId = oldFromChainId;
 
-      // If there's a selected token, find its corresponding token and swap
-      if (state.selectedToken) {
-        const currentTokenSymbol = state.selectedToken.symbol;
-
-        // Find the token pair that contains the current token
-        const pair = state.tokenPairs.find(
-          (pair) =>
-            pair.from.symbol === currentTokenSymbol ||
-            pair.to.symbol === currentTokenSymbol
-        );
-
-        if (pair) {
-          // If we're swapping from Ethereum to PulseChain, get the PulseChain token
-          // If we're swapping from PulseChain to Ethereum, get the Ethereum token
-          const correspondingToken = oldFromChainId === 1 ? pair.to : pair.from;
-          state.selectedToken = correspondingToken;
-        } else {
-          // If no pair found, clear the selected token
-          state.selectedToken = null;
-        }
-      }
+      // Apply the swapped token after chain IDs are flipped
+      state.selectedToken = swappedSelectedToken;
 
       // Swap the amount based on current estimate
       if (
@@ -652,6 +712,21 @@ const bridgeSlice = createSlice({
         // If no estimate available, clear the amount
         state.amount = "";
       }
+
+      // Clear derived state
+      state.estimate = null;
+      state.estimateError = null;
+      state.estimateLoading = false;
+      state.gasCostWei = null;
+      state.gasCostError = null;
+      state.gasCostLoading = false;
+      state.needsApproval = false;
+      state.transactionHash = null;
+      state.approvalTxHash = null;
+      state.bridgeTransaction = null;
+      state.bridgeTransactionError = null;
+      state.isPolling = false;
+      state.pollingError = null;
     },
     clearError: (state) => {
       state.error = null;

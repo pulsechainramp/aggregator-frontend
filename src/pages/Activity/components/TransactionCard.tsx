@@ -178,8 +178,22 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
     }
   };
 
-  const getStatusInfo = (status: string) => {
-    switch (status) {
+  const transactionNeedsClaim =
+    transaction.status === "pending" &&
+    (transaction.isClaimable || transaction.statusDetail === "claim_required");
+
+  const getStatusInfo = (tx: BridgeTransaction) => {
+    if (tx.status === "pending" && transactionNeedsClaim) {
+      return {
+        color: "text-warning",
+        bgColor: "bg-warning/10",
+        borderColor: "border-warning",
+        icon: "",
+        message: "Claim required",
+      };
+    }
+
+    switch (tx.status) {
       case "executed":
         return {
           color: "text-success",
@@ -275,7 +289,7 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
     dispatch(fetchTransactionStatus(transaction.messageId));
   };
 
-  const statusInfo = getStatusInfo(transaction.status);
+  const statusInfo = getStatusInfo(transaction);
 
   return (
     <motion.div
@@ -631,7 +645,9 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
 
             {transaction.status === "pending" && (
               <div className="px-4 py-2 bg-warning/10 text-warning rounded-lg text-sm border border-warning">
-                ⏳ Bridge in progress.
+                {transactionNeedsClaim
+                  ? "Claim required on Ethereum."
+                  : "Bridge in progress."}
               </div>
             )}
           </div>

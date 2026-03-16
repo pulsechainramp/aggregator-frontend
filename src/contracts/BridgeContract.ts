@@ -6,6 +6,8 @@ import ERC20ABI from "../abis/ERC20.json";
 import {
   BridgeManagerAddress,
   BridgeManagerAddressForNative,
+  BridgeManagerAddressForNativePulse,
+  BridgeManagerAddressPulse,
   ZeroAddress,
 } from "../const/swap";
 import { getWeb3ForChain, getWalletProvider } from "./BridgeBalance";
@@ -17,21 +19,40 @@ export interface BridgeParams {
   chainId: number;
 }
 
-const ETHEREUM_CHAIN_ID = 1;
-const ETHEREUM_ONLY_ERROR =
-  "PulseBridge currently supports bridging from Ethereum mainnet only. Switch your source network to Ethereum and try again.";
+const SUPPORTED_CHAIN_IDS = [1, 369] as const;
+const UNSUPPORTED_CHAIN_ERROR =
+  "PulseBridge currently supports bridging from Ethereum or PulseChain. Switch your source network to a supported chain and try again.";
 
-export const assertEthereumSourceChain = (chainId: number) => {
-  if (chainId !== ETHEREUM_CHAIN_ID) {
-    throw new Error(ETHEREUM_ONLY_ERROR);
+export const assertSupportedSourceChain = (chainId: number) => {
+  if (!SUPPORTED_CHAIN_IDS.includes(chainId as (typeof SUPPORTED_CHAIN_IDS)[number])) {
+    throw new Error(UNSUPPORTED_CHAIN_ERROR);
   }
 };
 
-const getBridgeManagerConfig = (tokenAddress: string) => {
+const getBridgeRouterMap = () => ({
+  1: {
+    erc20: BridgeManagerAddress,
+    native: BridgeManagerAddressForNative,
+  },
+  369: {
+    erc20: BridgeManagerAddressPulse,
+    native: BridgeManagerAddressForNativePulse,
+  },
+});
+
+const getBridgeManagerConfig = (tokenAddress: string, chainId: number) => {
+  assertSupportedSourceChain(chainId);
   const isNative = tokenAddress.toLowerCase() === ZeroAddress.toLowerCase();
+  const routerMap = getBridgeRouterMap();
+  const chainConfig = routerMap[chainId as keyof typeof routerMap];
+
+  if (!chainConfig) {
+    throw new Error(UNSUPPORTED_CHAIN_ERROR);
+  }
+
   return {
     isNative,
-    address: isNative ? BridgeManagerAddressForNative : BridgeManagerAddress,
+    address: isNative ? chainConfig.native : chainConfig.erc20,
     abi: isNative
       ? (BridgeManagerABIForNative as unknown as AbiItem[])
       : (BridgeManagerABI as unknown as AbiItem[]),
@@ -46,9 +67,9 @@ export const initializeBridgeManager = (
   tokenAddress: string
 ) => {
   try {
-    assertEthereumSourceChain(chainId);
+    assertSupportedSourceChain(chainId);
     const web3 = getWalletProvider();
-    const { address, abi } = getBridgeManagerConfig(tokenAddress);
+    const { address, abi } = getBridgeManagerConfig(tokenAddress, chainId);
     const bridgeManagerContract = new web3.eth.Contract(abi, address);
 
     return {
@@ -73,7 +94,7 @@ export const checkTokenApproval = async (
   userAddress: string
 ): Promise<boolean> => {
   try {
-    assertEthereumSourceChain(chainId);
+    assertSupportedSourceChain(chainId);
     const web3 = getWeb3ForChain(chainId);
 
     const tokenContract = new web3.eth.Contract(
@@ -126,7 +147,7 @@ export const getGasEstimate = async (
   chainId: number
 ): Promise<number> => {
   try {
-    assertEthereumSourceChain(chainId);
+    assertSupportedSourceChain(chainId);
     const web3 = getWalletProvider();
 
     const tokenContract = new web3.eth.Contract(
@@ -156,7 +177,7 @@ export const approveToken = async (
   userAddress: string
 ): Promise<string> => {
   try {
-    assertEthereumSourceChain(chainId);
+    assertSupportedSourceChain(chainId);
     const web3 = getWalletProvider();
 
     const tokenContract = new web3.eth.Contract(
@@ -221,7 +242,7 @@ export const bridgeTokens = async (params: BridgeParams): Promise<string> => {
   const { tokenAddress, amount, receiver, chainId } = params;
 
   try {
-    assertEthereumSourceChain(chainId);
+    assertSupportedSourceChain(chainId);
     const { web3, bridgeManagerContract } = initializeBridgeManager(
       chainId,
       tokenAddress
@@ -257,7 +278,7 @@ export const bridgeERC20Tokens = async (
   const { tokenAddress, amount, receiver, chainId } = params;
 
   try {
-    assertEthereumSourceChain(chainId);
+    assertSupportedSourceChain(chainId);
     const { web3, bridgeManagerContract } = initializeBridgeManager(
       chainId,
       tokenAddress
@@ -307,8 +328,8 @@ export const estimateBridgeGasCost = async ({
   chainId,
   userAddress,
 }: GasCostParams): Promise<bigint> => {
-  assertEthereumSourceChain(chainId);
-  const config = getBridgeManagerConfig(tokenAddress);
+  assertSupportedSourceChain(chainId);
+  const config = getBridgeManagerConfig(tokenAddress, chainId);
   const fallbackCost = () =>
     getFallbackCostWei(config.isNative, DEFAULT_GAS_PRICE_WEI);
 
@@ -376,7 +397,7 @@ export const handleTokenApproval = async (
   onApprovalError?: (error: any) => void
 ): Promise<boolean> => {
   try {
-    assertEthereumSourceChain(chainId);
+    assertSupportedSourceChain(chainId);
     // Check if approval is needed
     const needsApproval = await checkTokenApproval(
       tokenAddress,

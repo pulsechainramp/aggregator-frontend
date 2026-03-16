@@ -1,7 +1,7 @@
 import { createSlice, createAsyncThunk, PayloadAction } from "@reduxjs/toolkit";
 import { BridgeTransaction } from "./bridgeSlice";
 import { BackendURL } from "../const/swap";
-import { ensureSiweSessionAction } from "./referralSlice";
+import { clearSiweAuth, ensureSiweSessionAction } from "./referralSlice";
 
 interface ActivityState {
   transactions: BridgeTransaction[];
@@ -26,27 +26,39 @@ export const fetchUserTransactions = createAsyncThunk(
         throw new Error("Connect your wallet to view activity");
       }
 
-      const token = await thunkAPI
-        .dispatch(
-          ensureSiweSessionAction({
-            address: userAddress,
-            purpose: "bridge-activity",
-          })
-        )
-        .unwrap();
       const params = new URLSearchParams({
         userAddress,
         limit: "50",
         offset: "0",
       });
-      const response = await fetch(
-        `${BackendURL}exchange/omnibridge/transactions?${params.toString()}`,
-        {
+
+      const requestToken = async (force?: boolean) =>
+        thunkAPI
+          .dispatch(
+            ensureSiweSessionAction({
+              address: userAddress,
+              purpose: "bridge-activity",
+              force,
+            })
+          )
+          .unwrap();
+
+      const fetchWithToken = async (token: string) =>
+        fetch(`${BackendURL}exchange/omnibridge/transactions?${params.toString()}`, {
           headers: {
             Authorization: `Bearer ${token}`,
           },
-        }
-      );
+        });
+
+      let token = await requestToken(false);
+      let response = await fetchWithToken(token);
+
+      if (response.status === 401) {
+        // Clear cached auth and retry once with a forced SIWE re-auth.
+        thunkAPI.dispatch(clearSiweAuth());
+        token = await requestToken(true);
+        response = await fetchWithToken(token);
+      }
 
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
@@ -74,6 +86,8 @@ export const fetchUserTransactions = createAsyncThunk(
           createdAt: tx.createdAt,
           updatedAt: tx.updatedAt,
           humanReadableAmount: tx.humanReadableAmount,
+          statusDetail: tx.statusDetail,
+          isClaimable: tx.isClaimable,
         }));
       }
 
@@ -121,6 +135,8 @@ export const fetchTransactionStatus = createAsyncThunk(
           createdAt: tx.createdAt,
           updatedAt: tx.updatedAt,
           humanReadableAmount: tx.humanReadableAmount,
+          statusDetail: tx.statusDetail,
+          isClaimable: tx.isClaimable,
         };
       }
 

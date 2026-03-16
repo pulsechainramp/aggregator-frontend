@@ -25,7 +25,6 @@ import { ZeroAddress } from "../../../const/swap";
 import {
   MIN_NATIVE_ETH_AMOUNT_WEI,
   MIN_NATIVE_ETH_AMOUNT_DISPLAY,
-  MIN_BRIDGE_USD_AMOUNT,
 } from "../constants";
 import TokenIcon from "../../../components/TokenIcon";
 
@@ -36,7 +35,7 @@ interface BridgeCardProps {
   toChainId: number;
   amount: string;
   selectedToken: string;
-  correspondingToken: string;
+  correspondingToken?: BridgeToken | null;
   onNetworkSwap: () => void;
   onAmountChange: (value: string) => void;
   onTokenSelect: (token: BridgeToken) => void;
@@ -60,8 +59,6 @@ interface BridgeCardProps {
   bridgeTransaction: BridgeTransaction | null;
   bridgeTransactionLoading: boolean;
   bridgeTransactionError: string | null;
-  isSourceNetworkSupported?: boolean;
-  unsupportedReason?: string;
 }
 
 const BridgeCard: React.FC<BridgeCardProps> = ({
@@ -95,8 +92,6 @@ const BridgeCard: React.FC<BridgeCardProps> = ({
   bridgeTransaction,
   bridgeTransactionLoading,
   bridgeTransactionError,
-  isSourceNetworkSupported = true,
-  unsupportedReason,
 }) => {
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
@@ -110,20 +105,24 @@ const BridgeCard: React.FC<BridgeCardProps> = ({
   // Use polled bridge transaction if available, otherwise use the one from props
   const currentBridgeTransaction = polledBridgeTransaction || bridgeTransaction;
   const hasActiveBridge = Boolean(currentBridgeTransaction);
+  const claimRequired =
+    Boolean(currentBridgeTransaction) &&
+    currentBridgeTransaction.status === "pending" &&
+    (currentBridgeTransaction.isClaimable ||
+      currentBridgeTransaction.statusDetail === "claim_required");
   const bridgeCompleted =
     hasActiveBridge && currentBridgeTransaction.status === "executed";
   const bridgeFormHidden = bridgeTransactionLoading || hasActiveBridge;
-  const bridgeInFlight = bridgeFormHidden && !bridgeCompleted;
   const showBridgeForm = !bridgeFormHidden;
+  const swapDisabled =
+    bridgeTransactionLoading ||
+    (currentBridgeTransaction &&
+      currentBridgeTransaction.status === "pending");
 
   // Filter tokens based on the current fromChainId
   const filteredTokens = tokens.filter(
     (token) => token.chainId === fromChainId
   );
-
-  const directionSupportMessage =
-    unsupportedReason ??
-    "PulseBridge currently supports bridging from Ethereum to PulseChain only.";
 
   const refreshDisabled =
     !account || balanceLoading || isRefreshingBalance;
@@ -153,11 +152,6 @@ const BridgeCard: React.FC<BridgeCardProps> = ({
     (token) => token.symbol === selectedToken
   );
 
-  const stableSymbols = ["USDC", "USDT", "DAI"];
-  const fallbackUsdPriceBySymbol: Record<string, number> = {
-    WBTC: 60000, // approximate BTC peg for minimum warning only
-  };
-
   const tokenDecimals = selectedTokenData?.decimals ?? 18;
   const amountWei = tryParseAmountToWei(amount, tokenDecimals);
   const balanceWei = tryParseAmountToWei(balance, tokenDecimals);
@@ -166,44 +160,42 @@ const BridgeCard: React.FC<BridgeCardProps> = ({
     amountWei !== null &&
     balanceWei !== null &&
     amountWei > balanceWei;
-  const isEthNative =
-    selectedTokenData?.address === ZeroAddress && fromChainId === 1;
+  const minForToken = (() => {
+    const base = MIN_NATIVE_ETH_AMOUNT_WEI;
+    const decimals = BigInt(selectedTokenData?.decimals ?? 18);
+    if (decimals === 18n) return base;
+    if (decimals > 18n) {
+      return base * 10n ** (decimals - 18n);
+    }
+    const divisor = 10n ** (18n - decimals);
+    return base / divisor;
+  })();
   const isBelowMinimum =
-    isEthNative &&
     amountWei !== null &&
     amountWei > 0n &&
-    amountWei < MIN_NATIVE_ETH_AMOUNT_WEI;
+    amountWei < minForToken;
 
-  const computeUsdEstimate = (): number | null => {
-    if (!selectedTokenData) return null;
-    const amountNum = Number(amount || "0");
-    if (!Number.isFinite(amountNum) || amountNum <= 0) return null;
-
-    const symbol = (selectedTokenData.symbol || "").toUpperCase();
-    if (stableSymbols.includes(symbol)) {
-      return amountNum; // assume $1 per unit for stablecoins
+  // Helper function to clean token symbols (remove network suffixes)
+  const cleanTokenSymbol = (symbol: string): string => {
+    if (!symbol) return "";
+    if (symbol.includes(" from Ethereum")) {
+      return symbol.replace(" from Ethereum", "");
+    } else if (symbol.includes(" from PulseChain")) {
+      return symbol.replace(" from PulseChain", "");
     }
-
-    const fallbackPrice = fallbackUsdPriceBySymbol[symbol];
-    if (fallbackPrice) {
-      return amountNum * fallbackPrice;
-    }
-
-    // For native ETH we rely on the explicit ETH minimum instead of USD
-    return null;
+    return symbol;
   };
 
-  const usdEstimate = computeUsdEstimate();
-  const isBelowUsdMinimum =
-    usdEstimate !== null &&
-    usdEstimate > 0 &&
-    usdEstimate < MIN_BRIDGE_USD_AMOUNT;
-
   // Find the corresponding token using the new token pair structure
-  const correspondingTokenData = tokens.find(
-    (token) =>
-      token.symbol === correspondingToken && token.chainId === toChainId
-  );
+  const correspondingTokenData =
+    correspondingToken ||
+    tokens.find(
+      (token) =>
+        token.chainId === toChainId &&
+        cleanTokenSymbol(token.symbol) === cleanTokenSymbol(correspondingToken?.symbol || "")
+    );
+  const correspondingTokenSymbol =
+    correspondingTokenData?.symbol || correspondingToken?.symbol || "";
 
   // Clear selected token if it's not available in the current chain
   useEffect(() => {
@@ -317,11 +309,6 @@ const BridgeCard: React.FC<BridgeCardProps> = ({
       return;
     }
 
-    if (!isSourceNetworkSupported) {
-      toast.error(directionSupportMessage);
-      return;
-    }
-
     if (
       currentBridgeTransaction &&
       currentBridgeTransaction.status === "executed"
@@ -365,7 +352,6 @@ const BridgeCard: React.FC<BridgeCardProps> = ({
 
   const isButtonDisabled = () => {
     if (!account) return false;
-    if (!isSourceNetworkSupported) return true;
     if (!isOnCorrectNetwork()) return false;
     if (isBridging || isApproving) return true;
     if (!selectedTokenData || !hasPositiveAmount) return true;
@@ -377,13 +363,8 @@ const BridgeCard: React.FC<BridgeCardProps> = ({
     // Check for insufficient balance
     if (insufficientBalance) return true;
 
-    // Check for Ethereum native token minimum amount (0.018 ETH) or USD guideline
-    if (
-      selectedTokenData &&
-      (isBelowMinimum || isBelowUsdMinimum)
-    ) {
-      return true;
-    }
+    // Enforce the bridge minimum for the selected token
+    if (selectedTokenData && isBelowMinimum) return true;
 
     // Disable button if there's an active bridge transaction (pending)
     if (
@@ -440,21 +421,10 @@ const BridgeCard: React.FC<BridgeCardProps> = ({
     return `Chain ID ${currentChainId}`;
   };
 
-  // Helper function to clean token symbols (remove network suffixes)
-  const cleanTokenSymbol = (symbol: string): string => {
-    if (symbol.includes(" from Ethereum")) {
-      return symbol.replace(" from Ethereum", "");
-    } else if (symbol.includes(" from PulseChain")) {
-      return symbol.replace(" from PulseChain", "");
-    }
-    return symbol;
-  };
-
   const getButtonText = () => {
     if (!account) return "Connect Wallet";
     if (isBridging) return "Bridging...";
     if (isApproving) return "Approving...";
-    if (!isSourceNetworkSupported) return "Direction Not Supported";
     if (estimate && !estimate.isSupported) return "Bridge Not Supported";
 
     // Check if user is on the correct source network
@@ -467,6 +437,9 @@ const BridgeCard: React.FC<BridgeCardProps> = ({
       if (currentBridgeTransaction.status === "executed") {
         return "Bridge Completed! Start New Bridge";
       } else if (currentBridgeTransaction.status === "pending") {
+        if (claimRequired) {
+          return "Claim required on Ethereum (coming soon)";
+        }
         const currentStep = getCurrentProgressStep();
         const stepName = getProgressStepName(currentStep);
         return `Bridge in Progress: ${stepName}`;
@@ -480,13 +453,11 @@ const BridgeCard: React.FC<BridgeCardProps> = ({
       return `Insufficient ${selectedTokenData?.symbol || "Balance"}`;
     }
 
-    // Check for Ethereum native token minimum amount (0.018 ETH)
+    // Minimum amount guard (applies to all tokens)
     if (isBelowMinimum) {
-      return `Amount must be greater than ${MIN_NATIVE_ETH_AMOUNT_DISPLAY} ETH`;
-    }
-
-    if (isBelowUsdMinimum) {
-      return `Amount must be at least $${MIN_BRIDGE_USD_AMOUNT}`;
+      const symbol = cleanTokenSymbol(selectedTokenData?.symbol || "");
+      const suffix = symbol ? ` ${symbol}` : "";
+      return `Amount must be greater than ${MIN_NATIVE_ETH_AMOUNT_DISPLAY}${suffix}`;
     }
 
     // Check if approval is needed (for non-native tokens)
@@ -515,12 +486,6 @@ const BridgeCard: React.FC<BridgeCardProps> = ({
 
   return (
     <div className="relative flex flex-col gap-6 rounded-2xl border border-border bg-bg-surface p-4 shadow-floating sm:p-8">
-      {!isSourceNetworkSupported && (
-        <div className="rounded-lg border border-warning bg-warning/10 p-3 text-sm text-warning">
-          {directionSupportMessage}
-        </div>
-      )}
-
       {error && (
         <div className="rounded-lg border border-danger bg-danger/10 p-3 text-sm text-danger">
           {error}
@@ -556,6 +521,13 @@ const BridgeCard: React.FC<BridgeCardProps> = ({
           onSwap={handleNavigateToSwap}
           pollingError={pollingError}
         />
+      )}
+
+      {claimRequired && (
+        <div className="rounded-lg border border-warning bg-warning/10 p-3 text-sm text-warning">
+          Claim is required on Ethereum to complete this bridge transfer. Claim
+          action in-app is coming next.
+        </div>
       )}
 
       {pollingError && (
@@ -639,9 +611,6 @@ const BridgeCard: React.FC<BridgeCardProps> = ({
                 tokenAddress={selectedTokenData?.address}
                 fromChainId={fromChainId}
                 selectedTokenData={selectedTokenData}
-                usdValue={usdEstimate}
-                usdMinimum={MIN_BRIDGE_USD_AMOUNT}
-                isBelowUsdMinimum={isBelowUsdMinimum}
                 onCopyAddress={async () => {
                   try {
                     await navigator.clipboard.writeText(
@@ -708,32 +677,32 @@ const BridgeCard: React.FC<BridgeCardProps> = ({
           </div>
         </div>
       )}
-      <motion.button
-        whileHover={{ scale: 1.01 }}
-        whileTap={{ scale: 0.99 }}
-        onClick={handleNetworkSwap}
-        disabled={true}
-        className="hidden cursor-not-allowed items-center justify-center rounded-xl border border-border bg-bg-page px-4 py-4 text-sm font-semibold text-text"
-      >
-        <div className="flex items-center gap-3">
-          <svg
-            className="w-5 h-5 text-text-muted"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
+      {showBridgeForm && (
+        <div className="flex justify-center">
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.96 }}
+            onClick={handleNetworkSwap}
+            disabled={swapDisabled}
+            className="flex h-12 w-12 items-center justify-center rounded-full border border-border bg-bg-page text-text transition hover:border-primary hover:text-primary disabled:cursor-not-allowed disabled:opacity-60"
+            aria-label="Swap networks and tokens"
           >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4"
-            />
-          </svg>
-          <span className="text-text-muted font-medium">
-            Swap Networks & Tokens
-          </span>
+            <svg
+              className="w-5 h-5"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4"
+              />
+            </svg>
+          </motion.button>
         </div>
-      </motion.button>
+      )}
 
       {showBridgeForm && (
         <div className="space-y-4">
@@ -772,31 +741,44 @@ const BridgeCard: React.FC<BridgeCardProps> = ({
             </div>
           </div>
 
-          <div className="rounded-xl border border-border bg-bg-surface p-4 shadow-sm">
-            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-              <div className="flex items-center space-x-3">
-                <TokenIcon
-                  token={{
-                    symbol: correspondingToken,
-                    logoURI: correspondingTokenData?.logoURI,
-                    image: correspondingTokenData?.logoURI,
-                  }}
-                  size={40}
-                />
+        <div className="rounded-xl border border-border bg-bg-surface p-4 shadow-sm">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-center space-x-3">
+              {correspondingTokenData ? (
+                <>
+                  <TokenIcon
+                    token={{
+                      symbol: correspondingTokenSymbol,
+                      logoURI: correspondingTokenData.logoURI,
+                      image: correspondingTokenData.logoURI,
+                    }}
+                    size={40}
+                  />
+                  <div>
+                    <div className="text-base font-semibold text-text">
+                      {correspondingTokenSymbol}
+                    </div>
+                    <div className="text-sm text-text-muted">
+                      {getNetworkName(toNetwork)}
+                    </div>
+                  </div>
+                </>
+              ) : (
                 <div>
                   <div className="text-base font-semibold text-text">
-                    {correspondingToken}
+                    Select a token
                   </div>
                   <div className="text-sm text-text-muted">
-                    {getNetworkName(toNetwork)}
+                    Destination token unavailable
                   </div>
                 </div>
-              </div>
+              )}
+            </div>
 
-              <div className="text-right">
-                {estimateLoading ? (
-                  <div className="flex items-center justify-center space-x-2">
-                    <div className="h-4 w-4 rounded-full border-2 border-primary border-t-transparent animate-spin"></div>
+            <div className="text-right">
+              {estimateLoading ? (
+                <div className="flex items-center justify-center space-x-2">
+                  <div className="h-4 w-4 rounded-full border-2 border-primary border-t-transparent animate-spin"></div>
                     <span className="text-sm text-text-muted">
                       Calculating...
                     </span>
@@ -813,7 +795,7 @@ const BridgeCard: React.FC<BridgeCardProps> = ({
                           : amount || "0.00"}
                       </span>
 
-                      {correspondingToken && correspondingTokenData && account && (
+                      {correspondingTokenData && account && (
                         <>
                           <motion.button
                             whileHover={{ scale: 1.05 }}
@@ -848,7 +830,7 @@ const BridgeCard: React.FC<BridgeCardProps> = ({
                           <AddToWalletButton
                             token={{
                               address: correspondingTokenData.address,
-                              symbol: cleanTokenSymbol(correspondingToken),
+                              symbol: cleanTokenSymbol(correspondingTokenSymbol),
                               decimals: correspondingTokenData.decimals,
                               chainId: toChainId,
                               logoURI: correspondingTokenData.logoURI,
@@ -872,7 +854,7 @@ const BridgeCard: React.FC<BridgeCardProps> = ({
                         {amount || "0.00"}
                       </span>
 
-                      {correspondingToken && correspondingTokenData && account && (
+                      {correspondingTokenData && account && (
                         <>
                           <motion.button
                             whileHover={{ scale: 1.05 }}
@@ -907,7 +889,7 @@ const BridgeCard: React.FC<BridgeCardProps> = ({
                           <AddToWalletButton
                             token={{
                               address: correspondingTokenData.address,
-                              symbol: cleanTokenSymbol(correspondingToken),
+                              symbol: cleanTokenSymbol(correspondingTokenSymbol),
                               decimals: correspondingTokenData.decimals,
                               chainId: toChainId,
                               logoURI: correspondingTokenData.logoURI,

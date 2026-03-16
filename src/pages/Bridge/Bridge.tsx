@@ -1,6 +1,7 @@
 import React, { useEffect, useCallback, useMemo } from "react";
 import { useAppDispatch, useAppSelector } from "../../store/hooks";
 import {
+  BridgeToken,
   fetchTokenPairs,
   setSelectedToken,
   setAmount,
@@ -59,9 +60,6 @@ const Bridge: React.FC = () => {
     gasCostWei,
     gasCostLoading,
   } = useAppSelector((state) => state.bridge);
-  const isSourceChainSupported = fromChainId === 1;
-  const unsupportedBridgeMessage =
-    "PulseBridge currently supports bridging from Ethereum to PulseChain only. Switch the source network to Ethereum to continue.";
   const [isBalanceRefreshing, setIsBalanceRefreshing] = useState(false);
 
   useEffect(() => {
@@ -71,10 +69,23 @@ const Bridge: React.FC = () => {
   // Default bridge token: ETH (=> WETH on PulseChain)
   useEffect(() => {
     if (!selectedToken && tokens && tokens.length > 0) {
-      // prefer ETH on Ethereum (chainId 1); fallback to WETH if needed
-      const preferred = ["ETH", "WETH"];
+      const preferred =
+        fromChainId === 369
+          ? [
+              "WETH from Ethereum",
+              "USDC from Ethereum",
+              "USDT from Ethereum",
+              "DAI from Ethereum",
+              "WBTC from Ethereum",
+            ]
+          : ["ETH", "WETH", "USDC", "USDT", "DAI", "WBTC"];
+
       const def = preferred
-        .map(sym => tokens.find(t => t.chainId === fromChainId && t.symbol === sym))
+        .map((sym) =>
+          tokens.find(
+            (t) => t.chainId === fromChainId && t.symbol === sym
+          )
+        )
         .find(Boolean);
 
       if (def) {
@@ -86,10 +97,22 @@ const Bridge: React.FC = () => {
   const debouncedFetchEstimate = useCallback(
     (() => {
       let timeoutId: NodeJS.Timeout;
-      return (tokenAddress: string, networkId: number, amount: string) => {
+      return (
+        tokenAddress: string,
+        networkId: number,
+        targetChainId: number,
+        amount: string
+      ) => {
         clearTimeout(timeoutId);
         timeoutId = setTimeout(() => {
-          dispatch(fetchBridgeEstimate({ tokenAddress, networkId, amount }));
+          dispatch(
+            fetchBridgeEstimate({
+              tokenAddress,
+              networkId,
+              targetChainId,
+              amount,
+            })
+          );
         }, 300);
       };
     })(),
@@ -108,7 +131,6 @@ const Bridge: React.FC = () => {
   // Fetch estimate when token, network, or amount changes
   useEffect(() => {
     if (
-      !isSourceChainSupported ||
       !selectedToken ||
       !amount ||
       !hasPositiveAmount(amount, selectedToken.decimals)
@@ -118,13 +140,18 @@ const Bridge: React.FC = () => {
     }
 
     const amountInWei = convertToWei(amount, selectedToken.decimals);
-    debouncedFetchEstimate(selectedToken.address, fromChainId, amountInWei);
+    debouncedFetchEstimate(
+      selectedToken.address,
+      fromChainId,
+      toChainId,
+      amountInWei
+    );
   }, [
     selectedToken,
     fromChainId,
+    toChainId,
     amount,
     debouncedFetchEstimate,
-    isSourceChainSupported,
   ]);
 
   // Fetch balance when token or chain changes
@@ -158,7 +185,7 @@ const Bridge: React.FC = () => {
   }, [selectedToken, account, balanceLoading, fromChainId, dispatch]);
 
   useEffect(() => {
-    if (!account || !selectedToken || !isSourceChainSupported) {
+    if (!account || !selectedToken) {
       dispatch(clearGasCost());
       return;
     }
@@ -166,11 +193,20 @@ const Bridge: React.FC = () => {
     const hasUsableAmount =
       !!amount && hasPositiveAmount(amount, selectedToken.decimals);
 
+    const minForToken = (() => {
+      const base = MIN_NATIVE_ETH_AMOUNT_WEI;
+      const decimals = BigInt(selectedToken.decimals ?? 18);
+      if (decimals === 18n) return base;
+      if (decimals > 18n) {
+        return base * 10n ** (decimals - 18n);
+      }
+      const divisor = 10n ** (18n - decimals);
+      return base / divisor;
+    })();
+
     const amountInWei = hasUsableAmount
       ? convertToWei(amount, selectedToken.decimals)
-      : selectedToken.address === ZeroAddress
-        ? MIN_NATIVE_ETH_AMOUNT_WEI.toString()
-        : "1";
+      : minForToken.toString();
 
     dispatch(
       fetchBridgeGasCost({
@@ -186,18 +222,12 @@ const Bridge: React.FC = () => {
     selectedToken,
     amount,
     fromChainId,
-    isSourceChainSupported,
     dispatch,
   ]);
 
   // Check if approval is needed when token or amount changes
   useEffect(() => {
     const checkApprovalStatus = async () => {
-      if (!isSourceChainSupported) {
-        dispatch(setNeedsApproval(false));
-        return;
-      }
-
       if (
         selectedToken &&
         amount &&
@@ -237,7 +267,6 @@ const Bridge: React.FC = () => {
     account,
     fromChainId,
     dispatch,
-    isSourceChainSupported,
   ]);
 
   const handleNetworkSwap = () => {
@@ -265,13 +294,6 @@ const Bridge: React.FC = () => {
       return;
     }
 
-    if (!isSourceChainSupported) {
-      console.error(
-        "Bridge direction not supported. Switch source to Ethereum."
-      );
-      return;
-    }
-
     dispatch(clearTransactionHash());
 
     dispatch(
@@ -289,27 +311,23 @@ const Bridge: React.FC = () => {
     return chainId === 1 ? 'ETH' : 'PLS';
   };
 
-  const getNetworkDisplayName = (chainId: number) => {
-    return chainId === 1 ? "Ethereum" : "PulseChain";
-  };
+  const getCorrespondingToken = (
+    token: BridgeToken | null,
+    targetChainId: number
+  ): BridgeToken | null => {
+    if (!token || !tokenPairs.length) return null;
 
-  const getCorrespondingToken = (selectedTokenSymbol: string, toChainId: number) => {
-    if (!selectedToken || !tokenPairs.length || !selectedTokenSymbol) return "";
-
-    const pair = tokenPairs.find(pair =>
-      pair.from.symbol === selectedTokenSymbol ||
-      pair.to.symbol === selectedTokenSymbol
+    const pair = tokenPairs.find(
+      (pair) =>
+        pair.from.chainId === token.chainId &&
+        pair.from.address.toLowerCase() === token.address.toLowerCase() &&
+        pair.to.chainId === targetChainId
     );
 
-    if (!pair) {
-      return selectedTokenSymbol;
-    }
-
-    const correspondingToken = toChainId === 1 ? pair.from.symbol : pair.to.symbol;
-    return correspondingToken;
+    return pair ? pair.to : null;
   };
 
-  const correspondingToken = getCorrespondingToken(selectedToken?.symbol || "", toChainId);
+  const correspondingToken = getCorrespondingToken(selectedToken, toChainId);
 
   const {
     ethFloat,
@@ -396,10 +414,6 @@ const Bridge: React.FC = () => {
               bridgeTransaction={bridgeTransaction}
               bridgeTransactionLoading={bridgeTransactionLoading}
               bridgeTransactionError={bridgeTransactionError}
-              isSourceNetworkSupported={isSourceChainSupported}
-              unsupportedReason={
-                isSourceChainSupported ? undefined : unsupportedBridgeMessage
-              }
             />
           </div>
 

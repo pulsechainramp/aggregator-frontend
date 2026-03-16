@@ -5,6 +5,10 @@ export const BridgeManagerAddress =
   "0x1715a3E4A142d8b698131108995174F37aEBA10D";
 export const BridgeManagerAddressForNative =
   "0x8AC4ae65b3656e26dC4e0e69108B392283350f55";
+export const BridgeManagerAddressPulse =
+  "0x4fd0aaa7506f3d9cb8274bdb946ec42a1b8751ef";
+export const BridgeManagerAddressForNativePulse =
+  "0x0e18d0d556b652794ef12bf68b2dc857ef5f3996";
 const requireEnv = (key: string): string => {
   const value = import.meta.env[key];
   if (!value || typeof value !== "string" || value.trim().length === 0) {

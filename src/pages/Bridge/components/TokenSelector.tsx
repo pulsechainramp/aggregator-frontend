@@ -69,20 +69,24 @@ const TokenSelector: React.FC<TokenSelectorProps> = ({
   const [isOpen, setIsOpen] = useState(false);
   const selectorRef = useRef<HTMLDivElement>(null);
   const priorityOrder = useMemo(
-    () => ["ETH", "USDC", "USDT", "DAI", "WBTC", "WETH"],
+    () => ["WETH", "USDC", "USDT", "DAI", "WBTC", "ETH"],
     []
   );
+  const cleanSymbol = (symbol: string) =>
+    symbol.replace(/ from (Ethereum|PulseChain)/i, "").replace(/\s*\(OLD\)/i, "").toUpperCase();
   const sortedTokens = useMemo(() => {
     const priorityIndex = new Map(priorityOrder.map((sym, idx) => [sym, idx]));
     return [...tokens].sort((a, b) => {
-      const aPriority = priorityIndex.has(a.symbol)
-        ? priorityIndex.get(a.symbol)!
+      const aClean = cleanSymbol(a.symbol);
+      const bClean = cleanSymbol(b.symbol);
+      const aPriority = priorityIndex.has(aClean)
+        ? priorityIndex.get(aClean)!
         : priorityOrder.length;
-      const bPriority = priorityIndex.has(b.symbol)
-        ? priorityIndex.get(b.symbol)!
+      const bPriority = priorityIndex.has(bClean)
+        ? priorityIndex.get(bClean)!
         : priorityOrder.length;
       if (aPriority !== bPriority) return aPriority - bPriority;
-      return a.symbol.localeCompare(b.symbol);
+      return aClean.localeCompare(bClean);
     });
   }, [tokens, priorityOrder]);
 
@@ -148,14 +152,14 @@ const TokenSelector: React.FC<TokenSelectorProps> = ({
                 }}
                 size={40}
               />
-              <div className="text-left">
+              <div className="text-left min-w-0">
                 <FlowingText
                   text={selectedTokenData.symbol}
-                  className="max-w-[120px] text-base font-semibold text-text"
+                  className="max-w-[180px] text-base font-semibold text-text"
                 />
                 <FlowingText
                   text={selectedTokenData.name}
-                  className="max-w-[120px] text-sm text-text-muted"
+                  className="max-w-[180px] text-sm text-text-muted"
                 />
               </div>
             </>
@@ -233,11 +237,11 @@ const TokenSelector: React.FC<TokenSelectorProps> = ({
                     <div className="min-w-0 flex-1 text-left">
                       <FlowingText
                         text={token.symbol}
-                        className="max-w-[100px] text-sm font-semibold text-text"
+                        className="max-w-[160px] text-sm font-semibold text-text"
                       />
                       <FlowingText
                         text={token.name}
-                        className="max-w-[100px] text-xs text-text-muted"
+                        className="max-w-[160px] text-xs text-text-muted"
                       />
                     </div>
                     {token.tags?.includes('verified') && (

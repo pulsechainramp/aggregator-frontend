@@ -115,6 +115,11 @@ const BridgeTransactionProgress: React.FC<
 
   const isExecuted = bridgeTransaction.status === "executed";
   const isFailed = bridgeTransaction.status === "failed";
+  const isClaimRequired =
+    bridgeTransaction.status === "pending" &&
+    (bridgeTransaction.isClaimable ||
+      bridgeTransaction.statusDetail === "claim_required");
+  const targetChainName = getChainName(bridgeTransaction.targetChainId);
 
   const blockProgress = useMemo(() => {
     const createdAt = new Date(bridgeTransaction.createdAt).getTime();
@@ -172,7 +177,9 @@ const BridgeTransactionProgress: React.FC<
   const primaryMessage = isFailed
     ? "Needs attention - contact support."
     : isExecuted
-    ? "Delivered - your funds are on PulseChain."
+    ? `Delivered - your funds are on ${targetChainName}.`
+    : isClaimRequired
+    ? "Claim required - finalize on Ethereum to receive funds."
     : blockProgress.overtimeRatio > 0.5
     ? "Still processing - taking longer than usual."
     : `Bridge in progress - ${formatEta(
@@ -185,6 +192,8 @@ const BridgeTransactionProgress: React.FC<
     ? "We hit an issue submitting the payout. Please open a support ticket."
     : isExecuted
     ? "Ready for your next step."
+    : isClaimRequired
+    ? "Your transfer is ready to be claimed on Ethereum."
     : blockProgress.overtimeRatio > 0.5
     ? "Hang tight. We're still relaying your funds."
     : "This runs in the background. You can start another bridge now.";
@@ -198,6 +207,11 @@ const BridgeTransactionProgress: React.FC<
     ? {
         text: "Delivered",
         classes: "bg-success/10 text-success border-success/50",
+      }
+    : isClaimRequired
+    ? {
+        text: "Claim required",
+        classes: "bg-warning/10 text-warning border-warning/40",
       }
     : {
         text: "In progress",
@@ -213,6 +227,7 @@ const BridgeTransactionProgress: React.FC<
   const overtimeMessage =
     !isExecuted &&
     !isFailed &&
+    !isClaimRequired &&
     blockProgress.overtimeRatio > 0.5 &&
     "It's taking longer than usual. Check troubleshooting.";
 
@@ -225,6 +240,8 @@ const BridgeTransactionProgress: React.FC<
     ? "Needs attention"
     : isExecuted
     ? "Delivered"
+    : isClaimRequired
+    ? "Claim required"
     : blockProgress.overtimeRatio > 0.5
     ? "Taking longer than usual"
     : etaCopy || undefined;
@@ -707,7 +724,7 @@ const BridgeTransactionProgress: React.FC<
                   </strong>{" "}
                   of {blockProgress.totalBlocks}
                 </span>
-                {!isExecuted && (
+                {!isExecuted && !isClaimRequired && (
                   <span>
                     ~{formatMinutes(blockProgress.timeRemainingMs)} remaining
                   </span>
