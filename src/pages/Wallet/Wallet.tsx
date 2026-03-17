@@ -1,8 +1,12 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
+import { toast } from "react-toastify";
 import cryptosteelIcon from "../../assets/cryptosteel.png";
 import internetMoneyIcon from "../../assets/internet-money.png";
 import trezorIcon from "../../assets/trezor.png";
+import useWallet from "../../hooks/useWallet";
+import { PulseChainConfig, PulseChainWalletSetup } from "../../config/chainConfig";
+import { requestAddChainToWallet } from "../../utils/walletUtils";
 
 type WalletEntry = {
   name: string;
@@ -71,6 +75,11 @@ const HARDWARE_WALLETS: WalletEntry[] = [
   },
 ];
 
+type NetworkStatus = {
+  tone: "success" | "warning" | "error";
+  text: string;
+};
+
 const detectMobileDevice = () => {
   if (typeof navigator === "undefined") {
     return false;
@@ -82,13 +91,86 @@ const detectMobileDevice = () => {
 
 const Wallet = () => {
   const [isMobile, setIsMobile] = useState<boolean>(() => detectMobileDevice());
+  const [isAddingNetwork, setIsAddingNetwork] = useState(false);
+  const [networkStatus, setNetworkStatus] = useState<NetworkStatus | null>(null);
+  const [showManualSetup, setShowManualSetup] = useState(false);
+  const { wallet } = useWallet();
 
   useEffect(() => {
     setIsMobile(detectMobileDevice());
   }, []);
 
   const wallets = isMobile ? MOBILE_WALLETS : DESKTOP_WALLETS;
-  const deviceLabel = isMobile ? "mobile" : "desktop";
+  const pulsechainSettings = useMemo(
+    () => [
+      { label: "Network Name", value: PulseChainWalletSetup.chainName },
+      { label: "RPC URL", value: PulseChainWalletSetup.rpcUrls[0] },
+      { label: "Chain ID", value: PulseChainWalletSetup.chainId.toString() },
+      { label: "Currency Symbol", value: PulseChainWalletSetup.nativeCurrency.symbol },
+      { label: "Block Explorer URL", value: PulseChainWalletSetup.blockExplorerUrls[0] },
+    ],
+    []
+  );
+
+  const copyText = async (value: string, label: string) => {
+    try {
+      await navigator.clipboard.writeText(value);
+      toast.success(`${label} copied`);
+    } catch {
+      toast.error(`Could not copy ${label.toLowerCase()}`);
+    }
+  };
+
+  const handleAddPulseChain = async () => {
+    setIsAddingNetwork(true);
+    setNetworkStatus(null);
+
+    const result = await requestAddChainToWallet(PulseChainConfig.chainId, {
+      provider: wallet?.provider as any,
+    });
+
+    if (result.ok) {
+      setNetworkStatus({
+        tone: "success",
+        text: "PulseChain is available in your wallet.",
+      });
+      toast.success("PulseChain is available in your wallet");
+      setIsAddingNetwork(false);
+      return;
+    }
+
+    const statusByReason: Record<"no_provider" | "unsupported" | "failed", NetworkStatus> = {
+      no_provider: {
+        tone: "warning",
+        text: "No compatible wallet was detected in this browser. Install a wallet first or use the manual setup button below.",
+      },
+      unsupported: {
+        tone: "warning",
+        text: "This wallet does not support one-click network setup. Use the manual setup button below.",
+      },
+      failed: {
+        tone: "error",
+        text: "We could not add PulseChain automatically. Use the manual setup button below.",
+      },
+    };
+
+    if (result.reason === "rejected") {
+      setIsAddingNetwork(false);
+      return;
+    }
+
+    setNetworkStatus(statusByReason[result.reason]);
+    if (result.reason === "failed") {
+      toast.error("Could not add PulseChain automatically");
+      setShowManualSetup(true);
+    } else if (result.reason === "unsupported") {
+      toast.info("Use the manual PulseChain settings below");
+      setShowManualSetup(true);
+    } else if (result.reason === "no_provider") {
+      setShowManualSetup(true);
+    }
+    setIsAddingNetwork(false);
+  };
 
   const renderWalletList = (list: WalletEntry[]) => (
     <ul className="mt-4 space-y-3">
@@ -189,6 +271,80 @@ const Wallet = () => {
             </p>
           </div>
           {renderWalletList(wallets)}
+        </section>
+
+        <section className="space-y-4 rounded-3xl border border-border bg-bg-surface p-6 shadow-sm">
+          <div className="space-y-2">
+            <p className="text-sm font-semibold text-primary">Add PulseChain Network</p>
+            <h2 className="text-2xl font-bold text-text">Set up PulseChain in your wallet</h2>
+            <p className="text-sm text-text-muted">
+              Internet Money already supports PulseChain. If you use MetaMask, Rabby, or another EVM wallet, install the wallet first, then click the button below. If your wallet does not pop up, use Manual Setup below.
+            </p>
+          </div>
+
+          <div className="flex flex-col gap-3 sm:flex-row">
+            <button
+              type="button"
+              onClick={handleAddPulseChain}
+              disabled={isAddingNetwork}
+              className="inline-flex w-full items-center justify-center rounded-xl border border-primary bg-primary px-5 py-3 text-base font-semibold text-white transition-all hover:-translate-y-0.5 hover:bg-primary-600 disabled:cursor-not-allowed disabled:opacity-70 sm:w-auto"
+            >
+              {isAddingNetwork ? "Adding PulseChain..." : "Add PulseChain to My Wallet"}
+            </button>
+            <button
+              type="button"
+              onClick={() => setShowManualSetup((current) => !current)}
+              className="inline-flex w-full items-center justify-center rounded-xl border border-border bg-bg-page px-5 py-3 text-base font-semibold text-text transition-all hover:-translate-y-0.5 hover:border-primary hover:text-primary sm:w-auto"
+            >
+              {showManualSetup ? "Hide Manual Setup" : "Show Manual Setup"}
+            </button>
+          </div>
+
+          {networkStatus ? (
+            <div
+              className={`rounded-2xl border px-4 py-3 text-sm ${
+                networkStatus.tone === "success"
+                  ? "border-success/30 bg-success/10 text-text"
+                  : networkStatus.tone === "warning"
+                  ? "border-warning/30 bg-warning/10 text-text"
+                  : "border-danger/30 bg-danger/10 text-text"
+              }`}
+            >
+              {networkStatus.text}
+            </div>
+          ) : null}
+
+          {showManualSetup ? (
+            <div className="rounded-2xl border border-border bg-bg-page/80 p-4">
+              <p className="text-sm font-semibold text-text">Manual setup</p>
+              <p className="mt-1 text-sm text-text-muted">
+                If your wallet does not pop up, open your wallet, find <span className="font-medium text-text">Networks</span> or <span className="font-medium text-text">Add Custom Network</span>, then enter these details:
+              </p>
+
+              <div className="mt-4 space-y-3">
+                {pulsechainSettings.map((entry) => (
+                  <div
+                    key={entry.label}
+                    className="flex flex-col gap-2 rounded-xl border border-border bg-bg-surface px-3 py-3 sm:flex-row sm:items-center sm:justify-between"
+                  >
+                    <div className="min-w-0">
+                      <p className="text-xs font-semibold uppercase tracking-wide text-text-muted">
+                        {entry.label}
+                      </p>
+                      <p className="mt-1 break-all font-mono text-sm text-text">{entry.value}</p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => copyText(entry.value, entry.label)}
+                      className="inline-flex items-center justify-center rounded-lg border border-border bg-bg-page px-3 py-2 text-sm font-semibold text-text transition-colors hover:border-primary hover:text-primary sm:ml-4 sm:w-auto"
+                    >
+                      Copy
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : null}
         </section>
 
         <section className="space-y-3 rounded-3xl border border-border bg-bg-surface p-6 shadow-sm">

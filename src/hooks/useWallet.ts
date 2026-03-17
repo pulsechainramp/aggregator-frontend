@@ -1,6 +1,7 @@
 import { useConnectWallet } from "@web3-onboard/react";
 import { useCallback, useEffect, useState } from "react";
 import { PulseChainConfig, EthereumConfig } from "../config/chainConfig";
+import { addChainToWallet } from "../utils/walletUtils";
 
 const useWallet = () => {
   const [{ wallet }, connect, disconnect] = useConnectWallet();
@@ -44,38 +45,12 @@ const useWallet = () => {
     async (chainId: number) => {
       if (!wallet?.provider) return;
 
-      const chainConfig = chainId === 1 ? EthereumConfig : PulseChainConfig;
+      const result = await addChainToWallet(chainId, {
+        provider: wallet.provider as any,
+      });
 
-      try {
-        await wallet.provider.request({
-              method: "wallet_switchEthereumChain",
-          params: [{ chainId: `0x${chainId.toString(16)}` }],
-            });
-      } catch (error) {
-        console.error(`Failed to switch to chain ${chainId}:`, error);
-        try {
-          const provider = wallet.provider;
-          if (provider && provider.request) {
-            await wallet.provider.request({
-              method: "wallet_addEthereumChain",
-              params: [
-                {
-                  chainId: chainConfig.chainIdHex,
-                  chainName: chainConfig.chainName,
-                  nativeCurrency: {
-                    name: chainConfig.chainSymbol,
-                    symbol: chainConfig.chainSymbol,
-                    decimals: 18,
-                  },
-                  rpcUrls: chainConfig.providerList,
-                  blockExplorerUrls: [chainConfig.explorerUrl],
-                },
-              ],
-            });
-          }
-        } catch (addError) {
-          console.error(`Failed to add chain ${chainId}:`, error);
-        }
+      if (!result.ok && result.reason !== "rejected") {
+        console.error(`Failed to switch to chain ${chainId}:`, result.error);
       }
     },
     [wallet]
