@@ -151,7 +151,7 @@ const ReferralFeePopup: React.FC<ReferralFeePopupProps> = ({ isOpen, onClose }) 
     <AnimatePresence>
       {isOpen && (
         <motion.div 
-          className="fixed inset-0 z-50 flex items-center justify-center bg-overlay"
+          className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-overlay p-3 sm:items-center sm:p-4"
           onClick={onClose}
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -159,7 +159,7 @@ const ReferralFeePopup: React.FC<ReferralFeePopupProps> = ({ isOpen, onClose }) 
           transition={{ duration: 0.2 }}
         >
           <motion.div 
-            className="w-96 max-w-[90vw] rounded-2xl border border-border bg-bg-surface p-6 shadow-floating"
+            className="my-4 w-full max-w-md max-h-[calc(100dvh-1.5rem)] overflow-y-auto rounded-2xl border border-border bg-bg-surface p-6 shadow-floating sm:my-0 sm:max-h-[90vh]"
             onClick={(e) => e.stopPropagation()}
             initial={{ opacity: 0, scale: 0.9, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
