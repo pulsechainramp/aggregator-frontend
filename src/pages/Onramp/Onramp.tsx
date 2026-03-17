@@ -283,7 +283,7 @@ export default function Onramp() {
           <section className="rounded-xl border border-border bg-bg-surface p-5 text-center shadow-sm">
             <h2 className="text-xl font-semibold text-text">Ready for the next step?</h2>
             <p className="mt-2 text-sm text-text-muted">
-              Once your ETH or stablecoins arrive, bridge them to PulseChain to start using the ecosystem.
+              Before you bridge, send your ETH or stablecoins from the exchange to your own wallet. Once the funds arrive there, bridge them to PulseChain.
             </p>
             <Link
               to="/bridge"
