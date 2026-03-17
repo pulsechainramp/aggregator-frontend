@@ -165,7 +165,7 @@ const Header = () => {
         initial={{ y: -20, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         transition={{ type: "spring", stiffness: 120, damping: 22 }}
-        className="sticky top-0 z-50 border-b border-border bg-bg-surface/95 backdrop-blur-sm shadow-sm"
+        className="sticky top-0 z-50 border-b border-border bg-bg-surface shadow-sm"
       >
         <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-3 sm:px-6 lg:px-8">
           <div className="flex items-center gap-6">
