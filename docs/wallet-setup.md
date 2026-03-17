@@ -1,7 +1,8 @@
 # Wallet Setup
 
 > ### Key Points
-> - Pick a trusted wallet: Rabby (desktop), MetaMask (desktop/mobile), or Coinbase Wallet (mobile).
+> - Start with Internet Money as the default wallet for new PulseChain users.
+> - Rabby and MetaMask are solid secondary alternatives if you already use them.
 > - Write your recovery phrase on paper and store it offline.
 > - Add PulseChain so balances show up as soon as funds arrive.
 
@@ -9,7 +10,7 @@
 - Computer or phone / Ten minutes / Safe place to store your phrase
 
 **Steps**
-1. Install the wallet from the official site or app store.
+1. Install Internet Money from the official site or app store. If you already prefer another EVM wallet, Rabby or MetaMask also work.
 2. Create a new wallet and back up the recovery phrase immediately.
 3. Set a strong password or biometric lock for daily use.
 4. Connect your wallet inside PulseChainRamp.

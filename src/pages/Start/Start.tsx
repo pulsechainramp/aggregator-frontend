@@ -203,7 +203,7 @@ const Start = () => {
         id: "wallet",
         title: "Wallet",
         description:
-          "Install a self-custody wallet (like Rabby or MetaMask) and back up your recovery phrase.",
+          "Install a self-custody wallet and back up your recovery phrase.",
         href: "/wallet",
         cta: "Set Up My Wallet",
         done: walletComplete,

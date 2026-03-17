@@ -46,9 +46,9 @@ const walletConnect = walletConnectModule({
 });
 
 const wallets = [
+  internetMoneyWallet,
   rabbyWallet,
   metamaskWallet,
-  internetMoneyWallet,
   trustWallet,
   okxWallet,
   braveWallet,
@@ -79,9 +79,9 @@ const web3Onboard = init({
     name: "PulseChainRamp",
     description: "PulseChain - Swap & Bridge",
     recommendedInjectedWallets: [
+      { name: "Internet Money", url: "https://internetmoney.io/" },
       { name: "Rabby Wallet", url: "https://rabby.io/" },
       { name: "MetaMask", url: "https://metamask.io" },
-      { name: "Internet Money", url: "https://internetmoney.io/" },
       { name: "Trust Wallet", url: "https://trustwallet.com" },
       { name: "OKX Wallet", url: "https://www.okx.com/web3" },
       { name: "Brave Wallet", url: "https://brave.com/wallet/" },

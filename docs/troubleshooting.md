@@ -25,4 +25,4 @@
 - **Wrong network** - Switch back to Ethereum for bridge deposits or PulseChain for swaps. Use the network selector inside your wallet.
 - **No PLS for gas** - Use a friend, faucet, or a tiny bridge to get a bit of PLS before continuing.
 - **Token not visible** - Add the token manually or press "Add to wallet" from the Wallet page.
-- **Nonce stuck** - Send a zero-value transaction with higher gas using the same nonce to clear it, or use the "reset account" option in MetaMask.
+- **Nonce stuck** - Send a zero-value transaction with higher gas using the same nonce to clear it, or use the reset or clear-activity tools if your wallet provides them, such as Internet Money or MetaMask.

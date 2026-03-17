@@ -19,7 +19,7 @@
 2. **Why is my swap failing?** Slippage too low or allowance stuck. Review Swap Guide and Allowances.
 3. **Where do referral rewards go?** Directly to the wallet tied to your code. Claim from Referrals page.
 4. **Do I need PLS before swapping?** Yes-keep a tiny PLS balance for gas. See Swap Guide.
-5. **Can I use a hardware wallet?** Yes via MetaMask or Rabby. Approve and confirm like normal.
+5. **Can I use a hardware wallet?** Yes, through a compatible wallet connection. Internet Money, MetaMask or Rabby are common hardware-wallet routes.
 6. **Gas feels expensive-what can I do?** Wait for calmer network times or use stables with lower gas. See Fees & Limits.
 7. **Bridge shows success but balance is missing.** Add the token contract in your wallet or refresh the Wallet page.
 8. **I bridged to the wrong address.** Transactions are final; contact support with hashes, but funds are likely unrecoverable..

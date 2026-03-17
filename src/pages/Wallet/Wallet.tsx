@@ -9,9 +9,17 @@ type WalletEntry = {
   description: string;
   href: string;
   icon: string;
+  recommended?: boolean;
 };
 
 const DESKTOP_WALLETS: WalletEntry[] = [
+  {
+    name: "Internet Money",
+    description: "Recommended for most new PulseChain users getting started.",
+    href: "https://internetmoney.io/",
+    icon: internetMoneyIcon,
+    recommended: true,
+  },
   {
     name: "Rabby Wallet",
     description: "Secure browser extension for Chrome/Brave.",
@@ -24,33 +32,28 @@ const DESKTOP_WALLETS: WalletEntry[] = [
     href: "https://metamask.io/download/",
     icon: "/icons/metamask.svg",
   },
-  {
-    name: "Internet Money",
-    description: "PulseChain-focused browser wallet.",
-    href: "https://internetmoney.io/",
-    icon: internetMoneyIcon,
-  },
 ];
 
 const MOBILE_WALLETS: WalletEntry[] = [
   {
+    name: "Internet Money",
+    description: "Recommended for most new PulseChain users getting started.",
+    href: "https://internetmoney.io/",
+    icon: internetMoneyIcon,
+    recommended: true,
+  },
+  {
     name: "Rabby",
-    description: "Pair to the Rabby extension via QR for mobile signing.",
+    description: "Secondary choice for users who already prefer Rabby.",
     href: "https://rabby.io/",
     icon: "/icons/rabby.svg",
   },
   {
     name: "MetaMask",
-    description: "Swipe-friendly MetaMask app for Android and iOS.",
+    description: "Popular mobile alternative if you already use MetaMask elsewhere.",
     href: "https://metamask.io/download/",
     icon: "/icons/metamask.svg",
-  },
-  {
-    name: "Internet Money",
-    description: "Mobile wallet built for PulseChain users.",
-    href: "https://internetmoney.io/",
-    icon: internetMoneyIcon,
-  },
+  }
 ];
 
 const HARDWARE_WALLETS: WalletEntry[] = [
@@ -91,11 +94,16 @@ const Wallet = () => {
     <ul className="mt-4 space-y-3">
       {list.map((wallet) => {
         const isRabby = wallet.icon.includes("rabby");
+        const isRecommended = Boolean(wallet.recommended);
 
         return (
           <li
             key={wallet.name}
-            className="flex w-full flex-col gap-3 sm:gap-4 rounded-2xl border border-border bg-bg-page/80 px-4 py-3 sm:flex-row sm:items-center sm:justify-between"
+            className={`flex w-full flex-col gap-3 sm:gap-4 rounded-2xl px-4 py-3 sm:flex-row sm:items-center sm:justify-between ${
+              isRecommended
+                ? "border border-primary bg-primary-050/40 shadow-floating"
+                : "border border-border bg-bg-page/80"
+            }`}
           >
             <div className="flex w-full min-w-0 items-center gap-2 sm:gap-3">
               <div
@@ -113,16 +121,23 @@ const Wallet = () => {
                 )}
               </div>
               <div className="flex-1 min-w-0">
-                <a
-                  href={wallet.href}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="font-semibold text-text transition-colors hover:text-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus sm:truncate"
-                >
-                  {wallet.name}
-                </a>
+                <div className="flex flex-wrap items-center gap-2">
+                  <a
+                    href={wallet.href}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="font-semibold text-text transition-colors hover:text-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus sm:truncate"
+                  >
+                    {wallet.name}
+                  </a>
+                  {isRecommended ? (
+                    <span className="inline-flex items-center rounded-full border border-primary/30 bg-primary/10 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide text-primary">
+                      Recommended
+                    </span>
+                  ) : null}
+                </div>
                 {wallet.description ? (
-                  <p className="mt-0.5 text-sm text-text-muted hidden sm:block">
+                  <p className={`mt-0.5 text-sm ${isRecommended ? "text-text" : "text-text-muted"}`}>
                     {wallet.description}
                   </p>
                 ) : null}
