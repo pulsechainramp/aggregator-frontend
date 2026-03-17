@@ -569,7 +569,7 @@ const TokenPopup: React.FC<TokenPopupProps> = ({
                       )}
                     </div>
                   </div>
-                  <div className="flex justify-end pt-2 shrink-0">
+                  <div className="flex justify-center pt-2 shrink-0 sm:justify-end">
                     <button
                       type="button"
                       onClick={handleClearCustomTokens}
@@ -691,7 +691,7 @@ const TokenPopup: React.FC<TokenPopupProps> = ({
                       </ul>
                     )}
                   </div>
-                  <div className="mt-1 flex justify-end shrink-0">
+                  <div className="mt-1 flex justify-center shrink-0 sm:justify-end">
                     <button
                       type="button"
                       onClick={() => {
